@@ -544,6 +544,27 @@ export async function markSetCompleted(
   return updateSet(sessionId, exerciseLogId, setId, { completed })
 }
 
+export async function updateExerciseNote(
+  sessionId: string,
+  exerciseLogId: string,
+  note: string,
+): Promise<WorkoutSession> {
+  const session = await getSessionById(sessionId)
+  if (!session) throw new Error('Sesión no encontrada')
+  if (session.status !== 'in_progress') {
+    throw new Error('La sesión ya está finalizada')
+  }
+
+  const trimmed = note.trim()
+  const exercises = session.exercises.map((ex) =>
+    ex.id === exerciseLogId
+      ? { ...ex, note: trimmed ? trimmed : undefined }
+      : ex,
+  )
+
+  return saveSession({ ...session, exercises })
+}
+
 /**
  * Copia el peso de la última vez a las series de hoy.
  * Deja reps y RIR vacíos (null).

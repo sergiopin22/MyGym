@@ -176,6 +176,12 @@ export function HistoryDetailPage() {
                   </li>
                 ))}
               </ul>
+              {ex.note ? (
+                <p className="rounded-xl bg-brand-soft px-3 py-2 text-sm text-fg">
+                  <span className="font-semibold">Nota: </span>
+                  {ex.note}
+                </p>
+              ) : null}
             </Card>
           </li>
         ))}

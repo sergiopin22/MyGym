@@ -74,6 +74,8 @@ export interface ExerciseLog {
   status: ExerciseStatus
   sets: SetLog[]
   completedAt?: number
+  /** Nota opcional del día (cómo se sintió, dolor, etc.) */
+  note?: string
 }
 
 export interface WorkoutSession {

@@ -7,6 +7,7 @@ import {
   applyPreviousWeights,
   getLastExercisePerformance,
   getRecentImprovements,
+  updateExerciseNote,
   updateSet,
 } from '../../db/repository'
 import type {
@@ -34,6 +35,13 @@ export function WorkoutExerciseCard({
   const [toast, setToast] = useState<Improvement | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [noteDraft, setNoteDraft] = useState(exercise.note ?? '')
+  const [noteOpen, setNoteOpen] = useState(Boolean(exercise.note))
+
+  useEffect(() => {
+    setNoteDraft(exercise.note ?? '')
+    if (exercise.note) setNoteOpen(true)
+  }, [exercise.id, exercise.note])
 
   useEffect(() => {
     if (!toast) return
@@ -87,6 +95,20 @@ export function WorkoutExerciseCard({
       setError(err instanceof Error ? err.message : 'Sin historial previo')
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function saveNote() {
+    if (session.status !== 'in_progress') return
+    const next = noteDraft.trim()
+    const current = (exercise.note ?? '').trim()
+    if (next === current) return
+    setError(null)
+    try {
+      const updated = await updateExerciseNote(session.id, exercise.id, next)
+      onSessionChange(updated)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo guardar la nota')
     }
   }
 
@@ -171,6 +193,40 @@ export function WorkoutExerciseCard({
       ) : null}
 
       {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
+
+      {session.status === 'in_progress' ? (
+        <div className="space-y-2">
+          {!noteOpen && !noteDraft ? (
+            <Button
+              variant="ghost"
+              className="min-h-11 px-3 text-sm"
+              onClick={() => setNoteOpen(true)}
+            >
+              Añadir nota (opcional)
+            </Button>
+          ) : (
+            <label className="block space-y-1.5">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+                Nota para el coach (opcional)
+              </span>
+              <textarea
+                value={noteDraft}
+                rows={2}
+                maxLength={280}
+                placeholder="Ej. me dolió el hombro, se sintió fácil…"
+                className="w-full rounded-2xl border border-line bg-surface px-4 py-3 text-base text-fg outline-none placeholder:text-muted/70 focus:border-brand focus:ring-2 focus:ring-brand/25"
+                onChange={(e) => setNoteDraft(e.target.value)}
+                onBlur={() => void saveNote()}
+              />
+            </label>
+          )}
+        </div>
+      ) : exercise.note ? (
+        <p className="rounded-2xl bg-surface px-3 py-3 text-sm text-fg">
+          <span className="font-semibold">Nota: </span>
+          {exercise.note}
+        </p>
+      ) : null}
 
       <ul className="space-y-4">
         {exercise.sets.map((set) => (

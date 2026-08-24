@@ -50,12 +50,16 @@ export function formatWorkoutForCoach(session: WorkoutSession): string {
     const setLines = ex.sets
       .map(formatSetLine)
       .filter((line): line is string => line !== null)
+    const note = ex.note?.trim()
 
-    if (setLines.length === 0) continue
+    if (setLines.length === 0 && !note) continue
 
     exerciseBlocks++
     lines.push(ex.name)
     lines.push(...setLines)
+    if (note) {
+      lines.push(`  📝 ${note}`)
+    }
     lines.push('')
   }
 
