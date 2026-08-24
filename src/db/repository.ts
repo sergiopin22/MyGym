@@ -505,6 +505,9 @@ export async function updateSet(
               ? undefined
               : s.completedAt,
       }
+      if (next.completed && (next.weight == null || next.reps == null)) {
+        return s
+      }
       return next
     })
 

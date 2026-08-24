@@ -10,7 +10,7 @@ function formatSetLine(set: {
 }): string | null {
   if (!set.completed && set.weight == null && set.reps == null) return null
 
-  const weight = set.weight != null ? `${set.weight} kg` : '— kg'
+  const weight = set.weight != null ? `${set.weight} lb` : '— lb'
   const reps = set.reps != null ? `${set.reps} reps` : '— reps'
   const rir = set.rir != null ? ` · RIR ${set.rir}` : ''
   const note = set.completed ? '' : ' (no completada)'

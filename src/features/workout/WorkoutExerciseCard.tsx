@@ -17,6 +17,11 @@ import type {
   WorkoutSession,
 } from '../../types'
 import { openTutorial } from '../exercises/media'
+import { WEIGHT_STEP, WEIGHT_UNIT } from '../../utils/weight'
+
+function setHasData(set: { weight: number | null; reps: number | null }) {
+  return set.weight != null && set.reps != null
+}
 
 interface WorkoutExerciseCardProps {
   session: WorkoutSession
@@ -69,6 +74,16 @@ export function WorkoutExerciseCard({
     setId: string,
     patch: Partial<{ weight: number | null; reps: number | null; rir: number | null; completed: boolean }>,
   ) {
+    if (patch.completed === true) {
+      const current = exercise.sets.find((s) => s.id === setId)
+      if (!current) return
+      const nextWeight = patch.weight !== undefined ? patch.weight : current.weight
+      const nextReps = patch.reps !== undefined ? patch.reps : current.reps
+      if (nextWeight == null || nextReps == null) {
+        setError('Coloca peso y reps antes de marcar la serie.')
+        return
+      }
+    }
     setError(null)
     const prevStatus = exercise.status
     const updated = await updateSet(session.id, exercise.id, setId, patch)
@@ -174,7 +189,7 @@ export function WorkoutExerciseCard({
                   <li key={s.setNumber} className="flex justify-between text-muted">
                     <span>Serie {s.setNumber}</span>
                     <span className="font-medium text-ink">
-                      {s.weight ?? '—'} kg · {s.reps ?? '—'} reps · RIR {s.rir ?? '—'}
+                      {s.weight ?? '—'} {WEIGHT_UNIT} · {s.reps ?? '—'} reps · RIR {s.rir ?? '—'}
                     </span>
                   </li>
                 ))}
@@ -247,8 +262,8 @@ export function WorkoutExerciseCard({
             <div className="grid grid-cols-3 gap-2">
               <NumberStepper
                 label="Peso"
-                suffix="kg"
-                step={2.5}
+                suffix={WEIGHT_UNIT}
+                step={WEIGHT_STEP}
                 min={0}
                 value={set.weight}
                 disabled={session.status !== 'in_progress'}
@@ -277,9 +292,14 @@ export function WorkoutExerciseCard({
               <Button
                 fullWidth
                 variant={set.completed ? 'ghost' : 'primary'}
+                disabled={!set.completed && !setHasData(set)}
                 onClick={() => void patchSet(set.id, { completed: !set.completed })}
               >
-                {set.completed ? 'Desmarcar serie' : 'Marcar serie completada'}
+                {set.completed
+                  ? 'Desmarcar serie'
+                  : setHasData(set)
+                    ? 'Marcar serie completada'
+                    : 'Coloca peso y reps'}
               </Button>
             ) : null}
           </li>

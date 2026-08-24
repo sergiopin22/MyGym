@@ -160,8 +160,8 @@ export function WorkoutPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-lg flex-col px-4 pb-8 pt-[max(1rem,env(safe-area-inset-top))]">
-      <header className="sticky top-0 z-20 -mx-4 space-y-3 border-b border-line bg-surface/95 px-4 py-3 backdrop-blur-md">
+    <div className="mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+      <header className="shrink-0 space-y-3 border-b border-line py-3">
         <div className="flex items-start justify-between gap-3">
           <div>
             <Link to="/" className="text-sm font-semibold text-muted hover:text-ink">
@@ -178,7 +178,11 @@ export function WorkoutPage() {
         <ProgressBar value={completedCount} max={Math.max(exercises.length, 1)} />
       </header>
 
-      <div className="mt-4 space-y-4">
+      <div
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4"
+        style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+      >
+        <div className="space-y-4">
         {exercises.map((exercise) => (
           <WorkoutExerciseCard
             key={exercise.id}
@@ -187,7 +191,7 @@ export function WorkoutPage() {
             onSessionChange={setSession}
           />
         ))}
-      </div>
+        </div>
 
       {error ? <p className="mt-4 text-sm font-medium text-danger">{error}</p> : null}
 
@@ -198,6 +202,7 @@ export function WorkoutPage() {
         <p className="text-center text-xs text-muted">
           Se guarda en el historial. Puedes cerrar la app y continuar después.
         </p>
+      </div>
       </div>
     </div>
   )

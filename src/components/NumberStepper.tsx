@@ -84,7 +84,7 @@ export function NumberStepper({
       <div className="flex items-center gap-1">
         <button
           type="button"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-xl font-bold text-ink active:scale-95"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-xl font-bold text-fg active:scale-95"
           onClick={() => bump(-step)}
           aria-label={`Bajar ${label}`}
         >
@@ -94,7 +94,7 @@ export function NumberStepper({
           type="text"
           inputMode="numeric"
           pattern="[0-9]*"
-          className="h-12 w-full rounded-2xl border border-line bg-surface-elevated text-center text-lg font-semibold outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
+          className="h-12 w-full rounded-2xl border border-line bg-surface text-center text-lg font-semibold text-fg caret-fg outline-none placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/25"
           value={focused ? draft : value == null ? '' : String(value)}
           placeholder="—"
           onFocus={() => {
@@ -126,7 +126,7 @@ export function NumberStepper({
         />
         <button
           type="button"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-xl font-bold text-ink active:scale-95"
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-xl font-bold text-fg active:scale-95"
           onClick={() => bump(step)}
           aria-label={`Subir ${label}`}
         >

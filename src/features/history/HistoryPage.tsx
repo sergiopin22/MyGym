@@ -171,7 +171,7 @@ export function HistoryDetailPage() {
                   >
                     <span>Serie {s.setNumber}{s.completed ? '' : ' (no)'}</span>
                     <span className="font-medium text-ink">
-                      {s.weight ?? '—'} kg · {s.reps ?? '—'} · RIR {s.rir ?? '—'}
+                      {s.weight ?? '—'} lb · {s.reps ?? '—'} · RIR {s.rir ?? '—'}
                     </span>
                   </li>
                 ))}
@@ -257,7 +257,7 @@ function ExerciseHistoryView({
                     <li key={s.id} className="flex justify-between text-muted">
                       <span>S{s.setNumber}</span>
                       <span className="text-ink">
-                        {s.weight ?? '—'} kg · {s.reps ?? '—'} · RIR {s.rir ?? '—'}
+                        {s.weight ?? '—'} lb · {s.reps ?? '—'} · RIR {s.rir ?? '—'}
                       </span>
                     </li>
                   ))}

@@ -58,19 +58,19 @@ export function detectImprovement(
   if (cur.weight > prev.weight && curReps >= prevReps) {
     return {
       type: 'weight_same_reps',
-      message: `🏆 Nuevo mejor: ${cur.weight} kg × ${curReps} (antes ${prev.weight} kg × ${prevReps})`,
+      message: `🏆 Nuevo mejor: ${cur.weight} lb × ${curReps} (antes ${prev.weight} lb × ${prevReps})`,
     }
   }
   if (cur.weight > prev.weight) {
     return {
       type: 'weight',
-      message: `🏆 Más peso: ${cur.weight} kg (antes ${prev.weight} kg)`,
+      message: `🏆 Más peso: ${cur.weight} lb (antes ${prev.weight} lb)`,
     }
   }
   if (cur.weight === prev.weight && curReps > prevReps) {
     return {
       type: 'reps',
-      message: `🔥 Más reps: ${curReps} @ ${cur.weight} kg (antes ${prevReps})`,
+      message: `🔥 Más reps: ${curReps} @ ${cur.weight} lb (antes ${prevReps})`,
     }
   }
   return null
