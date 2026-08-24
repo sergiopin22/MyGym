@@ -7,6 +7,15 @@ import { weekdayLabel } from '../../utils/id'
 
 const DAY_ORDER = [1, 2, 3, 4, 5, 6, 0]
 
+function dayOptionLabel(d: RoutineDay) {
+  const count = d.exercises.length
+  const machines =
+    count === 0
+      ? 'sin ejercicios'
+      : `${count} ejercicio${count === 1 ? '' : 's'}`
+  return `${weekdayLabel(d.weekday)} (${machines})`
+}
+
 interface CopyDayExercisesProps {
   routine: Routine
   day: RoutineDay
@@ -14,49 +23,70 @@ interface CopyDayExercisesProps {
 }
 
 export function CopyDayExercises({ routine, day, onDone }: CopyDayExercisesProps) {
-  const otherDays = useMemo(
+  const sortedDays = useMemo(
     () =>
-      [...routine.days]
-        .filter((d) => d.id !== day.id)
-        .sort(
-          (a, b) => DAY_ORDER.indexOf(a.weekday) - DAY_ORDER.indexOf(b.weekday),
-        ),
-    [routine.days, day.id],
+      [...routine.days].sort(
+        (a, b) => DAY_ORDER.indexOf(a.weekday) - DAY_ORDER.indexOf(b.weekday),
+      ),
+    [routine.days],
   )
 
-  const daysWithExercises = otherDays.filter((d) => d.exercises.length > 0)
+  const daysWithExercises = sortedDays.filter((d) => d.exercises.length > 0)
 
-  const [fromDayId, setFromDayId] = useState(daysWithExercises[0]?.id ?? '')
-  const [toDayId, setToDayId] = useState(otherDays[0]?.id ?? '')
+  /** Por defecto: si este día está vacío, copiar HACIA aquí desde el primer día con ejercicios */
+  const defaultFrom =
+    day.exercises.length === 0
+      ? (daysWithExercises.find((d) => d.id !== day.id)?.id ?? '')
+      : day.id
+
+  const defaultTo =
+    day.exercises.length === 0
+      ? day.id
+      : (sortedDays.find((d) => d.id !== day.id)?.id ?? '')
+
+  const [fromDayId, setFromDayId] = useState(defaultFrom)
+  const [toDayId, setToDayId] = useState(defaultTo)
   const [copyMuscles, setCopyMuscles] = useState(true)
   const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  async function runCopy(
-    sourceId: string,
-    targetId: string,
-    mode: 'replace' | 'append',
-  ) {
+  const fromDay = sortedDays.find((d) => d.id === fromDayId)
+  const toDay = sortedDays.find((d) => d.id === toDayId)
+
+  const canCopy =
+    Boolean(fromDayId) &&
+    Boolean(toDayId) &&
+    fromDayId !== toDayId &&
+    (fromDay?.exercises.length ?? 0) > 0
+
+  async function handleCopy() {
+    if (!fromDay || !toDay || !canCopy) return
+
     setBusy(true)
     setError(null)
     setMessage(null)
+
     try {
-      const target = routine.days.find((d) => d.id === targetId)
-      if (mode === 'replace' && (target?.exercises.length ?? 0) > 0) {
+      let mode: 'replace' | 'append' = 'replace'
+
+      if (toDay.exercises.length > 0) {
         const ok = window.confirm(
-          'Esto reemplazará los ejercicios del día destino. ¿Continuar?',
+          `El ${weekdayLabel(toDay.weekday)} ya tiene ejercicios.\n\n` +
+            `¿Borrar esos y poner los del ${weekdayLabel(fromDay.weekday)}?`,
         )
         if (!ok) return
+        mode = 'replace'
       }
 
-      const updated = await copyExercisesFromDay(sourceId, targetId, {
+      const updated = await copyExercisesFromDay(fromDay.id, toDay.id, {
         mode,
         copyMuscleGroups: copyMuscles,
         routineId: routine.id,
       })
+
       setMessage(
-        `Listo: ${updated.exercises.length} ejercicio${updated.exercises.length === 1 ? '' : 's'} en ${updated.label}.`,
+        `Listo: los ejercicios del ${weekdayLabel(fromDay.weekday)} quedaron en el ${weekdayLabel(toDay.weekday)} (${updated.exercises.length}).`,
       )
       onDone()
     } catch (err) {
@@ -66,14 +96,102 @@ export function CopyDayExercises({ routine, day, onDone }: CopyDayExercisesProps
     }
   }
 
+  async function handleAppend() {
+    if (!fromDay || !toDay || !canCopy) return
+
+    setBusy(true)
+    setError(null)
+    setMessage(null)
+
+    try {
+      const updated = await copyExercisesFromDay(fromDay.id, toDay.id, {
+        mode: 'append',
+        copyMuscleGroups: copyMuscles,
+        routineId: routine.id,
+      })
+
+      setMessage(
+        `Listo: se sumaron los del ${weekdayLabel(fromDay.weekday)} al ${weekdayLabel(toDay.weekday)} (${updated.exercises.length} en total).`,
+      )
+      onDone()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo copiar')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (daysWithExercises.length === 0) {
+    return (
+      <Card>
+        <h2 className="font-display text-lg font-bold">Copiar ejercicios a otro día</h2>
+        <p className="mt-2 text-sm text-muted">
+          Primero agrega ejercicios en un día (ej. lunes). Después podrás
+          copiarlos al jueves u otro día.
+        </p>
+      </Card>
+    )
+  }
+
   return (
     <Card className="space-y-4">
       <div>
-        <h2 className="font-display text-lg font-bold">Copiar máquinas / ejercicios</h2>
+        <h2 className="font-display text-lg font-bold">Copiar ejercicios a otro día</h2>
         <p className="mt-1 text-sm text-muted">
-          Ideal si el jueves usas las mismas máquinas que el lunes.
+          Ejemplo: pecho del <strong>lunes</strong> → mismo pecho el{' '}
+          <strong>jueves</strong>, sin cargarlos otra vez.
         </p>
       </div>
+
+      <label className="block space-y-1.5">
+        <span className="text-sm font-semibold text-ink">1. Día de origen (de dónde salen)</span>
+        <select
+          className="min-h-12 w-full rounded-2xl border border-line bg-surface-elevated px-4 text-base outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
+          value={fromDayId}
+          onChange={(e) => {
+            setFromDayId(e.target.value)
+            setMessage(null)
+            setError(null)
+          }}
+        >
+          {sortedDays.map((d) => (
+            <option key={d.id} value={d.id} disabled={d.exercises.length === 0}>
+              {dayOptionLabel(d)}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label className="block space-y-1.5">
+        <span className="text-sm font-semibold text-ink">2. Día destino (dónde los quieres)</span>
+        <select
+          className="min-h-12 w-full rounded-2xl border border-line bg-surface-elevated px-4 text-base outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
+          value={toDayId}
+          onChange={(e) => {
+            setToDayId(e.target.value)
+            setMessage(null)
+            setError(null)
+          }}
+        >
+          {sortedDays.map((d) => (
+            <option key={d.id} value={d.id} disabled={d.id === fromDayId}>
+              {dayOptionLabel(d)}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {fromDay && toDay && fromDayId !== toDayId ? (
+        <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm font-medium text-ink">
+          Vas a copiar:{' '}
+          <strong>
+            {weekdayLabel(fromDay.weekday)} → {weekdayLabel(toDay.weekday)}
+          </strong>
+          {fromDay.exercises.length > 0
+            ? ` (${fromDay.exercises.length} ejercicio${fromDay.exercises.length === 1 ? '' : 's'})`
+            : ''}
+        </p>
+      ) : null}
 
       <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
         <input
@@ -82,87 +200,26 @@ export function CopyDayExercises({ routine, day, onDone }: CopyDayExercisesProps
           checked={copyMuscles}
           onChange={(e) => setCopyMuscles(e.target.checked)}
         />
-        Copiar también grupos musculares
+        Copiar también pecho / hombro / tríceps, etc.
       </label>
 
-      <div className="space-y-3 rounded-2xl bg-surface p-3">
-        <p className="text-sm font-semibold text-ink">Traer a este día</p>
-        {daysWithExercises.length === 0 ? (
-          <p className="text-sm text-muted">
-            Ningún otro día tiene ejercicios todavía.
-          </p>
-        ) : (
-          <>
-            <label className="block space-y-1.5 text-sm">
-              <span className="font-semibold">Copiar desde</span>
-              <select
-                className="min-h-12 w-full rounded-2xl border border-line bg-surface-elevated px-4 text-base outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
-                value={fromDayId}
-                onChange={(e) => setFromDayId(e.target.value)}
-              >
-                {daysWithExercises.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {weekdayLabel(d.weekday)} — {d.label} ({d.exercises.length})
-                  </option>
-                ))}
-              </select>
-            </label>
-            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-              <Button
-                fullWidth
-                disabled={busy || !fromDayId}
-                onClick={() => void runCopy(fromDayId, day.id, 'replace')}
-              >
-                Reemplazar aquí
-              </Button>
-              <Button
-                variant="secondary"
-                fullWidth
-                disabled={busy || !fromDayId}
-                onClick={() => void runCopy(fromDayId, day.id, 'append')}
-              >
-                Agregar a los de aquí
-              </Button>
-            </div>
-          </>
-        )}
-      </div>
+      <Button fullWidth disabled={busy || !canCopy} onClick={() => void handleCopy()}>
+        {busy
+          ? 'Copiando…'
+          : fromDay && toDay
+            ? `Copiar del ${weekdayLabel(fromDay.weekday)} al ${weekdayLabel(toDay.weekday)}`
+            : 'Copiar ejercicios'}
+      </Button>
 
-      {day.exercises.length > 0 ? (
-        <div className="space-y-3 rounded-2xl bg-surface p-3">
-          <p className="text-sm font-semibold text-ink">Enviar este día a otro</p>
-          <label className="block space-y-1.5 text-sm">
-            <span className="font-semibold">Copiar hacia</span>
-            <select
-              className="min-h-12 w-full rounded-2xl border border-line bg-surface-elevated px-4 text-base outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
-              value={toDayId}
-              onChange={(e) => setToDayId(e.target.value)}
-            >
-              {otherDays.map((d) => (
-                <option key={d.id} value={d.id}>
-                  {weekdayLabel(d.weekday)} — {d.label} ({d.exercises.length})
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-            <Button
-              fullWidth
-              disabled={busy || !toDayId}
-              onClick={() => void runCopy(day.id, toDayId, 'replace')}
-            >
-              Reemplazar allá
-            </Button>
-            <Button
-              variant="secondary"
-              fullWidth
-              disabled={busy || !toDayId}
-              onClick={() => void runCopy(day.id, toDayId, 'append')}
-            >
-              Agregar allá
-            </Button>
-          </div>
-        </div>
+      {(toDay?.exercises.length ?? 0) > 0 && canCopy ? (
+        <Button
+          variant="secondary"
+          fullWidth
+          disabled={busy}
+          onClick={() => void handleAppend()}
+        >
+          Sumar sin borrar los que ya tiene el {toDay ? weekdayLabel(toDay.weekday) : 'destino'}
+        </Button>
       ) : null}
 
       {message ? (
