@@ -6,6 +6,7 @@ import { ProgressBar } from '../../components/ProgressBar'
 import { completeSession, getSessionById } from '../../db/repository'
 import type { SessionSummary, WorkoutSession } from '../../types'
 import { formatDuration } from '../../utils/id'
+import { CopyCoachMessageButton } from '../history/CopyCoachMessageButton'
 import { WorkoutExerciseCard } from './WorkoutExerciseCard'
 
 export function WorkoutPage() {
@@ -125,6 +126,8 @@ export function WorkoutPage() {
             <p className="text-sm text-muted">{summary.muscleGroups.join(' · ')}</p>
           ) : null}
         </Card>
+
+        <CopyCoachMessageButton session={session} fullWidth className="mt-4" />
 
         <ul className="mt-5 space-y-2">
           {exercises.map((ex) => (

@@ -5,6 +5,7 @@ import { TextField } from '../../components/TextField'
 import { updateRoutineName } from '../../db/repository'
 import { useBootstrapRoutine } from '../../hooks/useBootstrapRoutine'
 import { weekdayLabel } from '../../utils/id'
+import { BackupPanel } from '../backup/BackupPanel'
 
 export function RoutinesPage() {
   const { routine, loading, error, setRoutine } = useBootstrapRoutine()
@@ -44,6 +45,8 @@ export function RoutinesPage() {
           onBlur={() => void persistName()}
         />
       </Card>
+
+      <BackupPanel />
 
       <ul className="space-y-3">
         {routine.days.map((day) => (

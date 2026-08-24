@@ -5,6 +5,7 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { getExerciseHistory, getHistory, getSessionDetail } from '../../db/repository'
 import type { SessionSummary, WorkoutSession } from '../../types'
 import { formatDuration } from '../../utils/id'
+import { CopyCoachMessageButton } from './CopyCoachMessageButton'
 
 export function HistoryPage() {
   const [items, setItems] = useState<SessionSummary[]>([])
@@ -30,7 +31,9 @@ export function HistoryPage() {
     <div className="space-y-5">
       <header className="pt-2">
         <h1 className="font-display text-3xl font-extrabold tracking-tight">Historial</h1>
-        <p className="mt-1 text-muted">Entrenamientos guardados por fecha.</p>
+        <p className="mt-1 text-muted">
+          Entrenamientos guardados. Copia el resumen para enviarlo a tu coach.
+        </p>
       </header>
 
       {items.length === 0 ? (
@@ -43,8 +46,8 @@ export function HistoryPage() {
         <ul className="space-y-3">
           {items.map((item) => (
             <li key={item.sessionId}>
-              <Link to={`/historial/${item.sessionId}`} className="block">
-                <Card className="transition active:scale-[0.99]">
+              <Card className="space-y-3">
+                <Link to={`/historial/${item.sessionId}`} className="block">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-wider text-muted">
@@ -64,8 +67,9 @@ export function HistoryPage() {
                       ›
                     </span>
                   </div>
-                </Card>
-              </Link>
+                </Link>
+                <CopyCoachMessageButton summary={item} fullWidth />
+              </Card>
             </li>
           ))}
         </ul>
@@ -139,6 +143,8 @@ export function HistoryDetailPage() {
           {session.durationMs != null ? ` · ${formatDuration(session.durationMs)}` : ''}
         </p>
       </header>
+
+      <CopyCoachMessageButton session={session} fullWidth />
 
       <ul className="space-y-3">
         {exercises.map((ex) => (

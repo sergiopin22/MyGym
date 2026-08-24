@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card } from '../../components/Card'
+import { BackupPanel } from '../backup/BackupPanel'
 import { getRecentImprovements } from '../../db/repository'
 import type { Improvement } from '../../types'
 
@@ -28,8 +29,10 @@ export function ProgressPage() {
     <div className="space-y-5">
       <header className="pt-2">
         <h1 className="font-display text-3xl font-extrabold tracking-tight">Progreso</h1>
-        <p className="mt-1 text-muted">Mejoras detectadas al completar ejercicios.</p>
+        <p className="mt-1 text-muted">Mejoras detectadas y respaldo de tus datos.</p>
       </header>
+
+      <BackupPanel />
 
       {items.length === 0 ? (
         <Card>
