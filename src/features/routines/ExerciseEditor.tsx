@@ -65,7 +65,7 @@ export function ExerciseEditor({
     const sets = clampInt(targetSets, 1, 12)
     const minReps = clampInt(repsMin, 1, 12)
     const maxReps = clampInt(repsMax, 1, 12)
-    const rir = clampInt(targetRir, 1, 12)
+    const rir = clampInt(targetRir, 0, 12)
 
     if (minReps > maxReps) {
       setError('Reps min no puede ser mayor que reps max')
@@ -259,13 +259,13 @@ export function ExerciseEditor({
           <NumberStepper
             label="RIR objetivo"
             value={targetRir}
-            min={1}
+            min={0}
             max={12}
             allowEmpty={false}
             onChange={(v) => setTargetRir(v ?? 2)}
           />
           <p className="text-xs text-muted">
-            Ajusta con + / − o escribe un número del 1 al 12.
+            Series y reps: 1–12. RIR: 0–12 (0 = al fallo). Usa + / − o escribe el número.
           </p>
 
           <TextField
