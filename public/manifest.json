@@ -1,0 +1,23 @@
+{
+  "name": "Mi Gym",
+  "short_name": "Mi Gym",
+  "description": "Registro personal de entrenamientos offline",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#e7f3fb",
+  "theme_color": "#e7f3fb",
+  "lang": "es",
+  "icons": [
+    {
+      "src": "/pwa-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/pwa-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
