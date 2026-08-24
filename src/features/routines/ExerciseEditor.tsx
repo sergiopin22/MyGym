@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react'
 import { Button } from '../../components/Button'
 import { TextField } from '../../components/TextField'
+import { NumberStepper } from '../../components/NumberStepper'
 import { ExerciseThumb } from '../../components/ExerciseThumb'
 import {
   addExerciseToDay,
@@ -10,6 +11,10 @@ import {
 } from '../../db/repository'
 import type { RoutineExercise } from '../../types'
 import { openTutorial } from '../exercises/media'
+
+function clampInt(n: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, Math.round(n)))
+}
 
 interface ExerciseEditorProps {
   dayId: string
@@ -56,8 +61,14 @@ export function ExerciseEditor({
       setError('Ponle un nombre al ejercicio')
       return
     }
-    if (repsMin > repsMax) {
-      setError('El rango de reps no es válido')
+
+    const sets = clampInt(targetSets, 1, 12)
+    const minReps = clampInt(repsMin, 1, 12)
+    const maxReps = clampInt(repsMax, 1, 12)
+    const rir = clampInt(targetRir, 1, 12)
+
+    if (minReps > maxReps) {
+      setError('Reps min no puede ser mayor que reps max')
       return
     }
 
@@ -66,9 +77,9 @@ export function ExerciseEditor({
     try {
       const payload = {
         name: trimmed,
-        targetSets: Math.max(1, targetSets),
-        targetReps: { min: Math.max(1, repsMin), max: Math.max(1, repsMax) },
-        targetRir: Math.max(0, targetRir),
+        targetSets: sets,
+        targetReps: { min: minReps, max: maxReps },
+        targetRir: rir,
         videoUrl: videoUrl.trim() || undefined,
         imageUrl,
         hasCustomImage,
@@ -218,44 +229,44 @@ export function ExerciseEditor({
             autoFocus
           />
 
-          <div className="grid grid-cols-3 gap-3">
-            <TextField
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <NumberStepper
               label="Series"
-              name="sets"
-              type="number"
+              value={targetSets}
               min={1}
               max={12}
-              value={targetSets}
-              onChange={(e) => setTargetSets(Number(e.target.value) || 1)}
+              allowEmpty={false}
+              onChange={(v) => setTargetSets(v ?? 1)}
             />
-            <TextField
+            <NumberStepper
               label="Reps min"
-              name="repsMin"
-              type="number"
-              min={1}
               value={repsMin}
-              onChange={(e) => setRepsMin(Number(e.target.value) || 1)}
-            />
-            <TextField
-              label="Reps max"
-              name="repsMax"
-              type="number"
               min={1}
+              max={12}
+              allowEmpty={false}
+              onChange={(v) => setRepsMin(v ?? 1)}
+            />
+            <NumberStepper
+              label="Reps max"
               value={repsMax}
-              onChange={(e) => setRepsMax(Number(e.target.value) || 1)}
+              min={1}
+              max={12}
+              allowEmpty={false}
+              onChange={(v) => setRepsMax(v ?? 12)}
             />
           </div>
 
-          <TextField
+          <NumberStepper
             label="RIR objetivo"
-            name="rir"
-            type="number"
-            min={0}
-            max={10}
             value={targetRir}
-            onChange={(e) => setTargetRir(Number(e.target.value) || 0)}
-            hint="Repeticiones en reserva al terminar la serie"
+            min={1}
+            max={12}
+            allowEmpty={false}
+            onChange={(v) => setTargetRir(v ?? 2)}
           />
+          <p className="text-xs text-muted">
+            Ajusta con + / − o escribe un número del 1 al 12.
+          </p>
 
           <TextField
             label="Video tutorial (URL)"

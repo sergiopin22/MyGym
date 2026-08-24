@@ -1,4 +1,5 @@
 import type { InputHTMLAttributes } from 'react'
+import { useEffect, useState } from 'react'
 
 interface NumberStepperProps
   extends Omit<InputHTMLAttributes<HTMLInputElement>, 'onChange' | 'value' | 'type'> {
@@ -8,6 +9,13 @@ interface NumberStepperProps
   step?: number
   suffix?: string
   allowEmpty?: boolean
+}
+
+function clamp(n: number, min?: number, max?: number) {
+  let v = n
+  if (min != null && v < min) v = min
+  if (max != null && v > max) v = max
+  return v
 }
 
 export function NumberStepper({
@@ -21,16 +29,50 @@ export function NumberStepper({
   allowEmpty = true,
   ...rest
 }: NumberStepperProps) {
-  const numeric = value ?? 0
+  const lo = min != null ? Number(min) : undefined
+  const hi = max != null ? Number(max) : undefined
+  const numeric = value ?? lo ?? 0
+
+  /** Borrador local para poder escribir libremente (ej. borrar y poner 8) */
+  const [draft, setDraft] = useState(value == null ? '' : String(value))
+  const [focused, setFocused] = useState(false)
+
+  useEffect(() => {
+    if (!focused) {
+      setDraft(value == null ? '' : String(value))
+    }
+  }, [value, focused])
 
   function bump(delta: number) {
-    const next = Math.round((numeric + delta) * 100) / 100
-    const lo = min != null ? Number(min) : undefined
-    const hi = max != null ? Number(max) : undefined
-    let clamped = next
-    if (lo != null && clamped < lo) clamped = lo
-    if (hi != null && clamped > hi) clamped = hi
+    const next = clamp(
+      Math.round((numeric + delta) * 100) / 100,
+      lo,
+      hi,
+    )
+    onChange(next)
+    setDraft(String(next))
+  }
+
+  function commitDraft(raw: string) {
+    if (raw.trim() === '') {
+      if (allowEmpty) {
+        onChange(null)
+        setDraft('')
+        return
+      }
+      const fallback = lo ?? 1
+      onChange(fallback)
+      setDraft(String(fallback))
+      return
+    }
+    const n = Number(raw)
+    if (!Number.isFinite(n)) {
+      setDraft(value == null ? '' : String(value))
+      return
+    }
+    const clamped = clamp(n, lo, hi)
     onChange(clamped)
+    setDraft(String(clamped))
   }
 
   return (
@@ -49,22 +91,36 @@ export function NumberStepper({
           −
         </button>
         <input
-          type="number"
-          inputMode="decimal"
+          type="text"
+          inputMode="numeric"
+          pattern="[0-9]*"
           className="h-12 w-full rounded-2xl border border-line bg-surface-elevated text-center text-lg font-semibold outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
-          value={value ?? ''}
+          value={focused ? draft : value == null ? '' : String(value)}
           placeholder="—"
-          min={min}
-          max={max}
-          step={step}
+          onFocus={() => {
+            setFocused(true)
+            setDraft(value == null ? '' : String(value))
+          }}
+          onBlur={() => {
+            setFocused(false)
+            commitDraft(draft)
+          }}
           onChange={(e) => {
-            const raw = e.target.value
-            if (raw === '' && allowEmpty) {
-              onChange(null)
+            const raw = e.target.value.replace(/[^\d.]/g, '')
+            setDraft(raw)
+            if (raw === '') {
+              if (allowEmpty) onChange(null)
               return
             }
             const n = Number(raw)
-            onChange(Number.isFinite(n) ? n : null)
+            if (!Number.isFinite(n)) return
+            // Mientras escribe no forzamos al mínimo (permite borrar y poner 8)
+            if (hi != null && n > hi) {
+              onChange(hi)
+              setDraft(String(hi))
+              return
+            }
+            onChange(n)
           }}
           {...rest}
         />
