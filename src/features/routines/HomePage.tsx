@@ -138,6 +138,14 @@ export function HomePage() {
         </p>
       </header>
 
+      <Link
+        to="/progreso#temas"
+        className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-line bg-surface-elevated px-4 text-sm font-semibold text-fg transition active:scale-[0.99] hover:border-brand/50"
+      >
+        <span aria-hidden>🎨</span>
+        Temas visuales (underground, rojo, azul…)
+      </Link>
+
       <div className="space-y-2">
         <p className="text-sm font-semibold text-muted">Elegir día de la rutina</p>
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import { Card } from '../../components/Card'
 import { BackupPanel } from '../backup/BackupPanel'
 import { ThemePicker } from '../settings/ThemePicker'
@@ -7,8 +7,17 @@ import { getRecentImprovements } from '../../db/repository'
 import type { Improvement } from '../../types'
 
 export function ProgressPage() {
+  const location = useLocation()
   const [items, setItems] = useState<Improvement[]>([])
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (location.hash === '#temas') {
+      window.setTimeout(() => {
+        document.getElementById('temas')?.scrollIntoView({ behavior: 'smooth' })
+      }, 100)
+    }
+  }, [location.hash])
 
   useEffect(() => {
     let alive = true
@@ -30,12 +39,14 @@ export function ProgressPage() {
     <div className="space-y-5">
       <header className="pt-2">
         <h1 className="font-display text-3xl font-extrabold tracking-tight">Progreso</h1>
-        <p className="mt-1 text-muted">Mejoras detectadas y respaldo de tus datos.</p>
+        <p className="mt-1 text-muted">Temas visuales, respaldo y mejoras detectadas.</p>
       </header>
 
-      <BackupPanel />
+      <div id="temas">
+        <ThemePicker />
+      </div>
 
-      <ThemePicker />
+      <BackupPanel />
 
       {items.length === 0 ? (
         <Card>
