@@ -4,25 +4,37 @@
   --font-sans: "Sora", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
 
-  /* Base: negro + blanco + azul claro */
-  --color-ink: #0a0a0a;
-  --color-ink-soft: #1c1c1c;
+  --color-fg: #0a0a0a;
+  --color-fg-muted: #4d6273;
+  --color-chrome: #0a0a0a;
+  --color-chrome-fg: #ffffff;
+  --color-chrome-soft: #1c1c1c;
   --color-surface: #e7f3fb;
   --color-surface-elevated: #ffffff;
   --color-line: #c3daf0;
-  --color-muted: #4d6273;
   --color-brand: #2f8fd6;
   --color-brand-soft: #d4ebfa;
   --color-brand-strong: #1a6fad;
-
-  /* Botones / estados */
   --color-accent: #16a34a;
   --color-accent-strong: #15803d;
   --color-pending: #6b7c8a;
   --color-progress: #2563eb;
   --color-done: #16a34a;
+  --color-success-soft: #dcfce7;
+  --color-progress-soft: #dbeafe;
   --color-danger: #dc2626;
   --color-danger-strong: #b91c1c;
+  --color-overlay: rgba(10, 10, 10, 0.45);
+
+  /* aliases legacy */
+  --color-ink: var(--color-fg);
+  --color-ink-soft: var(--color-chrome-soft);
+  --color-muted: var(--color-fg-muted);
+
+  --body-background:
+    radial-gradient(1100px 520px at 8% -8%, #cfe8f9 0%, transparent 55%),
+    radial-gradient(900px 480px at 100% 0%, #eef6fc 0%, transparent 52%),
+    linear-gradient(180deg, #f4faff 0%, #e7f3fb 40%, #e7f3fb 100%);
 }
 
 @layer base {
@@ -32,14 +44,21 @@
     height: 100%;
   }
 
+  html {
+    color-scheme: light;
+  }
+
+  html[data-theme='underground-red'],
+  html[data-theme='underground-blue'],
+  html[data-theme='midnight'] {
+    color-scheme: dark;
+  }
+
   body {
     margin: 0;
     font-family: var(--font-sans);
-    color: var(--color-ink);
-    background:
-      radial-gradient(1100px 520px at 8% -8%, #cfe8f9 0%, transparent 55%),
-      radial-gradient(900px 480px at 100% 0%, #eef6fc 0%, transparent 52%),
-      linear-gradient(180deg, #f4faff 0%, var(--color-surface) 40%, #e7f3fb 100%);
+    color: var(--color-fg);
+    background: var(--body-background);
     -webkit-tap-highlight-color: transparent;
     text-rendering: optimizeLegibility;
   }

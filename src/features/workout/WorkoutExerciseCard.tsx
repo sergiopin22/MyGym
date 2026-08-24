@@ -165,7 +165,7 @@ export function WorkoutExerciseCard({
       ) : null}
 
       {toast ? (
-        <p className="rounded-2xl bg-[#dcfce7] px-3 py-3 text-sm font-medium text-accent-strong">
+        <p className="rounded-2xl bg-success-soft px-3 py-3 text-sm font-medium text-accent-strong">
           {toast.message}
         </p>
       ) : null}
@@ -178,7 +178,7 @@ export function WorkoutExerciseCard({
             key={set.id}
             className={[
               'space-y-3 rounded-2xl border p-3',
-              set.completed ? 'border-accent/40 bg-[#dcfce7]/60' : 'border-line bg-surface',
+              set.completed ? 'border-accent/40 bg-success-soft/60' : 'border-line bg-surface',
             ].join(' ')}
           >
             <div className="flex items-center justify-between">

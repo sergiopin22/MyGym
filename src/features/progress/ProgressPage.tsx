@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Card } from '../../components/Card'
 import { BackupPanel } from '../backup/BackupPanel'
+import { ThemePicker } from '../settings/ThemePicker'
 import { getRecentImprovements } from '../../db/repository'
 import type { Improvement } from '../../types'
 
@@ -33,6 +34,8 @@ export function ProgressPage() {
       </header>
 
       <BackupPanel />
+
+      <ThemePicker />
 
       {items.length === 0 ? (
         <Card>

@@ -3,14 +3,11 @@ import type { ButtonHTMLAttributes, PropsWithChildren } from 'react'
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 const styles: Record<Variant, string> = {
-  /* Acciones positivas: empezar, guardar, completar */
   primary:
     'bg-accent text-white shadow-sm hover:bg-accent-strong active:scale-[0.98]',
-  /* Neutro / secundario: negro */
   secondary:
-    'bg-ink text-white hover:bg-ink-soft active:scale-[0.98]',
-  ghost: 'bg-transparent text-ink hover:bg-brand-soft',
-  /* Destructivo: borrar, cancelar fuerte */
+    'bg-chrome text-chrome-fg hover:bg-chrome-soft active:scale-[0.98]',
+  ghost: 'bg-transparent text-fg hover:bg-brand-soft',
   danger: 'bg-danger text-white hover:bg-danger-strong active:scale-[0.98]',
 }
 

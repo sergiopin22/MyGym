@@ -29,8 +29,8 @@ export function AppLayout() {
                   [
                     'flex min-h-12 items-center justify-center rounded-xl px-1 text-sm font-semibold transition',
                     isActive
-                      ? 'bg-ink text-white'
-                      : 'text-muted hover:bg-brand-soft hover:text-ink',
+                      ? 'bg-chrome text-chrome-fg'
+                      : 'text-muted hover:bg-brand-soft hover:text-fg',
                   ].join(' ')
                 }
               >

@@ -12,12 +12,12 @@ const config: Record<
   in_progress: {
     label: 'En progreso',
     icon: '🟡',
-    className: 'bg-[#dbeafe] text-progress',
+    className: 'bg-progress-soft text-progress',
   },
   completed: {
     label: 'Completado',
     icon: '✅',
-    className: 'bg-[#dcfce7] text-accent-strong',
+    className: 'bg-success-soft text-accent-strong',
   },
 }
 

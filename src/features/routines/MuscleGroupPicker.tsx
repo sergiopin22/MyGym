@@ -36,8 +36,8 @@ export function MuscleGroupPicker({ value, onChange }: MuscleGroupPickerProps) {
             className={[
               'min-h-11 rounded-full px-4 text-sm font-semibold transition active:scale-[0.98]',
               active
-                ? 'bg-ink text-white'
-                : 'bg-surface text-muted ring-1 ring-line hover:text-ink',
+                ? 'bg-chrome text-chrome-fg'
+                : 'bg-surface text-muted ring-1 ring-line hover:text-fg',
             ].join(' ')}
           >
             {group}

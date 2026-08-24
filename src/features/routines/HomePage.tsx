@@ -153,7 +153,7 @@ export function HomePage() {
                 className={[
                   'min-h-12 shrink-0 rounded-2xl px-4 text-sm font-semibold transition active:scale-[0.98]',
                   active
-                    ? 'bg-ink text-white'
+                    ? 'bg-chrome text-chrome-fg'
                     : rest
                       ? 'bg-brand-soft/80 text-muted ring-1 ring-line'
                       : 'bg-surface-elevated text-muted ring-1 ring-line',

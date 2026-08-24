@@ -117,7 +117,7 @@ export function BackupPanel() {
       </div>
 
       {message ? (
-        <p className="rounded-2xl bg-[#dcfce7] px-3 py-2 text-sm font-medium text-accent-strong">
+        <p className="rounded-2xl bg-success-soft px-3 py-2 text-sm font-medium text-accent-strong">
           {message}
         </p>
       ) : null}
