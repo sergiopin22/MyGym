@@ -244,6 +244,82 @@ export async function reorderExercises(
   return nextDay
 }
 
+/**
+ * Copia ejercicios de un día a otro (ej. Lunes pecho → Jueves pecho).
+ * Crea nuevos IDs; también duplica fotos custom si existen.
+ */
+export async function copyExercisesFromDay(
+  fromDayId: string,
+  toDayId: string,
+  options: {
+    mode?: 'replace' | 'append'
+    copyMuscleGroups?: boolean
+    routineId?: string
+  } = {},
+): Promise<RoutineDay> {
+  const { mode = 'replace', copyMuscleGroups = false, routineId } = options
+  if (fromDayId === toDayId) {
+    throw new Error('Elige un día distinto para copiar')
+  }
+
+  const routine = await requireRoutine(routineId)
+  const fromDay = findDay(routine, fromDayId)
+  const toDay = findDay(routine, toDayId)
+  if (!fromDay || !toDay) throw new Error('Día de rutina no encontrado')
+
+  const source = sortExercises(fromDay.exercises)
+  if (source.length === 0) {
+    throw new Error('Ese día no tiene ejercicios para copiar')
+  }
+
+  if (mode === 'replace' && toDay.exercises.length > 0) {
+    await db.exerciseImages.bulkDelete(toDay.exercises.map((e) => e.id))
+  }
+
+  const startOrder = mode === 'append' ? toDay.exercises.length : 0
+  const clones: RoutineExercise[] = source.map((ex, index) => ({
+    id: createId('ex'),
+    name: ex.name,
+    targetSets: ex.targetSets,
+    targetReps: { ...ex.targetReps },
+    targetRir: ex.targetRir,
+    order: startOrder + index,
+    imageUrl: ex.imageUrl,
+    videoUrl: ex.videoUrl,
+    hasCustomImage: false,
+  }))
+
+  // Duplicar blobs de imagen con el nuevo id
+  for (let i = 0; i < source.length; i++) {
+    const src = source[i]
+    const clone = clones[i]
+    if (!src.hasCustomImage) continue
+    const img = await db.exerciseImages.get(src.id)
+    if (!img) continue
+    await db.exerciseImages.put({
+      id: clone.id,
+      blob: img.blob,
+      mimeType: img.mimeType,
+      updatedAt: Date.now(),
+    })
+    clone.hasCustomImage = true
+  }
+
+  const nextExercises =
+    mode === 'append' ? [...sortExercises(toDay.exercises), ...clones] : clones
+
+  const nextDay: RoutineDay = {
+    ...toDay,
+    exercises: nextExercises,
+    muscleGroups: copyMuscleGroups
+      ? [...fromDay.muscleGroups]
+      : toDay.muscleGroups,
+  }
+
+  await saveRoutine(replaceDay(routine, nextDay))
+  return { ...nextDay, exercises: sortExercises(nextDay.exercises) }
+}
+
 // ─── Imágenes de ejercicio ───────────────────────────────────────────────────
 
 export async function saveExerciseImage(

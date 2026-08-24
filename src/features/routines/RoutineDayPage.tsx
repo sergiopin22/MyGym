@@ -14,6 +14,7 @@ import type { Routine, RoutineDay, RoutineExercise } from '../../types'
 import { weekdayLabel } from '../../utils/id'
 import { ExerciseEditor } from './ExerciseEditor'
 import { MuscleGroupPicker } from './MuscleGroupPicker'
+import { CopyDayExercises } from './CopyDayExercises'
 
 export function RoutineDayPage() {
   const { dayId } = useParams<{ dayId: string }>()
@@ -154,6 +155,13 @@ export function RoutineDayPage() {
           />
         </div>
       </Card>
+
+      <CopyDayExercises
+        key={`${day.id}-${day.exercises.length}-${routine.updatedAt}`}
+        routine={routine}
+        day={day}
+        onDone={() => void load()}
+      />
 
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-3">
