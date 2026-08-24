@@ -23,6 +23,8 @@ interface CopyDayExercisesProps {
 }
 
 export function CopyDayExercises({ routine, day, onDone }: CopyDayExercisesProps) {
+  const [open, setOpen] = useState(false)
+
   const sortedDays = useMemo(
     () =>
       [...routine.days].sort(
@@ -33,7 +35,6 @@ export function CopyDayExercises({ routine, day, onDone }: CopyDayExercisesProps
 
   const daysWithExercises = sortedDays.filter((d) => d.exercises.length > 0)
 
-  /** Por defecto: si este día está vacío, copiar HACIA aquí desde el primer día con ejercicios */
   const defaultFrom =
     day.exercises.length === 0
       ? (daysWithExercises.find((d) => d.id !== day.id)?.id ?? '')
@@ -48,7 +49,6 @@ export function CopyDayExercises({ routine, day, onDone }: CopyDayExercisesProps
   const [toDayId, setToDayId] = useState(defaultTo)
   const [copyMuscles, setCopyMuscles] = useState(true)
   const [busy, setBusy] = useState(false)
-  const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const fromDay = sortedDays.find((d) => d.id === fromDayId)
@@ -60,35 +60,44 @@ export function CopyDayExercises({ routine, day, onDone }: CopyDayExercisesProps
     fromDayId !== toDayId &&
     (fromDay?.exercises.length ?? 0) > 0
 
+  function openPanel() {
+    setFromDayId(defaultFrom)
+    setToDayId(defaultTo)
+    setError(null)
+    setOpen(true)
+  }
+
+  function closePanel() {
+    setOpen(false)
+    setError(null)
+  }
+
+  async function finishOk() {
+    closePanel()
+    onDone()
+  }
+
   async function handleCopy() {
     if (!fromDay || !toDay || !canCopy) return
 
     setBusy(true)
     setError(null)
-    setMessage(null)
 
     try {
-      let mode: 'replace' | 'append' = 'replace'
-
       if (toDay.exercises.length > 0) {
         const ok = window.confirm(
           `El ${weekdayLabel(toDay.weekday)} ya tiene ejercicios.\n\n` +
             `¿Borrar esos y poner los del ${weekdayLabel(fromDay.weekday)}?`,
         )
         if (!ok) return
-        mode = 'replace'
       }
 
-      const updated = await copyExercisesFromDay(fromDay.id, toDay.id, {
-        mode,
+      await copyExercisesFromDay(fromDay.id, toDay.id, {
+        mode: 'replace',
         copyMuscleGroups: copyMuscles,
         routineId: routine.id,
       })
-
-      setMessage(
-        `Listo: los ejercicios del ${weekdayLabel(fromDay.weekday)} quedaron en el ${weekdayLabel(toDay.weekday)} (${updated.exercises.length}).`,
-      )
-      onDone()
+      await finishOk()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo copiar')
     } finally {
@@ -101,19 +110,14 @@ export function CopyDayExercises({ routine, day, onDone }: CopyDayExercisesProps
 
     setBusy(true)
     setError(null)
-    setMessage(null)
 
     try {
-      const updated = await copyExercisesFromDay(fromDay.id, toDay.id, {
+      await copyExercisesFromDay(fromDay.id, toDay.id, {
         mode: 'append',
         copyMuscleGroups: copyMuscles,
         routineId: routine.id,
       })
-
-      setMessage(
-        `Listo: se sumaron los del ${weekdayLabel(fromDay.weekday)} al ${weekdayLabel(toDay.weekday)} (${updated.exercises.length} en total).`,
-      )
-      onDone()
+      await finishOk()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo copiar')
     } finally {
@@ -122,35 +126,44 @@ export function CopyDayExercises({ routine, day, onDone }: CopyDayExercisesProps
   }
 
   if (daysWithExercises.length === 0) {
+    return null
+  }
+
+  if (!open) {
     return (
-      <Card>
-        <h2 className="font-display text-lg font-bold">Copiar ejercicios a otro día</h2>
-        <p className="mt-2 text-sm text-muted">
-          Primero agrega ejercicios en un día (ej. lunes). Después podrás
-          copiarlos al jueves u otro día.
-        </p>
-      </Card>
+      <Button variant="secondary" fullWidth onClick={openPanel}>
+        Copiar ejercicios de otro día
+      </Button>
     )
   }
 
   return (
     <Card className="space-y-4">
-      <div>
-        <h2 className="font-display text-lg font-bold">Copiar ejercicios a otro día</h2>
-        <p className="mt-1 text-sm text-muted">
-          Ejemplo: pecho del <strong>lunes</strong> → mismo pecho el{' '}
-          <strong>jueves</strong>, sin cargarlos otra vez.
-        </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="font-display text-lg font-bold">Copiar ejercicios a otro día</h2>
+          <p className="mt-1 text-sm text-muted">
+            Ejemplo: pecho del <strong>lunes</strong> → mismo pecho el{' '}
+            <strong>jueves</strong>.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={closePanel}
+          className="min-h-11 min-w-11 rounded-full text-muted hover:bg-line/70 hover:text-ink"
+          aria-label="Cerrar"
+        >
+          ✕
+        </button>
       </div>
 
       <label className="block space-y-1.5">
-        <span className="text-sm font-semibold text-ink">1. Día de origen (de dónde salen)</span>
+        <span className="text-sm font-semibold text-ink">1. Día de origen</span>
         <select
           className="min-h-12 w-full rounded-2xl border border-line bg-surface-elevated px-4 text-base outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
           value={fromDayId}
           onChange={(e) => {
             setFromDayId(e.target.value)
-            setMessage(null)
             setError(null)
           }}
         >
@@ -163,13 +176,12 @@ export function CopyDayExercises({ routine, day, onDone }: CopyDayExercisesProps
       </label>
 
       <label className="block space-y-1.5">
-        <span className="text-sm font-semibold text-ink">2. Día destino (dónde los quieres)</span>
+        <span className="text-sm font-semibold text-ink">2. Día destino</span>
         <select
           className="min-h-12 w-full rounded-2xl border border-line bg-surface-elevated px-4 text-base outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
           value={toDayId}
           onChange={(e) => {
             setToDayId(e.target.value)
-            setMessage(null)
             setError(null)
           }}
         >
@@ -222,11 +234,10 @@ export function CopyDayExercises({ routine, day, onDone }: CopyDayExercisesProps
         </Button>
       ) : null}
 
-      {message ? (
-        <p className="rounded-2xl bg-[#dcfce7] px-3 py-2 text-sm font-medium text-accent-strong">
-          {message}
-        </p>
-      ) : null}
+      <Button variant="ghost" fullWidth disabled={busy} onClick={closePanel}>
+        Cancelar
+      </Button>
+
       {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
     </Card>
   )
