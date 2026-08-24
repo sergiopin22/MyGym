@@ -9,17 +9,17 @@ const tabs = [
 
 export function AppLayout() {
   return (
-    <div className="mx-auto flex min-h-full w-full max-w-lg flex-col">
-      <main className="flex-1 overflow-y-auto px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))]">
+    <div className="mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden">
+      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <Outlet />
       </main>
 
       <nav
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface-elevated/95 backdrop-blur-md"
-        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+        className="z-40 shrink-0 border-t border-line bg-surface-elevated"
+        style={{ paddingBottom: 'max(0.6rem, env(safe-area-inset-bottom))' }}
         aria-label="Navegación principal"
       >
-        <ul className="mx-auto grid max-w-lg grid-cols-4 gap-1 px-2 pt-2">
+        <ul className="grid grid-cols-4 gap-1 px-2 pt-2">
           {tabs.map((tab) => (
             <li key={tab.to}>
               <NavLink
