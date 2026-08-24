@@ -18,6 +18,7 @@ import {
   computeExerciseStatus,
   detectImprovement,
   getBestCompletedSet,
+  getIncompleteWorkoutParts,
 } from '../utils/workout'
 
 const DEFAULT_IMAGE = '/exercises/default.svg'
@@ -610,6 +611,16 @@ export async function completeSession(sessionId: string): Promise<{
 }> {
   const session = await getSessionById(sessionId)
   if (!session) throw new Error('Sesión no encontrada')
+  if (session.status === 'completed') {
+    return { session, summary: toSummary(session) }
+  }
+
+  const leftover = getIncompleteWorkoutParts(session)
+  if (leftover.incompleteSets > 0) {
+    throw new Error(
+      `Aún faltan ${leftover.incompleteSets} serie${leftover.incompleteSets === 1 ? '' : 's'} en ${leftover.incompleteExercises} ejercicio${leftover.incompleteExercises === 1 ? '' : 's'}. Completa todo antes de finalizar.`,
+    )
+  }
 
   const finishedAt = Date.now()
   const completed: WorkoutSession = {

@@ -87,6 +87,30 @@ export function emptySets(targetSets: number, createId: () => string): SetLog[] 
   }))
 }
 
+export function getIncompleteWorkoutParts(session: WorkoutSession): {
+  incompleteExercises: number
+  incompleteSets: number
+  details: string[]
+} {
+  const details: string[] = []
+  let incompleteSets = 0
+
+  for (const ex of [...session.exercises].sort((a, b) => a.order - b.order)) {
+    const pending = ex.sets.filter((s) => !s.completed).length
+    if (pending === 0) continue
+    incompleteSets += pending
+    details.push(
+      `${ex.name}: ${pending} serie${pending === 1 ? '' : 's'} sin completar`,
+    )
+  }
+
+  return {
+    incompleteExercises: details.length,
+    incompleteSets,
+    details,
+  }
+}
+
 export function buildExerciseLogFromRoutine(
   exercise: RoutineExercise,
   createId: () => string,

@@ -6,6 +6,7 @@ import { ProgressBar } from '../../components/ProgressBar'
 import { completeSession, getSessionById } from '../../db/repository'
 import type { SessionSummary, WorkoutSession } from '../../types'
 import { formatDuration } from '../../utils/id'
+import { getIncompleteWorkoutParts } from '../../utils/workout'
 import { CopyCoachMessageButton } from '../history/CopyCoachMessageButton'
 import { WorkoutExerciseCard } from './WorkoutExerciseCard'
 
@@ -68,6 +69,23 @@ export function WorkoutPage() {
 
   async function handleFinish() {
     if (!session) return
+
+    const leftover = getIncompleteWorkoutParts(session)
+    if (leftover.incompleteSets > 0) {
+      const preview = leftover.details.slice(0, 4).join('\n')
+      const more =
+        leftover.details.length > 4
+          ? `\n… y ${leftover.details.length - 4} más`
+          : ''
+      setError(
+        `No puedes finalizar todavía. Faltan ${leftover.incompleteSets} serie(s) en ${leftover.incompleteExercises} ejercicio(s).`,
+      )
+      window.alert(
+        `Completa todos los ejercicios y sus series antes de finalizar.\n\n${preview}${more}`,
+      )
+      return
+    }
+
     const ok = window.confirm('¿Finalizar entrenamiento y guardarlo en el historial?')
     if (!ok) return
     setFinishing(true)

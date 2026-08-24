@@ -81,10 +81,10 @@ export function NumberStepper({
         {label}
         {suffix ? ` (${suffix})` : ''}
       </span>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-2">
         <button
           type="button"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-xl font-bold text-fg active:scale-95"
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-3xl font-bold leading-none text-fg active:scale-95"
           onClick={() => bump(-step)}
           aria-label={`Bajar ${label}`}
         >
@@ -92,9 +92,8 @@ export function NumberStepper({
         </button>
         <input
           type="text"
-          inputMode="numeric"
-          pattern="[0-9]*"
-          className="h-12 w-full rounded-2xl border border-line bg-surface text-center text-lg font-semibold text-fg caret-fg outline-none placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/25"
+          inputMode="decimal"
+          className="h-14 min-w-0 flex-1 rounded-2xl border border-line bg-surface-elevated px-2 text-center text-3xl font-extrabold tabular-nums tracking-wide text-fg outline-none placeholder:text-muted focus:border-brand focus:ring-2 focus:ring-brand/25"
           value={focused ? draft : value == null ? '' : String(value)}
           placeholder="—"
           onFocus={() => {
@@ -114,7 +113,6 @@ export function NumberStepper({
             }
             const n = Number(raw)
             if (!Number.isFinite(n)) return
-            // Mientras escribe no forzamos al mínimo (permite borrar y poner 8)
             if (hi != null && n > hi) {
               onChange(hi)
               setDraft(String(hi))
@@ -126,7 +124,7 @@ export function NumberStepper({
         />
         <button
           type="button"
-          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-xl font-bold text-fg active:scale-95"
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-3xl font-bold leading-none text-fg active:scale-95"
           onClick={() => bump(step)}
           aria-label={`Subir ${label}`}
         >

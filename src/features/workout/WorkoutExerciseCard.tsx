@@ -259,7 +259,7 @@ export function WorkoutExerciseCard({
               ) : null}
             </div>
 
-            <div className="grid grid-cols-3 gap-2">
+            <div className="space-y-3">
               <NumberStepper
                 label="Peso"
                 suffix={WEIGHT_UNIT}
