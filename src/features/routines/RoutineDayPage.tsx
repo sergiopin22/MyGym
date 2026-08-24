@@ -15,6 +15,7 @@ import { weekdayLabel } from '../../utils/id'
 import { ExerciseEditor } from './ExerciseEditor'
 import { MuscleGroupPicker } from './MuscleGroupPicker'
 import { CopyDayExercises } from './CopyDayExercises'
+import { RestDayToggle } from './RestDayToggle'
 
 export function RoutineDayPage() {
   const { dayId } = useParams<{ dayId: string }>()
@@ -137,6 +138,17 @@ export function RoutineDayPage() {
         <h1 className="font-display text-3xl font-extrabold tracking-tight">Editar día</h1>
       </header>
 
+      <RestDayToggle
+        day={day}
+        routineId={routine.id}
+        onChange={(updated) => {
+          setDay(updated)
+          setLabel(updated.label)
+        }}
+      />
+
+      {!day.isRestDay ? (
+        <>
       <Card className="space-y-4">
         <TextField
           label="Nombre del día"
@@ -252,8 +264,10 @@ export function RoutineDayPage() {
           </ul>
         )}
       </section>
+        </>
+      ) : null}
 
-      {editorOpen ? (
+      {editorOpen && !day.isRestDay ? (
         <ExerciseEditor
           dayId={day.id}
           routineId={routine.id}

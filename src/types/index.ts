@@ -36,6 +36,8 @@ export interface RoutineDay {
   label: string
   muscleGroups: string[]
   exercises: RoutineExercise[]
+  /** true = no entrenas este día (ej. sábado/domingo) */
+  isRestDay?: boolean
 }
 
 export interface Routine {

@@ -55,16 +55,24 @@ export function RoutinesPage() {
                     <p className="text-xs font-semibold uppercase tracking-wider text-muted">
                       {weekdayLabel(day.weekday)}
                     </p>
-                    <h2 className="font-display text-lg font-bold">{day.label}</h2>
+                    <h2 className="font-display text-lg font-bold">
+                      {day.isRestDay ? 'Descanso' : day.label}
+                    </h2>
                     <p className="mt-1 truncate text-sm text-muted">
-                      {day.muscleGroups.length
-                        ? day.muscleGroups.join(' · ')
-                        : 'Sin grupos musculares'}
+                      {day.isRestDay
+                        ? 'No iré al gym'
+                        : day.muscleGroups.length
+                          ? day.muscleGroups.join(' · ')
+                          : 'Sin grupos musculares'}
                     </p>
+                    {!day.isRestDay ? (
                     <p className="mt-1 text-sm font-medium text-ink">
                       {day.exercises.length} ejercicio
                       {day.exercises.length === 1 ? '' : 's'}
                     </p>
+                    ) : (
+                      <p className="mt-1 text-sm font-medium text-muted">😴 Día libre</p>
+                    )}
                   </div>
                   <span className="text-2xl text-muted" aria-hidden>
                     ›

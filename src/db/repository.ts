@@ -25,14 +25,41 @@ const DEFAULT_ROUTINE_NAME = 'Mi rutina semanal'
 
 const WEEKDAY_ORDER: Weekday[] = [1, 2, 3, 4, 5, 6, 0] // Lun → Dom
 
+function isWeekendRest(weekday: Weekday) {
+  return weekday === 0 || weekday === 6
+}
+
 function defaultDays(): RoutineDay[] {
   return WEEKDAY_ORDER.map((weekday) => ({
     id: createId('day'),
     weekday,
-    label: weekdayLabel(weekday),
+    label: isWeekendRest(weekday) ? 'Descanso' : weekdayLabel(weekday),
     muscleGroups: [],
     exercises: [],
+    isRestDay: isWeekendRest(weekday),
   }))
+}
+
+/** Rellena isRestDay en rutinas antiguas (sáb/dom = descanso por defecto) */
+function normalizeRoutine(routine: Routine): { routine: Routine; changed: boolean } {
+  let changed = false
+  const days = routine.days.map((day) => {
+    if (day.isRestDay !== undefined) return day
+    changed = true
+    const rest = isWeekendRest(day.weekday)
+    return {
+      ...day,
+      isRestDay: rest,
+      label: rest && day.label === weekdayLabel(day.weekday) ? 'Descanso' : day.label,
+    }
+  })
+  return changed ? { routine: { ...routine, days }, changed: true } : { routine, changed: false }
+}
+
+async function loadRoutineNormalized(routine: Routine): Promise<Routine> {
+  const { routine: normalized, changed } = normalizeRoutine(routine)
+  if (changed) return saveRoutine(normalized)
+  return normalized
 }
 
 function touch(routine: Routine): Routine {
@@ -58,7 +85,7 @@ function replaceDay(routine: Routine, day: RoutineDay): Routine {
 
 export async function ensureDefaultRoutine(): Promise<Routine> {
   const existing = await db.routines.orderBy('updatedAt').reverse().first()
-  if (existing) return existing
+  if (existing) return loadRoutineNormalized(existing)
 
   const now = Date.now()
   const routine: Routine = {
@@ -73,7 +100,11 @@ export async function ensureDefaultRoutine(): Promise<Routine> {
 }
 
 export async function getActiveRoutine(): Promise<Routine | undefined> {
-  return db.routines.orderBy('updatedAt').reverse().first()
+  const routine = await db.routines.orderBy('updatedAt').reverse().first()
+  if (!routine) return undefined
+  const { routine: normalized, changed } = normalizeRoutine(routine)
+  if (changed) return saveRoutine(normalized)
+  return normalized
 }
 
 export async function getRoutineById(id: string): Promise<Routine | undefined> {
@@ -119,7 +150,7 @@ export async function getDayByWeekday(
 
 export async function updateRoutineDay(
   dayId: string,
-  patch: Partial<Pick<RoutineDay, 'label' | 'muscleGroups' | 'weekday'>>,
+  patch: Partial<Pick<RoutineDay, 'label' | 'muscleGroups' | 'weekday' | 'isRestDay'>>,
   routineId?: string,
 ): Promise<RoutineDay> {
   const routine = await requireRoutine(routineId)
@@ -133,6 +164,31 @@ export async function updateRoutineDay(
   }
   await saveRoutine(replaceDay(routine, nextDay))
   return nextDay
+}
+
+export async function setDayRestMode(
+  dayId: string,
+  isRestDay: boolean,
+  routineId?: string,
+): Promise<RoutineDay> {
+  const routine = await requireRoutine(routineId)
+  const day = findDay(routine, dayId)
+  if (!day) throw new Error('Día de rutina no encontrado')
+
+  return updateRoutineDay(
+    dayId,
+    {
+      isRestDay,
+      label: isRestDay
+        ? day.label === weekdayLabel(day.weekday)
+          ? 'Descanso'
+          : day.label
+        : day.label === 'Descanso'
+          ? weekdayLabel(day.weekday)
+          : day.label,
+    },
+    routine.id,
+  )
 }
 
 export async function addExerciseToDay(
@@ -390,6 +446,10 @@ export async function startSession(
   const found = await getRoutineDay(routineDayId, routineId)
   if (!found) throw new Error('Día de rutina no encontrado')
   const { routine, day } = found
+
+  if (day.isRestDay) {
+    throw new Error('Este día está marcado como descanso.')
+  }
 
   if (day.exercises.length === 0) {
     throw new Error('Este día no tiene ejercicios. Agrégalos en Rutinas.')

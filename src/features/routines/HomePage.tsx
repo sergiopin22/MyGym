@@ -10,6 +10,7 @@ import {
 } from '../../db/repository'
 import type { Routine, RoutineDay, Weekday, WorkoutSession } from '../../types'
 import { weekdayLabel } from '../../utils/id'
+import { RestDayToggle } from './RestDayToggle'
 
 function sortDays(days: RoutineDay[]): RoutineDay[] {
   const order = [1, 2, 3, 4, 5, 6, 0]
@@ -63,6 +64,8 @@ export function HomePage() {
     [days, selectedWeekday],
   )
 
+  const isRestDay = Boolean(selectedDay?.isRestDay)
+
   const sessionForSelected =
     activeSession && selectedDay && activeSession.routineDayId === selectedDay.id
       ? activeSession
@@ -77,6 +80,17 @@ export function HomePage() {
 
   const today = new Date()
 
+  function handleDayUpdated(updated: RoutineDay) {
+    setRoutine((prev) =>
+      prev
+        ? {
+            ...prev,
+            days: prev.days.map((d) => (d.id === updated.id ? updated : d)),
+          }
+        : prev,
+    )
+  }
+
   async function handleStartOrContinue() {
     if (!selectedDay) return
     setStarting(true)
@@ -84,6 +98,10 @@ export function HomePage() {
     try {
       if (activeSession) {
         navigate(`/entrenar/${activeSession.id}`)
+        return
+      }
+      if (selectedDay.isRestDay) {
+        setError('Este día está marcado como descanso.')
         return
       }
       if (selectedDay.exercises.length === 0) {
@@ -126,6 +144,7 @@ export function HomePage() {
           {days.map((day) => {
             const active = day.weekday === selectedWeekday
             const isToday = day.weekday === todayWeekday
+            const rest = Boolean(day.isRestDay)
             return (
               <button
                 key={day.id}
@@ -133,12 +152,15 @@ export function HomePage() {
                 onClick={() => setSelectedWeekday(day.weekday)}
                 className={[
                   'min-h-12 shrink-0 rounded-2xl px-4 text-sm font-semibold transition active:scale-[0.98]',
-              active
-                ? 'bg-ink text-white'
-                : 'bg-surface-elevated text-muted ring-1 ring-line',
+                  active
+                    ? 'bg-ink text-white'
+                    : rest
+                      ? 'bg-brand-soft/80 text-muted ring-1 ring-line'
+                      : 'bg-surface-elevated text-muted ring-1 ring-line',
                 ].join(' ')}
               >
                 {weekdayLabel(day.weekday).slice(0, 3)}
+                {rest ? ' · 😴' : ''}
                 {isToday ? ' · Hoy' : ''}
               </button>
             )
@@ -146,61 +168,84 @@ export function HomePage() {
         </div>
       </div>
 
-      <Card className="space-y-4">
-        <div>
-          <h2 className="font-display text-xl font-bold">
-            {selectedDay?.label ?? 'Sin día'}
-          </h2>
-          <p className="mt-1 text-sm text-muted">
-            {selectedDay?.muscleGroups.length
-              ? selectedDay.muscleGroups.join(' · ')
-              : 'Sin grupos musculares — configúralos en Rutinas'}
-          </p>
-        </div>
-
-        <ProgressBar
-          value={completedCount}
-          max={Math.max(totalCount, 1)}
-          label={`${completedCount} de ${totalCount} ejercicios`}
+      {selectedDay && routine ? (
+        <RestDayToggle
+          day={selectedDay}
+          routineId={routine.id}
+          compact
+          onChange={handleDayUpdated}
         />
+      ) : null}
 
-        {selectedDay && selectedDay.exercises.length > 0 ? (
-          <ul className="space-y-2">
-            {(sessionForSelected?.exercises ?? selectedDay.exercises)
-              .slice()
-              .sort((a, b) => a.order - b.order)
-              .map((ex) => {
-                const status =
-                  'status' in ex ? ex.status : ('pending' as const)
-                const mark =
-                  status === 'completed'
-                    ? '✅'
-                    : status === 'in_progress'
-                      ? '🟡'
-                      : '⏳'
-                return (
-                  <li
-                    key={ex.id}
-                    className="flex items-center justify-between gap-2 rounded-2xl bg-surface px-3 py-2.5 text-sm"
-                  >
-                    <span className="truncate font-medium">{ex.name}</span>
-                    <span aria-hidden>{mark}</span>
-                  </li>
-                )
-              })}
-          </ul>
+      <Card className="space-y-4">
+        {isRestDay && !sessionForSelected ? (
+          <div className="space-y-2 text-center py-2">
+            <span className="text-4xl" aria-hidden>
+              😴
+            </span>
+            <h2 className="font-display text-xl font-bold">Día de descanso</h2>
+            <p className="text-sm text-muted">
+              Hoy no toca gym. Descansa y vuelve fuerte el próximo entreno.
+            </p>
+          </div>
         ) : (
-          <p className="rounded-2xl bg-surface px-3 py-3 text-sm text-muted">
-            Este día está vacío.{' '}
-            {selectedDay ? (
-              <Link
-                to={`/rutinas/${selectedDay.id}`}
-                className="font-semibold text-brand underline"
-              >
-                Agregar ejercicios
-              </Link>
-            ) : null}
-          </p>
+          <>
+            <div>
+              <h2 className="font-display text-xl font-bold">
+                {selectedDay?.label ?? 'Sin día'}
+              </h2>
+              <p className="mt-1 text-sm text-muted">
+                {selectedDay?.muscleGroups.length
+                  ? selectedDay.muscleGroups.join(' · ')
+                  : 'Sin grupos musculares — configúralos en Rutinas'}
+              </p>
+            </div>
+
+            <ProgressBar
+              value={completedCount}
+              max={Math.max(totalCount, 1)}
+              label={`${completedCount} de ${totalCount} ejercicios`}
+            />
+
+            {selectedDay && selectedDay.exercises.length > 0 ? (
+              <ul className="space-y-2">
+                {(sessionForSelected?.exercises ?? selectedDay.exercises)
+                  .slice()
+                  .sort((a, b) => a.order - b.order)
+                  .map((ex) => {
+                    const status =
+                      'status' in ex ? ex.status : ('pending' as const)
+                    const mark =
+                      status === 'completed'
+                        ? '✅'
+                        : status === 'in_progress'
+                          ? '🟡'
+                          : '⏳'
+                    return (
+                      <li
+                        key={ex.id}
+                        className="flex items-center justify-between gap-2 rounded-2xl bg-surface px-3 py-2.5 text-sm"
+                      >
+                        <span className="truncate font-medium">{ex.name}</span>
+                        <span aria-hidden>{mark}</span>
+                      </li>
+                    )
+                  })}
+              </ul>
+            ) : (
+              <p className="rounded-2xl bg-surface px-3 py-3 text-sm text-muted">
+                Este día está vacío.{' '}
+                {selectedDay ? (
+                  <Link
+                    to={`/rutinas/${selectedDay.id}`}
+                    className="font-semibold text-brand underline"
+                  >
+                    Agregar ejercicios
+                  </Link>
+                ) : null}
+              </p>
+            )}
+          </>
         )}
 
         {activeSession && !sessionForSelected ? (
@@ -212,20 +257,24 @@ export function HomePage() {
 
         {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
-        <Button
-          fullWidth
-          onClick={() => void handleStartOrContinue()}
-          disabled={
-            starting ||
-            (!activeSession && (selectedDay?.exercises.length ?? 0) === 0)
-          }
-        >
-          {starting
-            ? 'Abriendo…'
-            : activeSession
-              ? 'Continuar entrenamiento'
-              : 'Comenzar entrenamiento'}
-        </Button>
+        {!isRestDay || activeSession ? (
+          <Button
+            fullWidth
+            onClick={() => void handleStartOrContinue()}
+            disabled={
+              starting ||
+              (!activeSession &&
+                !isRestDay &&
+                (selectedDay?.exercises.length ?? 0) === 0)
+            }
+          >
+            {starting
+              ? 'Abriendo…'
+              : activeSession
+                ? 'Continuar entrenamiento'
+                : 'Comenzar entrenamiento'}
+          </Button>
+        ) : null}
       </Card>
     </div>
   )
