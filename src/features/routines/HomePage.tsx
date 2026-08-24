@@ -122,7 +122,7 @@ export function HomePage() {
 
   return (
     <div className="space-y-6">
-      <header className="sticky top-0 z-20 -mx-4 mb-1 flex items-center justify-between gap-3 bg-[var(--body-background)] px-4 py-2">
+      <header className="flex items-center justify-between gap-3 pt-2">
         <div className="min-w-0 space-y-1">
           <p className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand">
             Mi Gym
