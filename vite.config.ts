@@ -12,7 +12,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.svg', 'exercises/*.svg'],
+      includeAssets: ['favicon.svg', 'exercises/*.svg', 'brand/*.gif'],
       manifest: {
         name: 'Mi Gym',
         short_name: 'Mi Gym',

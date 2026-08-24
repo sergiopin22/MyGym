@@ -122,20 +122,27 @@ export function HomePage() {
 
   return (
     <div className="space-y-6">
-      <header className="space-y-1 pt-2">
-        <p className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand">
-          Mi Gym
-        </p>
-        <h1 className="font-display text-3xl font-extrabold tracking-tight text-ink">
-          {weekdayLabel(todayWeekday)}
-        </h1>
-        <p className="text-muted">
-          {today.toLocaleDateString('es-ES', {
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric',
-          })}
-        </p>
+      <header className="sticky top-0 z-20 -mx-4 mb-1 flex items-center justify-between gap-3 bg-[var(--body-background)] px-4 py-2">
+        <div className="min-w-0 space-y-1">
+          <p className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand">
+            Mi Gym
+          </p>
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-fg">
+            {weekdayLabel(todayWeekday)}
+          </h1>
+          <p className="text-muted">
+            {today.toLocaleDateString('es-ES', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
+          </p>
+        </div>
+        <img
+          src="/brand/ippo.gif"
+          alt=""
+          className="h-[5.5rem] w-[5.5rem] shrink-0 rounded-2xl bg-black object-contain ring-1 ring-line"
+        />
       </header>
 
       <Link
