@@ -25,6 +25,7 @@ const RULES = [
   'Si fallas 1 día de gym en la semana, no pasa nada.',
   'Si fallas 2 días netos en la semana (sin recuperar), el domingo a las 23:59 debes donar $30 USD a Helen (penitencia).',
   'Todo el domingo puedes recuperar 1 día; la penitencia solo se aplica después de las 23:59 (o el lunes).',
+  'Los días anteriores a crear la meta no cuentan como fallo ni penitencia.',
   'Si fallas 3 días netos en la misma semana, el progreso de la meta vuelve a 0.',
   'Los días de descanso no cuentan como fallo.',
   'Sábado o domingo puedes recuperar 1 día perdido (máx. una vez). Ese día deja de contar como fallo.',

@@ -1161,6 +1161,10 @@ export interface WeekMissStats {
 /** Fallos netos de gym en una semana (recuperado = ya no es fallo) */
 export async function getWeekMissStats(
   refDate = new Date(),
+  options?: {
+    /** Solo contar fallos desde esta fecha (día en que se creó la meta) */
+    fromDate?: string
+  },
 ): Promise<WeekMissStats> {
   const weekKey = isoWeekKey(refDate)
   const weekStart = todayISODate(startOfWeekMonday(refDate))
@@ -1168,6 +1172,7 @@ export async function getWeekMissStats(
   const yesterday = addDaysISO(today, -1)
   const weekEnd = addDaysISO(weekStart, 6)
   const lastDayToCheck = yesterday < weekEnd ? yesterday : weekEnd
+  const fromDate = options?.fromDate
 
   const routine = await getActiveRoutine()
   const missedLabels: string[] = []
@@ -1179,6 +1184,8 @@ export async function getWeekMissStats(
   for (let i = 0; i < 7; i++) {
     const date = addDaysISO(weekStart, i)
     if (date > lastDayToCheck) break
+    /** Días anteriores a crear la meta no cuentan como fallo */
+    if (fromDate && date < fromDate) continue
 
     const weekday = weekdayFromISO(date) as Weekday
     const day = routine.days.find((d) => d.weekday === weekday)
@@ -1199,6 +1206,10 @@ export async function getWeekMissStats(
 const WEEKLY_RESET_MISSES = 3
 const WEEKLY_PENANCE_MISSES = 2
 
+function goalStartDate(goal: ConstancyGoal): string {
+  return todayISODate(new Date(goal.createdAt))
+}
+
 /** Evalúa fallos de la semana: ≥3 netos reinician; guarda contador para la UI */
 export async function evaluateConstancyMisses(
   goal: ConstancyGoal,
@@ -1206,7 +1217,8 @@ export async function evaluateConstancyMisses(
   if (goal.status !== 'active') return goal
 
   const yesterday = addDaysISO(todayISODate(), -1)
-  const stats = await getWeekMissStats()
+  const fromDate = goalStartDate(goal)
+  const stats = await getWeekMissStats(new Date(), { fromDate })
   let currentCount = goal.currentCount
   let resetWeekKey = goal.resetWeekKey
   const consecutiveMisses = stats.netMisses
@@ -1246,11 +1258,13 @@ export async function getPenanceStatus(): Promise<{
   const now = new Date()
   const todayWeekday = now.getDay()
   const penanceLabel = goal.penanceLabel ?? 'Donar $30 USD a Helen'
+  const fromDate = goalStartDate(goal)
 
   /**
    * La penitencia se cierra el domingo a las 23:59.
    * Antes de eso (todo el domingo) aún puedes recuperar.
-   * El lunes se muestra la de la semana que acaba de cerrar.
+   * El lunes se muestra la de la semana que acaba de cerrar
+   * (solo si la meta ya existía en esa semana).
    */
   const isSundayAfterClose =
     todayWeekday === 0 &&
@@ -1261,9 +1275,16 @@ export async function getPenanceStatus(): Promise<{
   const checkDate = isMonday
     ? new Date(now.getTime() - 24 * 60 * 60 * 1000)
     : now
-  const stats = await getWeekMissStats(checkDate)
+  const stats = await getWeekMissStats(checkDate, { fromDate })
+  const weekEnd = addDaysISO(stats.weekStart, 6)
+
+  /** La meta se creó después de esa semana → no hay penitencia de esa semana */
+  const goalExistedInWeek = fromDate <= weekEnd
   const acknowledged = goal.penanceWeekKey === stats.weekKey
-  const owed = windowOpen && stats.netMisses >= WEEKLY_PENANCE_MISSES
+  const owed =
+    windowOpen &&
+    goalExistedInWeek &&
+    stats.netMisses >= WEEKLY_PENANCE_MISSES
 
   return {
     owed,
@@ -1300,7 +1321,9 @@ async function onWorkoutCompletedForConstancy(
   const goal = await evaluateConstancyMisses(raw)
   if (goal.status !== 'active') return
 
-  const stats = await getWeekMissStats()
+  const stats = await getWeekMissStats(new Date(), {
+    fromDate: goalStartDate(goal),
+  })
   let currentCount = goal.currentCount + 1
   let status: ConstancyGoal['status'] = 'active'
   let completedAt = goal.completedAt
