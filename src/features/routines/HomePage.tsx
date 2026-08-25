@@ -216,7 +216,7 @@ export function HomePage() {
         <img
           src="/brand/ippo.gif"
           alt=""
-          className="h-[5.5rem] w-[5.5rem] shrink-0 rounded-2xl bg-black object-contain ring-1 ring-line"
+          className="h-28 w-28 shrink-0 rounded-2xl bg-black object-contain ring-1 ring-line"
         />
       </header>
 
