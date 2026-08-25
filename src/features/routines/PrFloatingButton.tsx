@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '../../components/Button'
 import {
-  getAllExercisePRs,
   getFeaturedExercisePRs,
+  getRoutineExercisePRs,
   type ExercisePR,
 } from '../../db/repository'
 
@@ -14,21 +14,29 @@ function formatPrDate(iso: string): string {
   })
 }
 
+function formatPrLine(pr: ExercisePR): string {
+  const rir = pr.rir != null ? ` · RIR ${pr.rir}` : ' · RIR —'
+  return `${pr.weight} lb × ${pr.reps}${rir}`
+}
+
 function PrRow({
   title,
+  subtitle,
   pr,
 }: {
   title: string
+  subtitle?: string
   pr: ExercisePR | null
 }) {
   return (
     <li className="rounded-2xl bg-surface px-3 py-3 ring-1 ring-line">
       <p className="text-sm font-semibold text-fg">{title}</p>
+      {subtitle ? (
+        <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
+      ) : null}
       {pr ? (
         <p className="mt-1 text-sm text-muted">
-          <span className="font-bold text-fg">
-            {pr.weight} lb × {pr.reps}
-          </span>
+          <span className="font-bold text-fg">{formatPrLine(pr)}</span>
           <span className="text-muted"> · {formatPrDate(pr.date)}</span>
         </p>
       ) : (
@@ -44,7 +52,9 @@ export function PrFloatingButton() {
   const [featured, setFeatured] = useState<
     Array<{ label: string; pr: ExercisePR | null }>
   >([])
-  const [all, setAll] = useState<ExercisePR[]>([])
+  const [routineRows, setRoutineRows] = useState<
+    Array<{ exerciseName: string; dayLabels: string[]; pr: ExercisePR | null }>
+  >([])
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -52,11 +62,11 @@ export function PrFloatingButton() {
     if (!open) return
     let alive = true
     setLoading(true)
-    Promise.all([getFeaturedExercisePRs(), getAllExercisePRs()])
-      .then(([f, a]) => {
+    Promise.all([getFeaturedExercisePRs(), getRoutineExercisePRs()])
+      .then(([f, rows]) => {
         if (!alive) return
         setFeatured(f)
-        setAll(a)
+        setRoutineRows(rows)
       })
       .finally(() => {
         if (alive) setLoading(false)
@@ -68,9 +78,11 @@ export function PrFloatingButton() {
 
   const filteredAll = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return all
-    return all.filter((p) => p.exerciseName.toLowerCase().includes(q))
-  }, [all, query])
+    if (!q) return routineRows
+    return routineRows.filter((row) =>
+      row.exerciseName.toLowerCase().includes(q),
+    )
+  }, [routineRows, query])
 
   return (
     <>
@@ -106,7 +118,7 @@ export function PrFloatingButton() {
                   Tus PR
                 </h2>
                 <p className="text-sm text-muted">
-                  Mejor peso × reps en series completadas
+                  Mejor peso × reps · RIR de esa serie
                 </p>
               </div>
               <button
@@ -150,7 +162,7 @@ export function PrFloatingButton() {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Buscar máquina…"
+                placeholder="Buscar en tu rutina…"
                 className="mb-3 min-h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-fg"
               />
             ) : null}
@@ -161,26 +173,27 @@ export function PrFloatingButton() {
               ) : tab === 'featured' ? (
                 <ul className="space-y-2">
                   {featured.map((row) => (
-                    <PrRow
-                      key={row.label}
-                      title={row.label}
-                      pr={row.pr}
-                    />
+                    <PrRow key={row.label} title={row.label} pr={row.pr} />
                   ))}
                 </ul>
               ) : filteredAll.length === 0 ? (
                 <p className="py-6 text-center text-sm text-muted">
-                  {all.length === 0
-                    ? 'Aún no hay PRs. Completa entrenamientos para registrarlos.'
+                  {routineRows.length === 0
+                    ? 'No hay ejercicios en tu rutina. Agrégalos en Rutinas.'
                     : 'No hay máquinas con ese nombre.'}
                 </p>
               ) : (
                 <ul className="space-y-2">
-                  {filteredAll.map((pr) => (
+                  {filteredAll.map((row) => (
                     <PrRow
-                      key={pr.exerciseName + pr.sessionId}
-                      title={pr.exerciseName}
-                      pr={pr}
+                      key={row.exerciseName}
+                      title={row.exerciseName}
+                      subtitle={
+                        row.dayLabels.length
+                          ? row.dayLabels.join(' · ')
+                          : undefined
+                      }
+                      pr={row.pr}
                     />
                   ))}
                 </ul>

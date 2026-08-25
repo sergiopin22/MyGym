@@ -1407,6 +1407,8 @@ export interface ExercisePR {
   exerciseName: string
   weight: number
   reps: number
+  /** RIR de la serie del PR (puede ser null si no se registró) */
+  rir: number | null
   date: string
   sessionId: string
 }
@@ -1468,7 +1470,7 @@ function isBetterPR(
   return false
 }
 
-/** PR de todas las máquinas (mejor peso; si empata, más reps) */
+/** PR de todas las máquinas vistas en historial (mejor peso; si empata, más reps) */
 export async function getAllExercisePRs(): Promise<ExercisePR[]> {
   const sessions = await db.sessions
     .where('status')
@@ -1491,6 +1493,7 @@ export async function getAllExercisePRs(): Promise<ExercisePR[]> {
           exerciseName: ex.name,
           weight: set.weight,
           reps: set.reps,
+          rir: set.rir,
           date: session.date,
           sessionId: session.id,
         })
@@ -1499,6 +1502,63 @@ export async function getAllExercisePRs(): Promise<ExercisePR[]> {
   }
 
   return [...best.values()].sort((a, b) =>
+    a.exerciseName.localeCompare(b.exerciseName, 'es'),
+  )
+}
+
+/**
+ * Todos los ejercicios de la rutina activa + su PR si existe.
+ * Así “Cualquier máquina” lista todo lo que tienes creado.
+ */
+export async function getRoutineExercisePRs(): Promise<
+  Array<{ exerciseName: string; dayLabels: string[]; pr: ExercisePR | null }>
+> {
+  const routine = await getActiveRoutine()
+  const prs = await getAllExercisePRs()
+  const prByKey = new Map(
+    prs.map((p) => [normalizeExerciseName(p.exerciseName), p]),
+  )
+
+  const byKey = new Map<
+    string,
+    { exerciseName: string; dayLabels: string[]; pr: ExercisePR | null }
+  >()
+
+  if (routine) {
+    for (const day of routine.days) {
+      if (day.isRestDay) continue
+      for (const ex of day.exercises) {
+        const key = normalizeExerciseName(ex.name)
+        if (!key) continue
+        const existing = byKey.get(key)
+        if (existing) {
+          if (!existing.dayLabels.includes(day.label)) {
+            existing.dayLabels.push(day.label)
+          }
+        } else {
+          byKey.set(key, {
+            exerciseName: ex.name,
+            dayLabels: [day.label],
+            pr: prByKey.get(key) ?? null,
+          })
+        }
+      }
+    }
+  }
+
+  /** Incluye PRs de nombres que ya no están en rutina (historial viejo) */
+  for (const pr of prs) {
+    const key = normalizeExerciseName(pr.exerciseName)
+    if (!byKey.has(key)) {
+      byKey.set(key, {
+        exerciseName: pr.exerciseName,
+        dayLabels: [],
+        pr,
+      })
+    }
+  }
+
+  return [...byKey.values()].sort((a, b) =>
     a.exerciseName.localeCompare(b.exerciseName, 'es'),
   )
 }
