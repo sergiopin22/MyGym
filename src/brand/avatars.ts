@@ -1,4 +1,4 @@
-export type BrandAvatarId = 'ippo' | 'luffy' | 'asta'
+export type BrandAvatarId = 'ippo' | 'luffy' | 'asta' | 'zoro'
 
 export interface BrandAvatar {
   id: BrandAvatarId
@@ -31,6 +31,13 @@ export const BRAND_AVATARS: BrandAvatar[] = [
     name: 'Asta',
     tagline: 'Nunca rendirse',
     src: '/brand/asta.jpg',
+    fit: 'cover',
+  },
+  {
+    id: 'zoro',
+    name: 'Zoro',
+    tagline: 'Sin rendirse',
+    src: '/brand/zoro.gif',
     fit: 'cover',
   },
 ]
