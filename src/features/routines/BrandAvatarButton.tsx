@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '../../components/Button'
 import {
   BRAND_AVATARS,
@@ -7,6 +7,8 @@ import {
   setStoredBrandAvatarId,
   type BrandAvatarId,
 } from '../../brand/avatars'
+
+const HINT_MS = 2800
 
 interface BrandAvatarButtonProps {
   className?: string
@@ -18,12 +20,35 @@ export function BrandAvatarButton({ className = '' }: BrandAvatarButtonProps) {
   )
   const [open, setOpen] = useState(false)
   const [pendingId, setPendingId] = useState<BrandAvatarId | null>(null)
+  const [showHint, setShowHint] = useState(false)
+  const hintTimer = useRef<number | null>(null)
 
   useEffect(() => {
     setAvatarId(getStoredBrandAvatarId())
   }, [])
 
+  useEffect(() => {
+    return () => {
+      if (hintTimer.current != null) window.clearTimeout(hintTimer.current)
+    }
+  }, [])
+
   const avatar = getBrandAvatar(avatarId)
+
+  function clearHintTimer() {
+    if (hintTimer.current != null) {
+      window.clearTimeout(hintTimer.current)
+      hintTimer.current = null
+    }
+  }
+
+  function scheduleHintHide() {
+    clearHintTimer()
+    hintTimer.current = window.setTimeout(() => {
+      setShowHint(false)
+      hintTimer.current = null
+    }, HINT_MS)
+  }
 
   function handleConfirm() {
     const next = pendingId ?? avatarId
@@ -31,6 +56,8 @@ export function BrandAvatarButton({ className = '' }: BrandAvatarButtonProps) {
     setAvatarId(next)
     setPendingId(null)
     setOpen(false)
+    clearHintTimer()
+    setShowHint(false)
     try {
       if (navigator.vibrate) navigator.vibrate(12)
     } catch {
@@ -38,7 +65,16 @@ export function BrandAvatarButton({ className = '' }: BrandAvatarButtonProps) {
     }
   }
 
+  function handleCloseWithoutChange() {
+    setOpen(false)
+    setPendingId(null)
+    /** Si no cambió, el texto “Cambiar” se quita solo a los pocos segundos */
+    scheduleHintHide()
+  }
+
   function handleOpen() {
+    clearHintTimer()
+    setShowHint(true)
     setPendingId(avatarId)
     setOpen(true)
   }
@@ -49,7 +85,7 @@ export function BrandAvatarButton({ className = '' }: BrandAvatarButtonProps) {
         type="button"
         onClick={handleOpen}
         className={[
-          'group relative shrink-0 overflow-hidden rounded-2xl bg-black ring-1 ring-line transition active:scale-[0.97]',
+          'relative shrink-0 overflow-hidden rounded-2xl bg-black ring-1 ring-line transition active:scale-[0.97]',
           'h-28 w-28',
           className,
         ].join(' ')}
@@ -63,9 +99,11 @@ export function BrandAvatarButton({ className = '' }: BrandAvatarButtonProps) {
             avatar.fit === 'cover' ? 'object-cover' : 'object-contain',
           ].join(' ')}
         />
-        <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pb-1.5 pt-6 text-center text-[10px] font-bold uppercase tracking-wider text-white opacity-90 group-hover:opacity-100">
-          Cambiar
-        </span>
+        {showHint ? (
+          <span className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent px-2 pb-1.5 pt-6 text-center text-[10px] font-bold uppercase tracking-wider text-white">
+            Cambiar
+          </span>
+        ) : null}
       </button>
 
       {open ? (
@@ -74,10 +112,7 @@ export function BrandAvatarButton({ className = '' }: BrandAvatarButtonProps) {
           role="dialog"
           aria-modal="true"
           aria-label="Elige tu luchador"
-          onClick={() => {
-            setOpen(false)
-            setPendingId(null)
-          }}
+          onClick={handleCloseWithoutChange}
         >
           <div
             className="flex max-h-[88dvh] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl bg-surface-elevated shadow-xl sm:rounded-3xl"
@@ -142,10 +177,7 @@ export function BrandAvatarButton({ className = '' }: BrandAvatarButtonProps) {
               <Button
                 fullWidth
                 variant="secondary"
-                onClick={() => {
-                  setOpen(false)
-                  setPendingId(null)
-                }}
+                onClick={handleCloseWithoutChange}
               >
                 Cancelar
               </Button>
