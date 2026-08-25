@@ -23,11 +23,12 @@ import { weekdayLabel } from '../../utils/id'
 const RULES = [
   'Cada entrenamiento que finalices suma +1 a tu meta.',
   'Si fallas 1 día de gym en la semana, no pasa nada.',
-  'Si fallas 2 días netos en la semana (sin recuperar), el domingo debes cumplir la penitencia (ej. pagarle $30 a Helen).',
+  'Si fallas 2 días netos en la semana (sin recuperar), el domingo a las 23:59 debes donar $30 USD a Helen (penitencia).',
+  'Todo el domingo puedes recuperar 1 día; la penitencia solo se aplica después de las 23:59 (o el lunes).',
   'Si fallas 3 días netos en la misma semana, el progreso de la meta vuelve a 0.',
   'Los días de descanso no cuentan como fallo.',
   'Sábado o domingo puedes recuperar 1 día perdido (máx. una vez). Ese día deja de contar como fallo.',
-  'Ejemplo: fallaste 2 y recuperaste 1 → solo fallaste 1 → no hay penitencia ni reinicio.',
+  'Ejemplo: fallaste 2 y recuperaste 1 el domingo → solo fallaste 1 → no hay penitencia ni reinicio.',
 ]
 
 interface ConstancyGoalCardProps {
@@ -205,10 +206,10 @@ export function ConstancyGoalCard({
           />
           <p className="text-xs text-muted">
             Fallos netos esta semana: {active.consecutiveMisses}/3 (con 3 se
-            reinicia · con 2 sin recuperar → penitencia el domingo)
+            reinicia · con 2 sin recuperar → donar $30 a Helen el domingo 23:59)
           </p>
           <p className="text-xs text-muted">
-            Penitencia: {active.penanceLabel ?? 'Pagarle $30 USD a Helen'}
+            Penitencia: {active.penanceLabel ?? 'Donar $30 USD a Helen'}
           </p>
           {canRecover && missedDays.length > 0 ? (
             <div className="space-y-2 rounded-2xl bg-brand-soft px-3 py-3">
@@ -366,8 +367,8 @@ export function ConstancyGoalCard({
             </div>
           </div>
           <p className="text-xs text-muted">
-            Penitencia por defecto si fallas 2 días netos: pagarle $30 USD a
-            Helen.
+            Penitencia por defecto si fallas 2 días netos: donar $30 USD a Helen
+            (se aplica el domingo a las 23:59, así puedes recuperar antes).
           </p>
           {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
           <div className="flex gap-2">

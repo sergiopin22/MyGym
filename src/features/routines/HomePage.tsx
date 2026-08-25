@@ -12,6 +12,7 @@ import {
 import type { Routine, RoutineDay, Weekday, WorkoutSession } from '../../types'
 import { isWeekend, weekdayLabel } from '../../utils/id'
 import { ConstancyGoalCard } from './ConstancyGoalCard'
+import { PrFloatingButton } from './PrFloatingButton'
 import { RestDayToggle } from './RestDayToggle'
 
 function sortDays(days: RoutineDay[]): RoutineDay[] {
@@ -430,6 +431,8 @@ export function HomePage() {
           </Button>
         ) : null}
       </Card>
+
+      <PrFloatingButton />
     </div>
   )
 }

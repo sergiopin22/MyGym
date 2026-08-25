@@ -1064,7 +1064,7 @@ export async function createConstancyGoal(input: {
     completedAt: reached ? now : undefined,
     consecutiveMisses: 0,
     lastEvaluatedDate: todayISODate(),
-    penanceLabel: 'Pagarle $30 USD a Helen',
+    penanceLabel: 'Donar $30 USD a Helen',
     recoveryWeekKey:
       alreadyTrainedToday?.isRecovery ? isoWeekKey() : undefined,
   }
@@ -1226,7 +1226,7 @@ export async function evaluateConstancyMisses(
     resetWeekKey,
     lastEvaluatedDate: yesterday,
     updatedAt: Date.now(),
-    penanceLabel: goal.penanceLabel ?? 'Pagarle $30 USD a Helen',
+    penanceLabel: goal.penanceLabel ?? 'Donar $30 USD a Helen',
   }
   await db.constancyGoals.put(updated)
   return updated
@@ -1243,31 +1243,27 @@ export async function getPenanceStatus(): Promise<{
   const goal = await db.constancyGoals.where('status').equals('active').first()
   if (!goal) return null
 
-  const todayWeekday = new Date().getDay()
-  // Domingo (o lunes temprano mirando la semana que cierra): mostrar si ≥2 fallos netos
-  const checkDate =
-    todayWeekday === 1
-      ? new Date(Date.now() - 24 * 60 * 60 * 1000)
-      : new Date()
-  const stats =
-    todayWeekday === 0 || todayWeekday === 1
-      ? await getWeekMissStats(checkDate)
-      : await getWeekMissStats()
+  const now = new Date()
+  const todayWeekday = now.getDay()
+  const penanceLabel = goal.penanceLabel ?? 'Donar $30 USD a Helen'
 
-  const penanceLabel = goal.penanceLabel ?? 'Pagarle $30 USD a Helen'
-  const owed = stats.netMisses >= WEEKLY_PENANCE_MISSES
+  /**
+   * La penitencia se cierra el domingo a las 23:59.
+   * Antes de eso (todo el domingo) aún puedes recuperar.
+   * El lunes se muestra la de la semana que acaba de cerrar.
+   */
+  const isSundayAfterClose =
+    todayWeekday === 0 &&
+    (now.getHours() > 23 || (now.getHours() === 23 && now.getMinutes() >= 59))
+  const isMonday = todayWeekday === 1
+  const windowOpen = isSundayAfterClose || isMonday
+
+  const checkDate = isMonday
+    ? new Date(now.getTime() - 24 * 60 * 60 * 1000)
+    : now
+  const stats = await getWeekMissStats(checkDate)
   const acknowledged = goal.penanceWeekKey === stats.weekKey
-
-  if (todayWeekday !== 0 && todayWeekday !== 1) {
-    return {
-      owed: false,
-      netMisses: stats.netMisses,
-      missedLabels: stats.missedLabels,
-      penanceLabel,
-      weekKey: stats.weekKey,
-      acknowledged,
-    }
-  }
+  const owed = windowOpen && stats.netMisses >= WEEKLY_PENANCE_MISSES
 
   return {
     owed,
@@ -1380,4 +1376,117 @@ export async function canUseRecoveryThisWeek(): Promise<boolean> {
   if (!isWeekend()) return false
   const missed = await getRecoverableMissedDays()
   return missed.length > 0
+}
+
+/* ─── Marcas personales (PR) ─── */
+
+export interface ExercisePR {
+  exerciseName: string
+  weight: number
+  reps: number
+  date: string
+  sessionId: string
+}
+
+/** Ejercicios estrella que se muestran primero en el botón PR */
+export const FEATURED_PR_EXERCISES: Array<{
+  label: string
+  /** fragmentos para emparejar con el nombre en la rutina */
+  match: string[]
+}> = [
+  {
+    label: 'Elevaciones laterales con mancuerna',
+    match: ['elevaciones laterales', 'elevacion lateral', 'lateral mancuerna'],
+  },
+  {
+    label: 'Press inclinado en máquina',
+    match: ['press inclinado'],
+  },
+  {
+    label: 'Jalón al pecho',
+    match: ['jalon al pecho', 'jalón al pecho', 'jalon pecho', 'jalón pecho'],
+  },
+  {
+    label: 'Remo T',
+    match: ['remo t', 'remo-t', 'remo en t'],
+  },
+  {
+    label: 'Predicador',
+    match: ['predicador'],
+  },
+  {
+    label: 'Sentadilla hack',
+    match: ['sentadilla hack', 'hack squat', 'hack'],
+  },
+]
+
+function normalizeExerciseName(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+}
+
+function exerciseNameMatches(name: string, fragments: string[]): boolean {
+  const n = normalizeExerciseName(name)
+  return fragments.some((f) => n.includes(normalizeExerciseName(f)))
+}
+
+function isBetterPR(
+  candidate: { weight: number; reps: number },
+  current: { weight: number; reps: number } | null,
+): boolean {
+  if (!current) return true
+  if (candidate.weight > current.weight) return true
+  if (candidate.weight === current.weight && candidate.reps > current.reps) {
+    return true
+  }
+  return false
+}
+
+/** PR de todas las máquinas (mejor peso; si empata, más reps) */
+export async function getAllExercisePRs(): Promise<ExercisePR[]> {
+  const sessions = await db.sessions
+    .where('status')
+    .equals('completed')
+    .toArray()
+
+  const best = new Map<string, ExercisePR>()
+
+  for (const session of sessions) {
+    for (const ex of session.exercises) {
+      const key = normalizeExerciseName(ex.name)
+      if (!key) continue
+      for (const set of ex.sets) {
+        if (!set.completed || set.weight == null || set.reps == null) continue
+        if (set.weight <= 0 || set.reps <= 0) continue
+        const prev = best.get(key) ?? null
+        const cand = { weight: set.weight, reps: set.reps }
+        if (!isBetterPR(cand, prev)) continue
+        best.set(key, {
+          exerciseName: ex.name,
+          weight: set.weight,
+          reps: set.reps,
+          date: session.date,
+          sessionId: session.id,
+        })
+      }
+    }
+  }
+
+  return [...best.values()].sort((a, b) =>
+    a.exerciseName.localeCompare(b.exerciseName, 'es'),
+  )
+}
+
+export async function getFeaturedExercisePRs(): Promise<
+  Array<{ label: string; pr: ExercisePR | null }>
+> {
+  const all = await getAllExercisePRs()
+  return FEATURED_PR_EXERCISES.map((feat) => {
+    const pr =
+      all.find((p) => exerciseNameMatches(p.exerciseName, feat.match)) ?? null
+    return { label: feat.label, pr }
+  })
 }
