@@ -19,29 +19,54 @@ function formatPrLine(pr: ExercisePR): string {
   return `${pr.weight} lb × ${pr.reps}${rir}`
 }
 
+function GoldenTrophy() {
+  return (
+    <span
+      className="relative flex h-10 w-10 shrink-0 items-center justify-center"
+      aria-hidden
+      title="PR principal"
+    >
+      <span className="absolute inset-0 rounded-full bg-amber-400/25 blur-md" />
+      <span
+        className="relative text-2xl drop-shadow-[0_0_8px_rgba(251,191,36,0.85)]"
+        style={{
+          filter: 'saturate(1.35) brightness(1.1)',
+        }}
+      >
+        🏆
+      </span>
+    </span>
+  )
+}
+
 function PrRow({
   title,
   subtitle,
   pr,
+  showTrophy = false,
 }: {
   title: string
   subtitle?: string
   pr: ExercisePR | null
+  showTrophy?: boolean
 }) {
   return (
-    <li className="rounded-2xl bg-surface px-3 py-3 ring-1 ring-line">
-      <p className="text-sm font-semibold text-fg">{title}</p>
-      {subtitle ? (
-        <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
-      ) : null}
-      {pr ? (
-        <p className="mt-1 text-sm text-muted">
-          <span className="font-bold text-fg">{formatPrLine(pr)}</span>
-          <span className="text-muted"> · {formatPrDate(pr.date)}</span>
-        </p>
-      ) : (
-        <p className="mt-1 text-sm text-muted">Aún sin marca registrada</p>
-      )}
+    <li className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-3 ring-1 ring-line">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold text-fg">{title}</p>
+        {subtitle ? (
+          <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
+        ) : null}
+        {pr ? (
+          <p className="mt-1 text-sm text-muted">
+            <span className="font-bold text-fg">{formatPrLine(pr)}</span>
+            <span className="text-muted"> · {formatPrDate(pr.date)}</span>
+          </p>
+        ) : (
+          <p className="mt-1 text-sm text-muted">Aún sin marca registrada</p>
+        )}
+      </div>
+      {showTrophy ? <GoldenTrophy /> : null}
     </li>
   )
 }
@@ -173,7 +198,12 @@ export function PrFloatingButton() {
               ) : tab === 'featured' ? (
                 <ul className="space-y-2">
                   {featured.map((row) => (
-                    <PrRow key={row.label} title={row.label} pr={row.pr} />
+                    <PrRow
+                      key={row.label}
+                      title={row.label}
+                      pr={row.pr}
+                      showTrophy
+                    />
                   ))}
                 </ul>
               ) : filteredAll.length === 0 ? (
