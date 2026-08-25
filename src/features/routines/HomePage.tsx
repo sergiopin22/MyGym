@@ -12,6 +12,7 @@ import {
 import type { Routine, RoutineDay, Weekday, WorkoutSession } from '../../types'
 import { isWeekend, weekdayLabel } from '../../utils/id'
 import { ConstancyGoalCard } from './ConstancyGoalCard'
+import { BrandAvatarButton } from './BrandAvatarButton'
 import { PrFloatingButton } from './PrFloatingButton'
 import { RestDayToggle } from './RestDayToggle'
 
@@ -214,11 +215,7 @@ export function HomePage() {
             })}
           </p>
         </div>
-        <img
-          src="/brand/ippo.gif"
-          alt=""
-          className="h-28 w-28 shrink-0 rounded-2xl bg-black object-contain ring-1 ring-line"
-        />
+        <BrandAvatarButton />
       </header>
 
       <ConstancyGoalCard
