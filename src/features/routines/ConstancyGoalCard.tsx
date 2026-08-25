@@ -3,11 +3,13 @@ import { Button } from '../../components/Button'
 import { NumberStepper } from '../../components/NumberStepper'
 import { ProgressBar } from '../../components/ProgressBar'
 import {
+  acknowledgePenance,
   abandonConstancyGoal,
   canUseRecoveryThisWeek,
   createConstancyGoal,
   getActiveConstancyGoal,
   getLatestConstancyGoal,
+  getPenanceStatus,
   getRecoverableMissedDays,
 } from '../../db/repository'
 import {
@@ -20,11 +22,12 @@ import { weekdayLabel } from '../../utils/id'
 
 const RULES = [
   'Cada entrenamiento que finalices suma +1 a tu meta.',
-  'Si fallas 1 día de gym, no pasa nada: la meta sigue.',
-  'Si fallas 2 días de gym seguidos, el progreso vuelve a 0.',
+  'Si fallas 1 día de gym en la semana, no pasa nada.',
+  'Si fallas 2 días netos en la semana (sin recuperar), el domingo debes cumplir la penitencia (ej. pagarle $30 a Helen).',
+  'Si fallas 3 días netos en la misma semana, el progreso de la meta vuelve a 0.',
   'Los días de descanso no cuentan como fallo.',
-  'Sábado o domingo puedes recuperar 1 día perdido de la semana (máximo una vez).',
-  'Al recuperar, haces la rutina de ese día (máquinas, series, RIR) y cuenta para la meta.',
+  'Sábado o domingo puedes recuperar 1 día perdido (máx. una vez). Ese día deja de contar como fallo.',
+  'Ejemplo: fallaste 2 y recuperaste 1 → solo fallaste 1 → no hay penitencia ni reinicio.',
 ]
 
 interface ConstancyGoalCardProps {
@@ -53,6 +56,13 @@ export function ConstancyGoalCard({
 
   const [missedDays, setMissedDays] = useState<RoutineDay[]>([])
   const [canRecover, setCanRecover] = useState(false)
+  const [penance, setPenance] = useState<{
+    owed: boolean
+    netMisses: number
+    missedLabels: string[]
+    penanceLabel: string
+    acknowledged: boolean
+  } | null>(null)
 
   async function reload() {
     setLoading(true)
@@ -65,12 +75,14 @@ export function ConstancyGoalCard({
         const latest = await getLatestConstancyGoal()
         setGoal(latest ?? null)
       }
-      const [missed, ok] = await Promise.all([
+      const [missed, ok, pen] = await Promise.all([
         getRecoverableMissedDays(),
         canUseRecoveryThisWeek(),
+        getPenanceStatus(),
       ])
       setMissedDays(missed)
       setCanRecover(ok)
+      setPenance(pen)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cargar la meta')
     } finally {
@@ -100,11 +112,17 @@ export function ConstancyGoalCard({
       })
       setGoal(created)
       setMode('view')
+      await reload()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo crear la meta')
     } finally {
       setSaving(false)
     }
+  }
+
+  async function handleAckPenance() {
+    await acknowledgePenance()
+    await reload()
   }
 
   if (loading) {
@@ -117,6 +135,8 @@ export function ConstancyGoalCard({
 
   const active = goal?.status === 'active' ? goal : null
   const justCompleted = goal?.status === 'completed' ? goal : null
+  const showPenance =
+    Boolean(active) && penance?.owed && !penance.acknowledged
 
   return (
     <div className="space-y-3 rounded-2xl border border-line bg-surface-elevated p-4">
@@ -158,6 +178,24 @@ export function ConstancyGoalCard({
         </div>
       ) : null}
 
+      {showPenance ? (
+        <div className="space-y-2 rounded-2xl bg-danger/15 px-3 py-3 ring-1 ring-danger">
+          <p className="font-display text-base font-bold text-danger">
+            Penitencia de la semana
+          </p>
+          <p className="text-sm text-fg">
+            Fallaste {penance!.netMisses} día(s) netos
+            {penance!.missedLabels.length
+              ? ` (${penance!.missedLabels.join(', ')})`
+              : ''}
+            . Tocó cumplir: <strong>{penance!.penanceLabel}</strong>
+          </p>
+          <Button fullWidth variant="danger" onClick={() => void handleAckPenance()}>
+            Ya cumplí la penitencia
+          </Button>
+        </div>
+      ) : null}
+
       {mode === 'view' && active ? (
         <div className="space-y-3">
           <ProgressBar
@@ -166,7 +204,11 @@ export function ConstancyGoalCard({
             label={`Progreso · premio: ${active.prizeLabel}`}
           />
           <p className="text-xs text-muted">
-            Fallos seguidos de gym: {active.consecutiveMisses}/2 (con 2 se reinicia)
+            Fallos netos esta semana: {active.consecutiveMisses}/3 (con 3 se
+            reinicia · con 2 sin recuperar → penitencia el domingo)
+          </p>
+          <p className="text-xs text-muted">
+            Penitencia: {active.penanceLabel ?? 'Pagarle $30 USD a Helen'}
           </p>
           {canRecover && missedDays.length > 0 ? (
             <div className="space-y-2 rounded-2xl bg-brand-soft px-3 py-3">
@@ -174,7 +216,8 @@ export function ConstancyGoalCard({
                 Recuperar día perdido (fin de semana)
               </p>
               <p className="text-xs text-muted">
-                Elige el día que te faltó. Verás su rutina y el botón para empezar.
+                Elige el día que te faltó. Si recuperas 1 de 2 fallos, te salvas
+                de la penitencia.
               </p>
               <div className="flex flex-wrap gap-2">
                 {missedDays.map((day) => {
@@ -242,7 +285,6 @@ export function ConstancyGoalCard({
         </Button>
       ) : null}
 
-      {/* Recuperación sin meta activa (solo fin de semana) */}
       {mode === 'view' && !active && canRecover && missedDays.length > 0 ? (
         <div className="space-y-2 rounded-2xl bg-brand-soft px-3 py-3">
           <p className="text-sm font-semibold text-fg">Recuperar día perdido</p>
@@ -323,6 +365,10 @@ export function ConstancyGoalCard({
               </label>
             </div>
           </div>
+          <p className="text-xs text-muted">
+            Penitencia por defecto si fallas 2 días netos: pagarle $30 USD a
+            Helen.
+          </p>
           {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
           <div className="flex gap-2">
             <Button

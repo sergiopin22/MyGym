@@ -117,12 +117,21 @@ export interface ConstancyGoal {
   createdAt: number
   updatedAt: number
   completedAt?: number
-  /** Fallos de días de gym seguidos (descanso no cuenta). 2 → reinicia progreso */
+  /**
+   * Fallos netos de gym en la semana actual (descanso no cuenta;
+   * un día recuperado el finde ya no cuenta como fallo).
+   */
   consecutiveMisses: number
   /** Última fecha evaluada para fallos (YYYY-MM-DD) */
   lastEvaluatedDate?: string
   /** Semana ISO en la que ya usó recuperación, ej. 2026-W35 */
   recoveryWeekKey?: string
+  /** Semana en la que ya se reinició la meta por ≥3 fallos */
+  resetWeekKey?: string
+  /** Semana en la que ya se mostró / aceptó la penitencia (≥2 fallos netos) */
+  penanceWeekKey?: string
+  /** Texto de la penitencia (ej. pagar $30 a Helen) */
+  penanceLabel?: string
 }
 
 export const PRIZE_PRESETS: Array<{

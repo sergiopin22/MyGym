@@ -1064,6 +1064,7 @@ export async function createConstancyGoal(input: {
     completedAt: reached ? now : undefined,
     consecutiveMisses: 0,
     lastEvaluatedDate: todayISODate(),
+    penanceLabel: 'Pagarle $30 USD a Helen',
     recoveryWeekKey:
       alreadyTrainedToday?.isRecovery ? isoWeekKey() : undefined,
   }
@@ -1149,52 +1150,149 @@ async function gymDayFulfilled(
   return recovered > 0
 }
 
-/** Evalúa días de gym pasados: 2 fallos seguidos reinician el progreso */
+export interface WeekMissStats {
+  weekKey: string
+  weekStart: string
+  /** Días de gym no cumplidos ni recuperados (hasta ayer, o hasta domingo si ya pasó) */
+  netMisses: number
+  missedLabels: string[]
+}
+
+/** Fallos netos de gym en una semana (recuperado = ya no es fallo) */
+export async function getWeekMissStats(
+  refDate = new Date(),
+): Promise<WeekMissStats> {
+  const weekKey = isoWeekKey(refDate)
+  const weekStart = todayISODate(startOfWeekMonday(refDate))
+  const today = todayISODate()
+  const yesterday = addDaysISO(today, -1)
+  const weekEnd = addDaysISO(weekStart, 6)
+  const lastDayToCheck = yesterday < weekEnd ? yesterday : weekEnd
+
+  const routine = await getActiveRoutine()
+  const missedLabels: string[] = []
+
+  if (!routine || lastDayToCheck < weekStart) {
+    return { weekKey, weekStart, netMisses: 0, missedLabels }
+  }
+
+  for (let i = 0; i < 7; i++) {
+    const date = addDaysISO(weekStart, i)
+    if (date > lastDayToCheck) break
+
+    const weekday = weekdayFromISO(date) as Weekday
+    const day = routine.days.find((d) => d.weekday === weekday)
+    if (!day || day.isRestDay || day.exercises.length === 0) continue
+
+    const ok = await gymDayFulfilled(date, day)
+    if (!ok) missedLabels.push(weekdayLabel(weekday))
+  }
+
+  return {
+    weekKey,
+    weekStart,
+    netMisses: missedLabels.length,
+    missedLabels,
+  }
+}
+
+const WEEKLY_RESET_MISSES = 3
+const WEEKLY_PENANCE_MISSES = 2
+
+/** Evalúa fallos de la semana: ≥3 netos reinician; guarda contador para la UI */
 export async function evaluateConstancyMisses(
   goal: ConstancyGoal,
 ): Promise<ConstancyGoal> {
   if (goal.status !== 'active') return goal
 
   const yesterday = addDaysISO(todayISODate(), -1)
-  let cursor = goal.lastEvaluatedDate
-    ? addDaysISO(goal.lastEvaluatedDate, 1)
-    : todayISODate(new Date(goal.createdAt))
-
-  if (cursor > yesterday) return goal
-
-  const routine = await getActiveRoutine()
-  let consecutiveMisses = goal.consecutiveMisses
+  const stats = await getWeekMissStats()
   let currentCount = goal.currentCount
+  let resetWeekKey = goal.resetWeekKey
+  const consecutiveMisses = stats.netMisses
 
-  while (cursor <= yesterday) {
-    if (routine) {
-      const weekday = weekdayFromISO(cursor) as Weekday
-      const day = routine.days.find((d) => d.weekday === weekday)
-      if (day && !day.isRestDay && day.exercises.length > 0) {
-        const ok = await gymDayFulfilled(cursor, day)
-        if (ok) {
-          consecutiveMisses = 0
-        } else {
-          consecutiveMisses += 1
-          if (consecutiveMisses >= 2) {
-            currentCount = 0
-            consecutiveMisses = 0
-          }
-        }
-      }
-    }
-    cursor = addDaysISO(cursor, 1)
+  if (
+    stats.netMisses >= WEEKLY_RESET_MISSES &&
+    goal.resetWeekKey !== stats.weekKey
+  ) {
+    currentCount = 0
+    resetWeekKey = stats.weekKey
   }
 
   const updated: ConstancyGoal = {
     ...goal,
     consecutiveMisses,
     currentCount,
+    resetWeekKey,
     lastEvaluatedDate: yesterday,
     updatedAt: Date.now(),
+    penanceLabel: goal.penanceLabel ?? 'Pagarle $30 USD a Helen',
   }
   await db.constancyGoals.put(updated)
   return updated
+}
+
+export async function getPenanceStatus(): Promise<{
+  owed: boolean
+  netMisses: number
+  missedLabels: string[]
+  penanceLabel: string
+  weekKey: string
+  acknowledged: boolean
+} | null> {
+  const goal = await db.constancyGoals.where('status').equals('active').first()
+  if (!goal) return null
+
+  const todayWeekday = new Date().getDay()
+  // Domingo (o lunes temprano mirando la semana que cierra): mostrar si ≥2 fallos netos
+  const checkDate =
+    todayWeekday === 1
+      ? new Date(Date.now() - 24 * 60 * 60 * 1000)
+      : new Date()
+  const stats =
+    todayWeekday === 0 || todayWeekday === 1
+      ? await getWeekMissStats(checkDate)
+      : await getWeekMissStats()
+
+  const penanceLabel = goal.penanceLabel ?? 'Pagarle $30 USD a Helen'
+  const owed = stats.netMisses >= WEEKLY_PENANCE_MISSES
+  const acknowledged = goal.penanceWeekKey === stats.weekKey
+
+  if (todayWeekday !== 0 && todayWeekday !== 1) {
+    return {
+      owed: false,
+      netMisses: stats.netMisses,
+      missedLabels: stats.missedLabels,
+      penanceLabel,
+      weekKey: stats.weekKey,
+      acknowledged,
+    }
+  }
+
+  return {
+    owed,
+    netMisses: stats.netMisses,
+    missedLabels: stats.missedLabels,
+    penanceLabel,
+    weekKey: stats.weekKey,
+    acknowledged,
+  }
+}
+
+export async function acknowledgePenance(): Promise<void> {
+  const goal = await db.constancyGoals.where('status').equals('active').first()
+  if (!goal) return
+  const todayWeekday = new Date().getDay()
+  const checkDate =
+    todayWeekday === 1
+      ? new Date(Date.now() - 24 * 60 * 60 * 1000)
+      : new Date()
+  const weekKey = isoWeekKey(checkDate)
+  await db.constancyGoals.put({
+    ...goal,
+    penanceWeekKey: weekKey,
+    updatedAt: Date.now(),
+  })
 }
 
 async function onWorkoutCompletedForConstancy(
@@ -1206,9 +1304,7 @@ async function onWorkoutCompletedForConstancy(
   const goal = await evaluateConstancyMisses(raw)
   if (goal.status !== 'active') return
 
-  let consecutiveMisses = session.isRecovery
-    ? Math.max(0, goal.consecutiveMisses - 1)
-    : 0
+  const stats = await getWeekMissStats()
   let currentCount = goal.currentCount + 1
   let status: ConstancyGoal['status'] = 'active'
   let completedAt = goal.completedAt
@@ -1222,7 +1318,7 @@ async function onWorkoutCompletedForConstancy(
   const updated: ConstancyGoal = {
     ...goal,
     currentCount,
-    consecutiveMisses,
+    consecutiveMisses: stats.netMisses,
     status,
     completedAt,
     updatedAt: Date.now(),
