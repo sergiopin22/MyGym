@@ -17,6 +17,7 @@
   --color-brand-strong: #1a6fad;
   --color-accent: #16a34a;
   --color-accent-strong: #15803d;
+  --color-accent-fg: #ffffff;
   --color-pending: #6b7c8a;
   --color-progress: #2563eb;
   --color-done: #16a34a;
@@ -24,6 +25,7 @@
   --color-progress-soft: #dbeafe;
   --color-danger: #dc2626;
   --color-danger-strong: #b91c1c;
+  --color-danger-fg: #ffffff;
   --color-overlay: rgba(10, 10, 10, 0.45);
 
   /* aliases legacy */
@@ -76,6 +78,11 @@
   select,
   textarea {
     font: inherit;
+  }
+
+  input,
+  select,
+  textarea {
     color: var(--color-fg);
   }
 

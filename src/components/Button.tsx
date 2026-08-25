@@ -4,11 +4,12 @@ type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
 
 const styles: Record<Variant, string> = {
   primary:
-    'bg-accent text-white shadow-sm hover:bg-accent-strong active:scale-[0.98]',
+    'bg-accent text-accent-fg shadow-sm hover:bg-accent-strong active:scale-[0.98]',
   secondary:
     'bg-chrome text-chrome-fg hover:bg-chrome-soft active:scale-[0.98]',
   ghost: 'bg-transparent text-fg hover:bg-brand-soft',
-  danger: 'bg-danger text-white hover:bg-danger-strong active:scale-[0.98]',
+  danger:
+    'bg-danger text-danger-fg hover:bg-danger-strong active:scale-[0.98]',
 }
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
