@@ -1021,8 +1021,10 @@ export async function getBodyPhotoObjectUrl(
 
 export async function getActiveConstancyGoal(): Promise<ConstancyGoal | undefined> {
   const active = await db.constancyGoals.where('status').equals('active').first()
-  if (active) return evaluateConstancyMisses(active)
-  return undefined
+  if (!active) return undefined
+  const withToday = await creditTodaysWorkoutIfCreatedAfter(active)
+  if (withToday.status !== 'active') return undefined
+  return evaluateConstancyMisses(withToday)
 }
 
 export async function getLatestConstancyGoal(): Promise<ConstancyGoal | undefined> {
@@ -1044,21 +1046,69 @@ export async function createConstancyGoal(input: {
     throw new Error('Ya tienes una meta activa. Complétala o créala de nuevo al terminar.')
   }
 
+  /** Si ya entrenaste hoy (antes de crear la meta), cuenta ese día */
+  const alreadyTrainedToday = await getCompletedSessionToday()
+  const initialCount = alreadyTrainedToday ? 1 : 0
   const now = Date.now()
+  const reached = initialCount >= target
+
   const goal: ConstancyGoal = {
     id: createId('goal'),
     targetCount: target,
-    currentCount: 0,
+    currentCount: reached ? target : initialCount,
     prizePreset: input.prizePreset,
     prizeLabel: label,
-    status: 'active',
+    status: reached ? 'completed' : 'active',
     createdAt: now,
     updatedAt: now,
+    completedAt: reached ? now : undefined,
     consecutiveMisses: 0,
     lastEvaluatedDate: todayISODate(),
+    recoveryWeekKey:
+      alreadyTrainedToday?.isRecovery ? isoWeekKey() : undefined,
   }
   await db.constancyGoals.add(goal)
   return goal
+}
+
+/**
+ * Si creaste la meta el mismo día que ya habías entrenado,
+ * y el contador quedó en 0, suma ese entreno.
+ */
+async function creditTodaysWorkoutIfCreatedAfter(
+  goal: ConstancyGoal,
+): Promise<ConstancyGoal> {
+  if (goal.status !== 'active') return goal
+  if (goal.currentCount > 0) return goal
+
+  const today = todayISODate()
+  const createdDate = todayISODate(new Date(goal.createdAt))
+  if (createdDate !== today) return goal
+
+  const done = await getCompletedSessionToday()
+  if (!done) return goal
+
+  let currentCount = 1
+  let status: ConstancyGoal['status'] = 'active'
+  let completedAt = goal.completedAt
+  if (currentCount >= goal.targetCount) {
+    currentCount = goal.targetCount
+    status = 'completed'
+    completedAt = Date.now()
+  }
+
+  const updated: ConstancyGoal = {
+    ...goal,
+    currentCount,
+    status,
+    completedAt,
+    consecutiveMisses: 0,
+    updatedAt: Date.now(),
+    lastEvaluatedDate: today,
+    recoveryWeekKey: done.isRecovery ? isoWeekKey() : goal.recoveryWeekKey,
+  }
+  await db.constancyGoals.put(updated)
+  return updated
 }
 
 /** Elimina la meta activa para poder crear otra */
