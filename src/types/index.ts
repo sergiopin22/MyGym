@@ -139,3 +139,29 @@ export interface SessionSummary {
   totalSetsCompleted: number
   muscleGroups: string[]
 }
+
+export type BodyPhotoAngle = 'front' | 'side' | 'back'
+
+/** Check-in físico semanal (miércoles) */
+export interface BodyCheckIn {
+  id: string
+  date: string // YYYY-MM-DD
+  createdAt: number
+  /** Peso corporal en libras */
+  weightLb: number
+  bicepsCm: number
+  waistCm: number
+  chestCm: number
+  thighCm: number
+  note?: string
+}
+
+export interface BodyCheckInPhoto {
+  id: string
+  checkInId: string
+  angle: BodyPhotoAngle
+  blob: Blob
+  mimeType: string
+  updatedAt: number
+}
+

@@ -1,7 +1,13 @@
 import { db } from './schema'
-import type { Improvement, Routine, WorkoutSession } from '../types'
+import type {
+  BodyCheckIn,
+  BodyPhotoAngle,
+  Improvement,
+  Routine,
+  WorkoutSession,
+} from '../types'
 
-export const BACKUP_VERSION = 1 as const
+export const BACKUP_VERSION = 2 as const
 export const BACKUP_APP_ID = 'mi-gym'
 
 export interface StoredExerciseImage {
@@ -11,14 +17,25 @@ export interface StoredExerciseImage {
   dataBase64: string
 }
 
+export interface StoredBodyPhoto {
+  id: string
+  checkInId: string
+  angle: BodyPhotoAngle
+  mimeType: string
+  updatedAt: number
+  dataBase64: string
+}
+
 export interface MiGymBackup {
-  version: typeof BACKUP_VERSION
+  version: 1 | 2
   app: typeof BACKUP_APP_ID
   exportedAt: number
   routines: Routine[]
   sessions: WorkoutSession[]
   improvements: Improvement[]
   exerciseImages: StoredExerciseImage[]
+  bodyCheckIns?: BodyCheckIn[]
+  bodyCheckInPhotos?: StoredBodyPhoto[]
 }
 
 async function blobToBase64(blob: Blob): Promise<string> {
@@ -50,16 +67,30 @@ function base64ToBlob(base64: string, mimeType: string): Blob {
 }
 
 export async function exportFullBackup(): Promise<MiGymBackup> {
-  const [routines, sessions, improvements, images] = await Promise.all([
-    db.routines.toArray(),
-    db.sessions.toArray(),
-    db.improvements.toArray(),
-    db.exerciseImages.toArray(),
-  ])
+  const [routines, sessions, improvements, images, bodyCheckIns, bodyPhotos] =
+    await Promise.all([
+      db.routines.toArray(),
+      db.sessions.toArray(),
+      db.improvements.toArray(),
+      db.exerciseImages.toArray(),
+      db.bodyCheckIns.toArray(),
+      db.bodyCheckInPhotos.toArray(),
+    ])
 
   const exerciseImages: StoredExerciseImage[] = await Promise.all(
     images.map(async (img) => ({
       id: img.id,
+      mimeType: img.mimeType,
+      updatedAt: img.updatedAt,
+      dataBase64: await blobToBase64(img.blob),
+    })),
+  )
+
+  const bodyCheckInPhotos: StoredBodyPhoto[] = await Promise.all(
+    bodyPhotos.map(async (img) => ({
+      id: img.id,
+      checkInId: img.checkInId,
+      angle: img.angle,
       mimeType: img.mimeType,
       updatedAt: img.updatedAt,
       dataBase64: await blobToBase64(img.blob),
@@ -74,6 +105,8 @@ export async function exportFullBackup(): Promise<MiGymBackup> {
     sessions,
     improvements,
     exerciseImages,
+    bodyCheckIns,
+    bodyCheckInPhotos,
   }
 }
 
@@ -90,7 +123,7 @@ function parseBackup(raw: unknown): MiGymBackup {
   if (data.app !== BACKUP_APP_ID) {
     throw new Error('Este archivo no es un respaldo de Mi Gym')
   }
-  if (data.version !== BACKUP_VERSION) {
+  if (data.version !== 1 && data.version !== 2) {
     throw new Error('Versión de respaldo no compatible')
   }
   if (!Array.isArray(data.routines) || !Array.isArray(data.sessions)) {
@@ -98,13 +131,15 @@ function parseBackup(raw: unknown): MiGymBackup {
   }
 
   return {
-    version: BACKUP_VERSION,
+    version: data.version,
     app: BACKUP_APP_ID,
     exportedAt: data.exportedAt ?? Date.now(),
     routines: data.routines,
     sessions: data.sessions ?? [],
     improvements: data.improvements ?? [],
     exerciseImages: data.exerciseImages ?? [],
+    bodyCheckIns: data.bodyCheckIns ?? [],
+    bodyCheckInPhotos: data.bodyCheckInPhotos ?? [],
   }
 }
 
@@ -113,6 +148,7 @@ export async function importFullBackup(raw: unknown): Promise<{
   sessions: number
   improvements: number
   images: number
+  bodyCheckIns: number
 }> {
   const backup = parseBackup(raw)
 
@@ -123,22 +159,41 @@ export async function importFullBackup(raw: unknown): Promise<{
     updatedAt: img.updatedAt,
   }))
 
+  const bodyPhotos = (backup.bodyCheckInPhotos ?? []).map((img) => ({
+    id: img.id,
+    checkInId: img.checkInId,
+    angle: img.angle,
+    blob: base64ToBlob(img.dataBase64, img.mimeType),
+    mimeType: img.mimeType,
+    updatedAt: img.updatedAt,
+  }))
+
   await db.transaction(
     'rw',
-    db.routines,
-    db.sessions,
-    db.improvements,
-    db.exerciseImages,
+    [
+      db.routines,
+      db.sessions,
+      db.improvements,
+      db.exerciseImages,
+      db.bodyCheckIns,
+      db.bodyCheckInPhotos,
+    ],
     async () => {
       await db.routines.clear()
       await db.sessions.clear()
       await db.improvements.clear()
       await db.exerciseImages.clear()
+      await db.bodyCheckIns.clear()
+      await db.bodyCheckInPhotos.clear()
 
       if (backup.routines.length > 0) await db.routines.bulkAdd(backup.routines)
       if (backup.sessions.length > 0) await db.sessions.bulkAdd(backup.sessions)
       if (backup.improvements.length > 0) await db.improvements.bulkAdd(backup.improvements)
       if (images.length > 0) await db.exerciseImages.bulkAdd(images)
+      if ((backup.bodyCheckIns?.length ?? 0) > 0) {
+        await db.bodyCheckIns.bulkAdd(backup.bodyCheckIns!)
+      }
+      if (bodyPhotos.length > 0) await db.bodyCheckInPhotos.bulkAdd(bodyPhotos)
     },
   )
 
@@ -147,6 +202,7 @@ export async function importFullBackup(raw: unknown): Promise<{
     sessions: backup.sessions.length,
     improvements: backup.improvements.length,
     images: images.length,
+    bodyCheckIns: backup.bodyCheckIns?.length ?? 0,
   }
 }
 

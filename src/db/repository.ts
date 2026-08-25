@@ -1,5 +1,8 @@
 import { db } from './schema'
 import type {
+  BodyCheckIn,
+  BodyCheckInPhoto,
+  BodyPhotoAngle,
   ExerciseImage,
   ExerciseLog,
   Improvement,
@@ -448,12 +451,24 @@ export async function startSession(
   if (!found) throw new Error('Día de rutina no encontrado')
   const { routine, day } = found
 
+  const todayWeekday = new Date().getDay() as Weekday
+  if (day.weekday !== todayWeekday) {
+    throw new Error(
+      `Hoy es ${weekdayLabel(todayWeekday)}. Solo puedes iniciar el entrenamiento de hoy.`,
+    )
+  }
+
   if (day.isRestDay) {
     throw new Error('Este día está marcado como descanso.')
   }
 
   if (day.exercises.length === 0) {
     throw new Error('Este día no tiene ejercicios. Agrégalos en Rutinas.')
+  }
+
+  const alreadyDone = await getCompletedSessionToday(day.id)
+  if (alreadyDone) {
+    throw new Error('Ya completaste el entrenamiento de hoy.')
   }
 
   const session: WorkoutSession = {
@@ -472,6 +487,33 @@ export async function startSession(
 
   await db.sessions.add(session)
   return session
+}
+
+/** Sesión completada hoy para un día de rutina (si existe) */
+export async function getCompletedSessionToday(
+  routineDayId?: string,
+): Promise<WorkoutSession | undefined> {
+  const today = todayISODate()
+  const sessions = await db.sessions
+    .where('date')
+    .equals(today)
+    .filter((s) => s.status === 'completed')
+    .toArray()
+
+  if (routineDayId) {
+    return sessions.find((s) => s.routineDayId === routineDayId)
+  }
+  return sessions.sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0))[0]
+}
+
+/** Cancela y borra un entrenamiento en progreso (p. ej. iniciado por error) */
+export async function cancelSession(sessionId: string): Promise<void> {
+  const session = await getSessionById(sessionId)
+  if (!session) throw new Error('Sesión no encontrada')
+  if (session.status !== 'in_progress') {
+    throw new Error('Solo se pueden cancelar entrenamientos en curso')
+  }
+  await db.sessions.delete(sessionId)
 }
 
 export async function saveSession(session: WorkoutSession): Promise<WorkoutSession> {
@@ -853,4 +895,93 @@ export async function getHomeDaySnapshot(weekday: Weekday): Promise<{
     completedCount,
     totalCount,
   }
+}
+
+// ─── Check-in corporal (miércoles) ───────────────────────────────────────────
+
+export async function listBodyCheckIns(): Promise<BodyCheckIn[]> {
+  const rows = await db.bodyCheckIns.orderBy('date').toArray()
+  return rows.reverse()
+}
+
+export async function getBodyCheckInById(
+  id: string,
+): Promise<BodyCheckIn | undefined> {
+  return db.bodyCheckIns.get(id)
+}
+
+export async function getBodyCheckInForDate(
+  date: string,
+): Promise<BodyCheckIn | undefined> {
+  return db.bodyCheckIns.where('date').equals(date).first()
+}
+
+export async function getBodyCheckInPhotos(
+  checkInId: string,
+): Promise<BodyCheckInPhoto[]> {
+  return db.bodyCheckInPhotos.where('checkInId').equals(checkInId).toArray()
+}
+
+export async function saveBodyCheckIn(input: {
+  weightLb: number
+  bicepsCm: number
+  waistCm: number
+  chestCm: number
+  thighCm: number
+  note?: string
+  photos: Partial<Record<BodyPhotoAngle, Blob>>
+  date?: string
+}): Promise<BodyCheckIn> {
+  const date = input.date ?? todayISODate()
+  const existing = await getBodyCheckInForDate(date)
+
+  const checkIn: BodyCheckIn = {
+    id: existing?.id ?? createId('body'),
+    date,
+    createdAt: existing?.createdAt ?? Date.now(),
+    weightLb: input.weightLb,
+    bicepsCm: input.bicepsCm,
+    waistCm: input.waistCm,
+    chestCm: input.chestCm,
+    thighCm: input.thighCm,
+    note: input.note?.trim() || undefined,
+  }
+
+  await db.transaction('rw', db.bodyCheckIns, db.bodyCheckInPhotos, async () => {
+    await db.bodyCheckIns.put(checkIn)
+
+    for (const angle of ['front', 'side', 'back'] as BodyPhotoAngle[]) {
+      const blob = input.photos[angle]
+      if (!blob) continue
+      const photoId = `${checkIn.id}_${angle}`
+      await db.bodyCheckInPhotos.put({
+        id: photoId,
+        checkInId: checkIn.id,
+        angle,
+        blob,
+        mimeType: blob.type || 'image/jpeg',
+        updatedAt: Date.now(),
+      })
+    }
+  })
+
+  return checkIn
+}
+
+export async function getFirstAndLatestBodyCheckIns(): Promise<{
+  first?: BodyCheckIn
+  latest?: BodyCheckIn
+}> {
+  const all = await db.bodyCheckIns.orderBy('date').toArray()
+  if (all.length === 0) return {}
+  return { first: all[0], latest: all[all.length - 1] }
+}
+
+export async function getBodyPhotoObjectUrl(
+  checkInId: string,
+  angle: BodyPhotoAngle,
+): Promise<string | null> {
+  const photo = await db.bodyCheckInPhotos.get(`${checkInId}_${angle}`)
+  if (!photo) return null
+  return URL.createObjectURL(photo.blob)
 }

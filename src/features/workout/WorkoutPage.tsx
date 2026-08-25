@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { ProgressBar } from '../../components/ProgressBar'
-import { completeSession, getSessionById } from '../../db/repository'
+import { completeSession, cancelSession, getSessionById } from '../../db/repository'
 import type { SessionSummary, WorkoutSession } from '../../types'
 import { formatDuration } from '../../utils/id'
 import { getIncompleteWorkoutParts } from '../../utils/workout'
@@ -18,6 +18,7 @@ export function WorkoutPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [finishing, setFinishing] = useState(false)
+  const [cancelling, setCancelling] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -98,6 +99,24 @@ export function WorkoutPage() {
       setError(err instanceof Error ? err.message : 'No se pudo finalizar')
     } finally {
       setFinishing(false)
+    }
+  }
+
+  async function handleCancel() {
+    if (!session) return
+    const ok = window.confirm(
+      '¿Estás seguro de cancelar este entrenamiento?\n\nSe borrará lo registrado en esta sesión (no quedará en el historial). Úsalo si lo iniciaste por error.',
+    )
+    if (!ok) return
+    setCancelling(true)
+    setError(null)
+    try {
+      await cancelSession(session.id)
+      navigate('/', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo cancelar')
+    } finally {
+      setCancelling(false)
     }
   }
 
@@ -214,11 +233,19 @@ export function WorkoutPage() {
       {error ? <p className="mt-4 text-sm font-medium text-danger">{error}</p> : null}
 
       <div className="mt-6 space-y-2">
-        <Button fullWidth onClick={() => void handleFinish()} disabled={finishing}>
+        <Button fullWidth onClick={() => void handleFinish()} disabled={finishing || cancelling}>
           {finishing ? 'Guardando…' : 'Finalizar entrenamiento'}
         </Button>
+        <Button
+          variant="danger"
+          fullWidth
+          disabled={finishing || cancelling}
+          onClick={() => void handleCancel()}
+        >
+          {cancelling ? 'Cancelando…' : 'Cancelar entrenamiento'}
+        </Button>
         <p className="text-center text-xs text-muted">
-          Se guarda en el historial. Puedes cerrar la app y continuar después.
+          Se guarda en el historial al finalizar. Cancela si lo iniciaste por error.
         </p>
       </div>
       </div>

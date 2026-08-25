@@ -6,6 +6,7 @@ import { ProgressBar } from '../../components/ProgressBar'
 import {
   ensureDefaultRoutine,
   getActiveSession,
+  getCompletedSessionToday,
   startSession,
 } from '../../db/repository'
 import type { Routine, RoutineDay, Weekday, WorkoutSession } from '../../types'
@@ -24,6 +25,7 @@ export function HomePage() {
   const todayWeekday = new Date().getDay() as Weekday
   const [routine, setRoutine] = useState<Routine | null>(null)
   const [activeSession, setActiveSession] = useState<WorkoutSession | undefined>()
+  const [completedToday, setCompletedToday] = useState<WorkoutSession | undefined>()
   const [selectedWeekday, setSelectedWeekday] = useState<Weekday>(todayWeekday)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -31,14 +33,21 @@ export function HomePage() {
 
   useEffect(() => {
     let alive = true
-    Promise.all([ensureDefaultRoutine(), getActiveSession()])
-      .then(([r, session]) => {
+    Promise.all([
+      ensureDefaultRoutine(),
+      getActiveSession(),
+      getCompletedSessionToday(),
+    ])
+      .then(([r, session, done]) => {
         if (!alive) return
         setRoutine(r)
         setActiveSession(session)
+        setCompletedToday(done)
         if (session) {
           const sessionDay = r.days.find((d) => d.id === session.routineDayId)
           if (sessionDay) setSelectedWeekday(sessionDay.weekday)
+        } else {
+          setSelectedWeekday(todayWeekday)
         }
       })
       .catch((err: unknown) => {
@@ -52,7 +61,7 @@ export function HomePage() {
     return () => {
       alive = false
     }
-  }, [])
+  }, [todayWeekday])
 
   const days = useMemo(
     () => (routine ? sortDays(routine.days) : []),
@@ -64,6 +73,12 @@ export function HomePage() {
     [days, selectedWeekday],
   )
 
+  const todayDay = useMemo(
+    () => days.find((d) => d.weekday === todayWeekday),
+    [days, todayWeekday],
+  )
+
+  const isTodaySelected = selectedWeekday === todayWeekday
   const isRestDay = Boolean(selectedDay?.isRestDay)
 
   const sessionForSelected =
@@ -71,12 +86,28 @@ export function HomePage() {
       ? activeSession
       : undefined
 
-  const completedCount = sessionForSelected
-    ? sessionForSelected.exercises.filter((e) => e.status === 'completed').length
-    : 0
-  const totalCount = sessionForSelected
-    ? sessionForSelected.exercises.length
-    : (selectedDay?.exercises.length ?? 0)
+  const completedTodayForSelected =
+    completedToday &&
+    selectedDay &&
+    completedToday.routineDayId === selectedDay.id &&
+    isTodaySelected
+      ? completedToday
+      : undefined
+
+  const displayExercises =
+    sessionForSelected?.exercises ??
+    completedTodayForSelected?.exercises ??
+    selectedDay?.exercises ??
+    []
+
+  const completedCount = displayExercises.filter(
+    (e) => 'status' in e && e.status === 'completed',
+  ).length
+  const totalCount = displayExercises.length
+
+  const todayDone =
+    Boolean(completedToday) &&
+    (!todayDay || completedToday?.routineDayId === todayDay.id)
 
   const today = new Date()
 
@@ -98,6 +129,14 @@ export function HomePage() {
     try {
       if (activeSession) {
         navigate(`/entrenar/${activeSession.id}`)
+        return
+      }
+      if (!isTodaySelected) {
+        setError(`Solo puedes entrenar el día de hoy (${weekdayLabel(todayWeekday)}).`)
+        return
+      }
+      if (todayDone) {
+        setError('Ya completaste el entrenamiento de hoy.')
         return
       }
       if (selectedDay.isRestDay) {
@@ -154,7 +193,9 @@ export function HomePage() {
       </Link>
 
       <div className="space-y-2">
-        <p className="text-sm font-semibold text-muted">Elegir día de la rutina</p>
+        <p className="text-sm font-semibold text-muted">
+          Ver rutina de la semana (solo puedes entrenar hoy)
+        </p>
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {days.map((day) => {
             const active = day.weekday === selectedWeekday
@@ -183,7 +224,7 @@ export function HomePage() {
         </div>
       </div>
 
-      {selectedDay && routine ? (
+      {selectedDay && routine && isTodaySelected ? (
         <RestDayToggle
           day={selectedDay}
           routineId={routine.id}
@@ -193,14 +234,16 @@ export function HomePage() {
       ) : null}
 
       <Card className="space-y-4">
-        {isRestDay && !sessionForSelected ? (
+        {isRestDay && !sessionForSelected && !completedTodayForSelected ? (
           <div className="space-y-2 text-center py-2">
             <span className="text-4xl" aria-hidden>
               😴
             </span>
             <h2 className="font-display text-xl font-bold">Día de descanso</h2>
             <p className="text-sm text-muted">
-              Hoy no toca gym. Descansa y vuelve fuerte el próximo entreno.
+              {isTodaySelected
+                ? 'Hoy no toca gym. Descansa y vuelve fuerte el próximo entreno.'
+                : `${weekdayLabel(selectedWeekday)} está marcado como descanso.`}
             </p>
           </div>
         ) : (
@@ -216,16 +259,37 @@ export function HomePage() {
               </p>
             </div>
 
+            {completedTodayForSelected ? (
+              <p className="rounded-2xl bg-success-soft px-3 py-3 text-sm font-semibold text-accent-strong">
+                ✅ Entrenamiento de hoy completado
+              </p>
+            ) : null}
+
+            {!isTodaySelected ? (
+              <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-fg">
+                Estás viendo la rutina del {weekdayLabel(selectedWeekday)}. Solo puedes
+                comenzar el entrenamiento del día de hoy (
+                {weekdayLabel(todayWeekday)}).
+              </p>
+            ) : null}
+
             <ProgressBar
-              value={completedCount}
+              value={
+                completedTodayForSelected
+                  ? totalCount
+                  : completedCount
+              }
               max={Math.max(totalCount, 1)}
-              label={`${completedCount} de ${totalCount} ejercicios`}
+              label={
+                completedTodayForSelected
+                  ? `${totalCount} de ${totalCount} ejercicios`
+                  : `${completedCount} de ${totalCount} ejercicios`
+              }
             />
 
-            {selectedDay && selectedDay.exercises.length > 0 ? (
+            {selectedDay && displayExercises.length > 0 ? (
               <ul className="space-y-2">
-                {(sessionForSelected?.exercises ?? selectedDay.exercises)
-                  .slice()
+                {[...displayExercises]
                   .sort((a, b) => a.order - b.order)
                   .map((ex) => {
                     const status =
@@ -265,29 +329,38 @@ export function HomePage() {
 
         {activeSession && !sessionForSelected ? (
           <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-ink">
-            Tienes un entrenamiento en curso ({activeSession.dayLabel}). Continúalo
-            antes de empezar otro día.
+            Tienes un entrenamiento en curso ({activeSession.dayLabel}). Continúalo o
+            cancélalo desde ahí.
           </p>
         ) : null}
 
         {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
-        {!isRestDay || activeSession ? (
+        {activeSession ? (
+          <Button fullWidth onClick={() => void handleStartOrContinue()} disabled={starting}>
+            {starting ? 'Abriendo…' : 'Continuar entrenamiento'}
+          </Button>
+        ) : completedTodayForSelected || (todayDone && isTodaySelected) ? (
+          <div className="space-y-2">
+            <Button
+              fullWidth
+              variant="secondary"
+              onClick={() =>
+                navigate(
+                  `/historial/${(completedTodayForSelected ?? completedToday)?.id}`,
+                )
+              }
+            >
+              Ver entrenamiento de hoy
+            </Button>
+          </div>
+        ) : isTodaySelected && !isRestDay ? (
           <Button
             fullWidth
             onClick={() => void handleStartOrContinue()}
-            disabled={
-              starting ||
-              (!activeSession &&
-                !isRestDay &&
-                (selectedDay?.exercises.length ?? 0) === 0)
-            }
+            disabled={starting || (selectedDay?.exercises.length ?? 0) === 0}
           >
-            {starting
-              ? 'Abriendo…'
-              : activeSession
-                ? 'Continuar entrenamiento'
-                : 'Comenzar entrenamiento'}
+            {starting ? 'Abriendo…' : 'Comenzar entrenamiento'}
           </Button>
         ) : null}
       </Card>
