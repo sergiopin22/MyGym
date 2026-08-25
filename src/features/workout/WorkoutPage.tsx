@@ -44,6 +44,8 @@ export function WorkoutPage() {
               0,
             ),
             muscleGroups: s.muscleGroups,
+            isRecovery: s.isRecovery,
+            recoveredDayLabel: s.recoveredDayLabel,
           })
         }
       })
@@ -150,6 +152,14 @@ export function WorkoutPage() {
           </p>
           <h1 className="font-display text-3xl font-extrabold tracking-tight">Resumen</h1>
           <p className="text-muted">{summary.dayLabel}</p>
+          {summary.isRecovery ? (
+            <span className="inline-flex rounded-full bg-progress-soft px-3 py-1 text-xs font-bold text-progress">
+              Recuperado
+              {summary.recoveredDayLabel
+                ? ` · ${summary.recoveredDayLabel}`
+                : ''}
+            </span>
+          ) : null}
         </header>
 
         <Card className="mt-6 space-y-4">
@@ -207,6 +217,14 @@ export function WorkoutPage() {
             <h1 className="font-display text-2xl font-extrabold tracking-tight">
               {session.dayLabel}
             </h1>
+            {session.isRecovery ? (
+              <span className="mt-1 inline-flex rounded-full bg-progress-soft px-2.5 py-1 text-xs font-bold text-progress">
+                Recuperado
+                {session.recoveredDayLabel
+                  ? ` · ${session.recoveredDayLabel}`
+                  : ''}
+              </span>
+            ) : null}
             <p className="text-sm text-muted">
               {completedCount} de {exercises.length} ejercicios completados
             </p>

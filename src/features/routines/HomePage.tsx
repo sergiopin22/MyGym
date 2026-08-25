@@ -10,7 +10,8 @@ import {
   startSession,
 } from '../../db/repository'
 import type { Routine, RoutineDay, Weekday, WorkoutSession } from '../../types'
-import { weekdayLabel } from '../../utils/id'
+import { isWeekend, weekdayLabel } from '../../utils/id'
+import { ConstancyGoalCard } from './ConstancyGoalCard'
 import { RestDayToggle } from './RestDayToggle'
 
 function sortDays(days: RoutineDay[]): RoutineDay[] {
@@ -30,6 +31,8 @@ export function HomePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
+  const [recoveryDay, setRecoveryDay] = useState<RoutineDay | null>(null)
+  const [goalRefresh, setGoalRefresh] = useState(0)
 
   useEffect(() => {
     let alive = true
@@ -68,18 +71,21 @@ export function HomePage() {
     [routine],
   )
 
-  const selectedDay = useMemo(
-    () => days.find((d) => d.weekday === selectedWeekday) ?? days[0],
-    [days, selectedWeekday],
-  )
+  const selectedDay = useMemo(() => {
+    if (recoveryDay) return recoveryDay
+    return days.find((d) => d.weekday === selectedWeekday) ?? days[0]
+  }, [days, selectedWeekday, recoveryDay])
 
   const todayDay = useMemo(
     () => days.find((d) => d.weekday === todayWeekday),
     [days, todayWeekday],
   )
 
-  const isTodaySelected = selectedWeekday === todayWeekday
-  const isRestDay = Boolean(selectedDay?.isRestDay)
+  const isRecoveryMode = Boolean(recoveryDay) && isWeekend(todayWeekday)
+  const isTodaySelected = recoveryDay
+    ? false
+    : selectedWeekday === todayWeekday
+  const isRestDay = Boolean(selectedDay?.isRestDay) && !isRecoveryMode
 
   const sessionForSelected =
     activeSession && selectedDay && activeSession.routineDayId === selectedDay.id
@@ -90,7 +96,8 @@ export function HomePage() {
     completedToday &&
     selectedDay &&
     completedToday.routineDayId === selectedDay.id &&
-    isTodaySelected
+    isTodaySelected &&
+    !completedToday.isRecovery
       ? completedToday
       : undefined
 
@@ -107,6 +114,7 @@ export function HomePage() {
 
   const todayDone =
     Boolean(completedToday) &&
+    !completedToday?.isRecovery &&
     (!todayDay || completedToday?.routineDayId === todayDay.id)
 
   const today = new Date()
@@ -122,6 +130,17 @@ export function HomePage() {
     )
   }
 
+  function handleSelectRecoveryDay(day: RoutineDay) {
+    setRecoveryDay(day)
+    setSelectedWeekday(day.weekday)
+    setError(null)
+  }
+
+  function handleClearRecovery() {
+    setRecoveryDay(null)
+    setSelectedWeekday(todayWeekday)
+  }
+
   async function handleStartOrContinue() {
     if (!selectedDay) return
     setStarting(true)
@@ -129,6 +148,23 @@ export function HomePage() {
     try {
       if (activeSession) {
         navigate(`/entrenar/${activeSession.id}`)
+        return
+      }
+      if (isRecoveryMode) {
+        if (selectedDay.isRestDay) {
+          setError('Ese día está marcado como descanso.')
+          return
+        }
+        if (selectedDay.exercises.length === 0) {
+          setError('Este día no tiene ejercicios. Agrégalos en Rutinas.')
+          return
+        }
+        const session = await startSession(selectedDay.id, routine?.id, {
+          recovery: true,
+        })
+        setActiveSession(session)
+        setGoalRefresh((n) => n + 1)
+        navigate(`/entrenar/${session.id}`)
         return
       }
       if (!isTodaySelected) {
@@ -184,28 +220,35 @@ export function HomePage() {
         />
       </header>
 
-      <Link
-        to="/progreso#temas"
-        className="flex min-h-12 items-center justify-center gap-2 rounded-2xl border border-line bg-surface-elevated px-4 text-sm font-semibold text-fg transition active:scale-[0.99] hover:border-brand/50"
-      >
-        <span aria-hidden>🎨</span>
-        Temas visuales (underground, rojo, azul…)
-      </Link>
+      <ConstancyGoalCard
+        recoveryDayId={recoveryDay?.id ?? null}
+        onSelectRecoveryDay={handleSelectRecoveryDay}
+        onClearRecovery={handleClearRecovery}
+        refreshKey={goalRefresh}
+      />
 
       <div className="space-y-2">
         <p className="text-sm font-semibold text-muted">
-          Ver rutina de la semana (solo puedes entrenar hoy)
+          {isRecoveryMode
+            ? `Recuperando ${weekdayLabel(recoveryDay!.weekday)} — verás su rutina abajo`
+            : 'Ver rutina de la semana (solo puedes entrenar hoy)'}
         </p>
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
           {days.map((day) => {
-            const active = day.weekday === selectedWeekday
+            const active = day.weekday === (recoveryDay?.weekday ?? selectedWeekday)
             const isToday = day.weekday === todayWeekday
             const rest = Boolean(day.isRestDay)
+            const recovering = recoveryDay?.id === day.id
             return (
               <button
                 key={day.id}
                 type="button"
-                onClick={() => setSelectedWeekday(day.weekday)}
+                onClick={() => {
+                  if (recoveryDay && day.id !== recoveryDay.id) {
+                    handleClearRecovery()
+                  }
+                  setSelectedWeekday(day.weekday)
+                }}
                 className={[
                   'min-h-12 shrink-0 rounded-2xl px-4 text-sm font-semibold transition active:scale-[0.98]',
                   active
@@ -218,6 +261,7 @@ export function HomePage() {
                 {weekdayLabel(day.weekday).slice(0, 3)}
                 {rest ? ' · 😴' : ''}
                 {isToday ? ' · Hoy' : ''}
+                {recovering ? ' · Recup.' : ''}
               </button>
             )
           })}
@@ -249,6 +293,11 @@ export function HomePage() {
         ) : (
           <>
             <div>
+              {isRecoveryMode ? (
+                <p className="mb-2 inline-flex rounded-full bg-progress-soft px-3 py-1 text-xs font-bold text-progress">
+                  Recuperado · {weekdayLabel(recoveryDay!.weekday)}
+                </p>
+              ) : null}
               <h2 className="font-display text-xl font-bold">
                 {selectedDay?.label ?? 'Sin día'}
               </h2>
@@ -265,7 +314,14 @@ export function HomePage() {
               </p>
             ) : null}
 
-            {!isTodaySelected ? (
+            {isRecoveryMode ? (
+              <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-fg">
+                Vas a recuperar el{' '}
+                <strong>{weekdayLabel(recoveryDay!.weekday)}</strong>. Al
+                comenzar verás todas las máquinas de ese día con peso, reps y RIR.
+                En el historial quedará etiquetado como recuperado.
+              </p>
+            ) : !isTodaySelected ? (
               <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-fg">
                 Estás viendo la rutina del {weekdayLabel(selectedWeekday)}. Solo puedes
                 comenzar el entrenamiento del día de hoy (
@@ -354,6 +410,16 @@ export function HomePage() {
               Ver entrenamiento de hoy
             </Button>
           </div>
+        ) : isRecoveryMode && !isRestDay ? (
+          <Button
+            fullWidth
+            onClick={() => void handleStartOrContinue()}
+            disabled={starting || (selectedDay?.exercises.length ?? 0) === 0}
+          >
+            {starting
+              ? 'Abriendo…'
+              : `Empezar entrenamiento · ${weekdayLabel(recoveryDay!.weekday)}`}
+          </Button>
         ) : isTodaySelected && !isRestDay ? (
           <Button
             fullWidth

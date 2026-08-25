@@ -91,7 +91,57 @@ export interface WorkoutSession {
   finishedAt?: number
   durationMs?: number
   exercises: ExerciseLog[]
+  /** true = entreno de recuperación (fin de semana) */
+  isRecovery?: boolean
+  /** Día de la rutina que se está recuperando */
+  recoveredWeekday?: Weekday
+  recoveredDayLabel?: string
 }
+
+export type PrizePresetId =
+  | 'pork_roll'
+  | 'empanadas'
+  | 'ensalada'
+  | 'custom'
+
+export type ConstancyGoalStatus = 'active' | 'completed'
+
+/** Meta de constancia (entrenamientos → premio) */
+export interface ConstancyGoal {
+  id: string
+  targetCount: number
+  currentCount: number
+  prizePreset: PrizePresetId
+  prizeLabel: string
+  status: ConstancyGoalStatus
+  createdAt: number
+  updatedAt: number
+  completedAt?: number
+  /** Fallos de días de gym seguidos (descanso no cuenta). 2 → reinicia progreso */
+  consecutiveMisses: number
+  /** Última fecha evaluada para fallos (YYYY-MM-DD) */
+  lastEvaluatedDate?: string
+  /** Semana ISO en la que ya usó recuperación, ej. 2026-W35 */
+  recoveryWeekKey?: string
+}
+
+export const PRIZE_PRESETS: Array<{
+  id: Exclude<PrizePresetId, 'custom'>
+  label: string
+}> = [
+  {
+    id: 'pork_roll',
+    label: 'Hamburguesa pork roll con salchipapa',
+  },
+  {
+    id: 'empanadas',
+    label: 'Empanadas grandes de arempas y oblea',
+  },
+  {
+    id: 'ensalada',
+    label: 'Ensalada de frutas y panda con bastante pollo dulce',
+  },
+]
 
 /** Imagen personalizada de un ejercicio, guardada como blob local */
 export interface ExerciseImage {
@@ -138,6 +188,8 @@ export interface SessionSummary {
   totalExercises: number
   totalSetsCompleted: number
   muscleGroups: string[]
+  isRecovery?: boolean
+  recoveredDayLabel?: string
 }
 
 export type BodyPhotoAngle = 'front' | 'side' | 'back'

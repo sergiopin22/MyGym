@@ -64,7 +64,7 @@ export function BackupPanel() {
       const parsed: unknown = JSON.parse(text)
       const stats = await importFullBackup(parsed)
       setMessage(
-        `Respaldo restaurado: ${stats.routines} rutina(s), ${stats.sessions} sesión(es), ${stats.improvements} mejora(s).`,
+        `Respaldo restaurado: ${stats.routines} rutina(s), ${stats.sessions} sesión(es), ${stats.improvements} mejora(s), ${stats.constancyGoals} meta(s).`,
       )
       window.setTimeout(() => window.location.reload(), 1200)
     } catch (err) {

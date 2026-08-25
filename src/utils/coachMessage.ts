@@ -33,6 +33,12 @@ export function formatWorkoutForCoach(session: WorkoutSession): string {
     `📋 ${session.dayLabel}`,
   ]
 
+  if (session.isRecovery) {
+    lines.push(
+      `🔁 Recuperado${session.recoveredDayLabel ? ` · ${session.recoveredDayLabel}` : ''}`,
+    )
+  }
+
   if (session.muscleGroups.length > 0) {
     lines.push(`💪 ${session.muscleGroups.join(' · ')}`)
   }

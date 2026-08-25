@@ -58,6 +58,14 @@ export function HistoryPage() {
                         })}
                       </p>
                       <h2 className="font-display text-lg font-bold">{item.dayLabel}</h2>
+                      {item.isRecovery ? (
+                        <span className="mt-2 inline-flex rounded-full bg-progress-soft px-2.5 py-1 text-xs font-bold text-progress">
+                          Recuperado
+                          {item.recoveredDayLabel
+                            ? ` · ${item.recoveredDayLabel}`
+                            : ''}
+                        </span>
+                      ) : null}
                       <p className="mt-1 text-sm text-muted">
                         {item.completedExercises}/{item.totalExercises} ejercicios ·{' '}
                         {item.totalSetsCompleted} series · {formatDuration(item.durationMs)}
@@ -134,6 +142,14 @@ export function HistoryDetailPage() {
         <h1 className="font-display text-3xl font-extrabold tracking-tight">
           {session.dayLabel}
         </h1>
+        {session.isRecovery ? (
+          <span className="inline-flex rounded-full bg-progress-soft px-3 py-1 text-xs font-bold text-progress">
+            Recuperado
+            {session.recoveredDayLabel
+              ? ` · rutina del ${session.recoveredDayLabel}`
+              : ''}
+          </span>
+        ) : null}
         <p className="text-muted">
           {new Date(session.date + 'T12:00:00').toLocaleDateString('es-ES', {
             weekday: 'long',

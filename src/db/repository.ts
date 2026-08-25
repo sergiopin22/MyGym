@@ -3,10 +3,12 @@ import type {
   BodyCheckIn,
   BodyCheckInPhoto,
   BodyPhotoAngle,
+  ConstancyGoal,
   ExerciseImage,
   ExerciseLog,
   Improvement,
   LastExercisePerformance,
+  PrizePresetId,
   Routine,
   RoutineDay,
   RoutineExercise,
@@ -15,7 +17,16 @@ import type {
   Weekday,
   WorkoutSession,
 } from '../types'
-import { createId, todayISODate, weekdayLabel } from '../utils/id'
+import {
+  addDaysISO,
+  createId,
+  isoWeekKey,
+  isWeekend,
+  startOfWeekMonday,
+  todayISODate,
+  weekdayFromISO,
+  weekdayLabel,
+} from '../utils/id'
 import {
   buildExerciseLogFromRoutine,
   computeExerciseStatus,
@@ -443,6 +454,7 @@ export async function getSessionById(
 export async function startSession(
   routineDayId: string,
   routineId?: string,
+  options?: { recovery?: boolean },
 ): Promise<WorkoutSession> {
   const existing = await getActiveSession()
   if (existing) return existing
@@ -450,9 +462,18 @@ export async function startSession(
   const found = await getRoutineDay(routineDayId, routineId)
   if (!found) throw new Error('Día de rutina no encontrado')
   const { routine, day } = found
-
+  const recovery = Boolean(options?.recovery)
   const todayWeekday = new Date().getDay() as Weekday
-  if (day.weekday !== todayWeekday) {
+
+  if (recovery) {
+    if (!isWeekend(todayWeekday)) {
+      throw new Error('Solo puedes recuperar un día perdido el sábado o domingo.')
+    }
+    const eligible = await getRecoverableMissedDays()
+    if (!eligible.some((d) => d.id === day.id)) {
+      throw new Error('Ese día no está disponible para recuperar esta semana.')
+    }
+  } else if (day.weekday !== todayWeekday) {
     throw new Error(
       `Hoy es ${weekdayLabel(todayWeekday)}. Solo puedes iniciar el entrenamiento de hoy.`,
     )
@@ -466,16 +487,20 @@ export async function startSession(
     throw new Error('Este día no tiene ejercicios. Agrégalos en Rutinas.')
   }
 
-  const alreadyDone = await getCompletedSessionToday(day.id)
-  if (alreadyDone) {
-    throw new Error('Ya completaste el entrenamiento de hoy.')
+  if (!recovery) {
+    const alreadyDone = await getCompletedSessionToday(day.id)
+    if (alreadyDone) {
+      throw new Error('Ya completaste el entrenamiento de hoy.')
+    }
   }
 
   const session: WorkoutSession = {
     id: createId('session'),
     routineId: routine.id,
     routineDayId: day.id,
-    dayLabel: day.label,
+    dayLabel: recovery
+      ? `${day.label} (Recuperado · ${weekdayLabel(day.weekday)})`
+      : day.label,
     muscleGroups: [...day.muscleGroups],
     date: todayISODate(),
     status: 'in_progress',
@@ -483,6 +508,9 @@ export async function startSession(
     exercises: sortExercises(day.exercises).map((ex) =>
       buildExerciseLogFromRoutine(ex, () => createId('elog')),
     ),
+    isRecovery: recovery || undefined,
+    recoveredWeekday: recovery ? day.weekday : undefined,
+    recoveredDayLabel: recovery ? weekdayLabel(day.weekday) : undefined,
   }
 
   await db.sessions.add(session)
@@ -672,6 +700,7 @@ export async function completeSession(sessionId: string): Promise<{
     durationMs: finishedAt - session.startedAt,
   }
   await saveSession(completed)
+  await onWorkoutCompletedForConstancy(completed)
 
   return { session: completed, summary: toSummary(completed) }
 }
@@ -693,6 +722,8 @@ function toSummary(session: WorkoutSession): SessionSummary {
     totalExercises: session.exercises.length,
     totalSetsCompleted,
     muscleGroups: session.muscleGroups,
+    isRecovery: session.isRecovery,
+    recoveredDayLabel: session.recoveredDayLabel,
   }
 }
 
@@ -984,4 +1015,223 @@ export async function getBodyPhotoObjectUrl(
   const photo = await db.bodyCheckInPhotos.get(`${checkInId}_${angle}`)
   if (!photo) return null
   return URL.createObjectURL(photo.blob)
+}
+
+/* ─── Meta de constancia ─── */
+
+export async function getActiveConstancyGoal(): Promise<ConstancyGoal | undefined> {
+  const active = await db.constancyGoals.where('status').equals('active').first()
+  if (active) return evaluateConstancyMisses(active)
+  return undefined
+}
+
+export async function getLatestConstancyGoal(): Promise<ConstancyGoal | undefined> {
+  const all = await db.constancyGoals.orderBy('updatedAt').reverse().toArray()
+  return all[0]
+}
+
+export async function createConstancyGoal(input: {
+  targetCount: number
+  prizePreset: PrizePresetId
+  prizeLabel: string
+}): Promise<ConstancyGoal> {
+  const target = Math.max(1, Math.floor(input.targetCount))
+  const label = input.prizeLabel.trim()
+  if (!label) throw new Error('Escribe o elige un premio.')
+
+  const existing = await db.constancyGoals.where('status').equals('active').first()
+  if (existing) {
+    throw new Error('Ya tienes una meta activa. Complétala o créala de nuevo al terminar.')
+  }
+
+  const now = Date.now()
+  const goal: ConstancyGoal = {
+    id: createId('goal'),
+    targetCount: target,
+    currentCount: 0,
+    prizePreset: input.prizePreset,
+    prizeLabel: label,
+    status: 'active',
+    createdAt: now,
+    updatedAt: now,
+    consecutiveMisses: 0,
+    lastEvaluatedDate: todayISODate(),
+  }
+  await db.constancyGoals.add(goal)
+  return goal
+}
+
+/** Elimina la meta activa para poder crear otra */
+export async function abandonConstancyGoal(): Promise<void> {
+  const active = await db.constancyGoals.where('status').equals('active').first()
+  if (!active) return
+  await db.constancyGoals.delete(active.id)
+}
+
+async function gymDayFulfilled(
+  date: string,
+  day: RoutineDay,
+): Promise<boolean> {
+  const onDate = await db.sessions
+    .where('date')
+    .equals(date)
+    .filter(
+      (s) =>
+        s.status === 'completed' &&
+        s.routineDayId === day.id &&
+        !s.isRecovery,
+    )
+    .count()
+  if (onDate > 0) return true
+
+  const weekStart = todayISODate(startOfWeekMonday(new Date(date + 'T12:00:00')))
+  const weekEnd = addDaysISO(weekStart, 6)
+  const recovered = await db.sessions
+    .where('date')
+    .between(weekStart, weekEnd, true, true)
+    .filter(
+      (s) =>
+        s.status === 'completed' &&
+        Boolean(s.isRecovery) &&
+        s.recoveredWeekday === day.weekday,
+    )
+    .count()
+  return recovered > 0
+}
+
+/** Evalúa días de gym pasados: 2 fallos seguidos reinician el progreso */
+export async function evaluateConstancyMisses(
+  goal: ConstancyGoal,
+): Promise<ConstancyGoal> {
+  if (goal.status !== 'active') return goal
+
+  const yesterday = addDaysISO(todayISODate(), -1)
+  let cursor = goal.lastEvaluatedDate
+    ? addDaysISO(goal.lastEvaluatedDate, 1)
+    : todayISODate(new Date(goal.createdAt))
+
+  if (cursor > yesterday) return goal
+
+  const routine = await getActiveRoutine()
+  let consecutiveMisses = goal.consecutiveMisses
+  let currentCount = goal.currentCount
+
+  while (cursor <= yesterday) {
+    if (routine) {
+      const weekday = weekdayFromISO(cursor) as Weekday
+      const day = routine.days.find((d) => d.weekday === weekday)
+      if (day && !day.isRestDay && day.exercises.length > 0) {
+        const ok = await gymDayFulfilled(cursor, day)
+        if (ok) {
+          consecutiveMisses = 0
+        } else {
+          consecutiveMisses += 1
+          if (consecutiveMisses >= 2) {
+            currentCount = 0
+            consecutiveMisses = 0
+          }
+        }
+      }
+    }
+    cursor = addDaysISO(cursor, 1)
+  }
+
+  const updated: ConstancyGoal = {
+    ...goal,
+    consecutiveMisses,
+    currentCount,
+    lastEvaluatedDate: yesterday,
+    updatedAt: Date.now(),
+  }
+  await db.constancyGoals.put(updated)
+  return updated
+}
+
+async function onWorkoutCompletedForConstancy(
+  session: WorkoutSession,
+): Promise<void> {
+  const raw = await db.constancyGoals.where('status').equals('active').first()
+  if (!raw) return
+
+  const goal = await evaluateConstancyMisses(raw)
+  if (goal.status !== 'active') return
+
+  let consecutiveMisses = session.isRecovery
+    ? Math.max(0, goal.consecutiveMisses - 1)
+    : 0
+  let currentCount = goal.currentCount + 1
+  let status: ConstancyGoal['status'] = 'active'
+  let completedAt = goal.completedAt
+
+  if (currentCount >= goal.targetCount) {
+    currentCount = goal.targetCount
+    status = 'completed'
+    completedAt = Date.now()
+  }
+
+  const updated: ConstancyGoal = {
+    ...goal,
+    currentCount,
+    consecutiveMisses,
+    status,
+    completedAt,
+    updatedAt: Date.now(),
+    lastEvaluatedDate: todayISODate(),
+    recoveryWeekKey: session.isRecovery
+      ? isoWeekKey()
+      : goal.recoveryWeekKey,
+  }
+  await db.constancyGoals.put(updated)
+}
+
+/** Días de gym de esta semana que faltaron (para recuperar en sáb/dom) */
+export async function getRecoverableMissedDays(): Promise<RoutineDay[]> {
+  if (!isWeekend()) return []
+
+  const weekKey = isoWeekKey()
+  const goal = await db.constancyGoals.where('status').equals('active').first()
+  if (goal?.recoveryWeekKey === weekKey) return []
+
+  const monday = startOfWeekMonday()
+  const weekStart = todayISODate(monday)
+  const weekEnd = addDaysISO(weekStart, 6)
+  const today = todayISODate()
+
+  const weekSessions = await db.sessions
+    .where('date')
+    .between(weekStart, weekEnd, true, true)
+    .filter((s) => s.status === 'completed')
+    .toArray()
+
+  if (weekSessions.some((s) => s.isRecovery)) return []
+
+  const routine = await getActiveRoutine()
+  if (!routine) return []
+
+  const missed: RoutineDay[] = []
+  for (let i = 0; i < 7; i++) {
+    const date = addDaysISO(weekStart, i)
+    if (date >= today) continue
+
+    const weekday = weekdayFromISO(date) as Weekday
+    const day = routine.days.find((d) => d.weekday === weekday)
+    if (!day || day.isRestDay || day.exercises.length === 0) continue
+
+    const doneOnDay = weekSessions.some(
+      (s) =>
+        s.date === date && s.routineDayId === day.id && !s.isRecovery,
+    )
+    const recovered = weekSessions.some(
+      (s) => s.isRecovery && s.recoveredWeekday === day.weekday,
+    )
+    if (!doneOnDay && !recovered) missed.push(day)
+  }
+
+  return missed
+}
+
+export async function canUseRecoveryThisWeek(): Promise<boolean> {
+  if (!isWeekend()) return false
+  const missed = await getRecoverableMissedDays()
+  return missed.length > 0
 }
