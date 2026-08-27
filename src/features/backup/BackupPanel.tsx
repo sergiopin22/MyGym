@@ -3,7 +3,7 @@ import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import {
   backupFilename,
-  exportFullBackupJson,
+  exportAndMarkBackup,
   importFullBackup,
 } from '../../db/backup'
 import { copyToClipboard, downloadTextFile } from '../../utils/clipboard'
@@ -20,10 +20,10 @@ export function BackupPanel() {
     setError(null)
     setMessage(null)
     try {
-      const json = await exportFullBackupJson()
+      const json = await exportAndMarkBackup(true)
       downloadTextFile(backupFilename(), json)
       setMessage(
-        'Respaldo descargado. Guárdalo en iCloud, Drive o envíatelo por correo.',
+        'Respaldo descargado (rutina, historial, PRs, meta, tema y avatar). Guárdalo en iCloud, Drive o correo.',
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo exportar')
@@ -37,7 +37,7 @@ export function BackupPanel() {
     setError(null)
     setMessage(null)
     try {
-      const json = await exportFullBackupJson(false)
+      const json = await exportAndMarkBackup(false)
       await copyToClipboard(json)
       setMessage('Respaldo copiado al portapapeles. Pégalo en Notas o envíalo.')
     } catch (err) {
@@ -64,7 +64,7 @@ export function BackupPanel() {
       const parsed: unknown = JSON.parse(text)
       const stats = await importFullBackup(parsed)
       setMessage(
-        `Respaldo restaurado: ${stats.routines} rutina(s), ${stats.sessions} sesión(es), ${stats.constancyGoals} meta(s), ${stats.images} imagen(es).`,
+        `Respaldo restaurado: ${stats.routines} rutina(s), ${stats.sessions} sesión(es), ${stats.constancyGoals} meta(s), ${stats.images} imagen(es)${stats.restoredPreferences ? ', tema y avatar' : ''}.`,
       )
       window.setTimeout(() => window.location.reload(), 1200)
     } catch (err) {
@@ -80,8 +80,9 @@ export function BackupPanel() {
       <div>
         <h2 className="font-display text-lg font-bold">Respaldo y recuperación</h2>
         <p className="mt-1 text-sm text-muted">
-          Exporta rutina, historial, progreso y fotos. Si cambias de celular o
-          borras datos, importa el archivo para recuperar todo.
+          Exporta rutina, historial, PRs, meta, tema, avatar e imágenes. Si
+          cambias de celular o borras datos, importa el archivo para recuperar
+          todo.
         </p>
       </div>
 

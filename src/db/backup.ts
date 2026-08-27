@@ -7,9 +7,19 @@ import type {
   Routine,
   WorkoutSession,
 } from '../types'
+import {
+  getStoredBrandAvatarId,
+  isBrandAvatarId,
+  setStoredBrandAvatarId,
+  type BrandAvatarId,
+} from '../brand/avatars'
+import { applyTheme, getStoredThemeId } from '../themes/applyTheme'
+import { isThemeId, type ThemeId } from '../themes/presets'
 
-export const BACKUP_VERSION = 3 as const
+export const BACKUP_VERSION = 4 as const
 export const BACKUP_APP_ID = 'mi-gym'
+export const LAST_BACKUP_STORAGE_KEY = 'mi-gym-last-backup-at'
+export const BACKUP_REMINDER_DAYS = 3
 
 export interface StoredExerciseImage {
   id: string
@@ -27,8 +37,13 @@ export interface StoredBodyPhoto {
   dataBase64: string
 }
 
+export interface BackupPreferences {
+  themeId: ThemeId
+  brandAvatarId: BrandAvatarId
+}
+
 export interface MiGymBackup {
-  version: 1 | 2 | 3
+  version: 1 | 2 | 3 | 4
   app: typeof BACKUP_APP_ID
   exportedAt: number
   routines: Routine[]
@@ -38,6 +53,44 @@ export interface MiGymBackup {
   bodyCheckIns?: BodyCheckIn[]
   bodyCheckInPhotos?: StoredBodyPhoto[]
   constancyGoals?: ConstancyGoal[]
+  /** Preferencias de UI (tema + avatar). Desde v4. */
+  preferences?: BackupPreferences
+}
+
+export function getLastBackupAt(): number | null {
+  try {
+    const raw = localStorage.getItem(LAST_BACKUP_STORAGE_KEY)
+    if (!raw) return null
+    const n = Number(raw)
+    return Number.isFinite(n) ? n : null
+  } catch {
+    return null
+  }
+}
+
+export function markBackupDone(at = Date.now()): void {
+  try {
+    localStorage.setItem(LAST_BACKUP_STORAGE_KEY, String(at))
+  } catch {
+    /* ignore */
+  }
+}
+
+/** true si nunca respaldó o pasaron ≥ 3 días */
+export function isBackupReminderDue(
+  now = Date.now(),
+  everyDays = BACKUP_REMINDER_DAYS,
+): boolean {
+  const last = getLastBackupAt()
+  if (last == null) return true
+  const ms = everyDays * 24 * 60 * 60 * 1000
+  return now - last >= ms
+}
+
+export function daysSinceLastBackup(now = Date.now()): number | null {
+  const last = getLastBackupAt()
+  if (last == null) return null
+  return Math.floor((now - last) / (24 * 60 * 60 * 1000))
 }
 
 async function blobToBase64(blob: Blob): Promise<string> {
@@ -160,6 +213,24 @@ function validateConstancyGoal(raw: unknown, index: number): ConstancyGoal {
   return g as ConstancyGoal
 }
 
+function parsePreferences(raw: unknown): BackupPreferences | undefined {
+  if (!raw || typeof raw !== 'object') return undefined
+  const p = raw as Partial<BackupPreferences>
+  const themeId =
+    typeof p.themeId === 'string' && isThemeId(p.themeId)
+      ? p.themeId
+      : undefined
+  const brandAvatarId =
+    typeof p.brandAvatarId === 'string' && isBrandAvatarId(p.brandAvatarId)
+      ? p.brandAvatarId
+      : undefined
+  if (!themeId && !brandAvatarId) return undefined
+  return {
+    themeId: themeId ?? getStoredThemeId(),
+    brandAvatarId: brandAvatarId ?? getStoredBrandAvatarId(),
+  }
+}
+
 function parseBackup(raw: unknown): MiGymBackup {
   if (!raw || typeof raw !== 'object') {
     throw new Error('Archivo inválido')
@@ -168,7 +239,12 @@ function parseBackup(raw: unknown): MiGymBackup {
   if (data.app !== BACKUP_APP_ID) {
     throw new Error('Este archivo no es un respaldo de Mi Gym')
   }
-  if (data.version !== 1 && data.version !== 2 && data.version !== 3) {
+  if (
+    data.version !== 1 &&
+    data.version !== 2 &&
+    data.version !== 3 &&
+    data.version !== 4
+  ) {
     throw new Error('Versión de respaldo no compatible')
   }
   if (!Array.isArray(data.routines) || !Array.isArray(data.sessions)) {
@@ -184,6 +260,7 @@ function parseBackup(raw: unknown): MiGymBackup {
     ? data.bodyCheckInPhotos
     : []
   const constancyGoals = Array.isArray(data.constancyGoals) ? data.constancyGoals : []
+  const preferences = parsePreferences(data.preferences)
 
   assertUniqueIds(
     routines.map((r) => r.id),
@@ -224,6 +301,7 @@ function parseBackup(raw: unknown): MiGymBackup {
     bodyCheckIns: bodyCheckIns as BodyCheckIn[],
     bodyCheckInPhotos,
     constancyGoals,
+    preferences,
   }
 }
 
@@ -277,12 +355,23 @@ export async function exportFullBackup(): Promise<MiGymBackup> {
     bodyCheckIns,
     bodyCheckInPhotos,
     constancyGoals,
+    preferences: {
+      themeId: getStoredThemeId(),
+      brandAvatarId: getStoredBrandAvatarId(),
+    },
   }
 }
 
 export async function exportFullBackupJson(pretty = true): Promise<string> {
   const backup = await exportFullBackup()
   return JSON.stringify(backup, null, pretty ? 2 : 0)
+}
+
+/** Exporta, descarga mentalmente “hecho” y marca la fecha del último respaldo */
+export async function exportAndMarkBackup(pretty = true): Promise<string> {
+  const json = await exportFullBackupJson(pretty)
+  markBackupDone()
+  return json
 }
 
 export async function importFullBackup(raw: unknown): Promise<{
@@ -292,6 +381,7 @@ export async function importFullBackup(raw: unknown): Promise<{
   images: number
   bodyCheckIns: number
   constancyGoals: number
+  restoredPreferences: boolean
 }> {
   const backup = parseBackup(raw)
 
@@ -374,6 +464,15 @@ export async function importFullBackup(raw: unknown): Promise<{
     )
   }
 
+  let restoredPreferences = false
+  if (backup.preferences) {
+    applyTheme(backup.preferences.themeId)
+    setStoredBrandAvatarId(backup.preferences.brandAvatarId)
+    restoredPreferences = true
+  }
+
+  markBackupDone(backup.exportedAt || Date.now())
+
   return {
     routines: backup.routines.length,
     sessions: backup.sessions.length,
@@ -381,6 +480,7 @@ export async function importFullBackup(raw: unknown): Promise<{
     images: images.length,
     bodyCheckIns: backup.bodyCheckIns?.length ?? 0,
     constancyGoals: backup.constancyGoals?.length ?? 0,
+    restoredPreferences,
   }
 }
 

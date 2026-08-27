@@ -15,6 +15,7 @@ import { ConstancyGoalCard } from './ConstancyGoalCard'
 import { BrandAvatarButton } from './BrandAvatarButton'
 import { PrFloatingButton } from './PrFloatingButton'
 import { RestDayToggle } from './RestDayToggle'
+import { BackupReminderCard } from '../backup/BackupReminderCard'
 
 function sortDays(days: RoutineDay[]): RoutineDay[] {
   const order = [1, 2, 3, 4, 5, 6, 0]
@@ -226,6 +227,8 @@ export function HomePage() {
         </div>
         <BrandAvatarButton />
       </header>
+
+      <BackupReminderCard />
 
       <ConstancyGoalCard
         recoveryDayId={recoveryDay?.id ?? null}
