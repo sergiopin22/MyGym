@@ -3,11 +3,17 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { ProgressBar } from '../../components/ProgressBar'
-import { completeSession, cancelSession, getSessionById } from '../../db/repository'
+import {
+  completeSession,
+  cancelSession,
+  getSessionById,
+  type SessionNewPR,
+} from '../../db/repository'
 import type { SessionSummary, WorkoutSession } from '../../types'
 import { formatDuration } from '../../utils/id'
 import { getIncompleteWorkoutParts } from '../../utils/workout'
 import { CopyCoachMessageButton } from '../history/CopyCoachMessageButton'
+import { PrTrophyPop } from './PrTrophyPop'
 import { WorkoutExerciseCard } from './WorkoutExerciseCard'
 
 export function WorkoutPage() {
@@ -19,6 +25,8 @@ export function WorkoutPage() {
   const [error, setError] = useState<string | null>(null)
   const [finishing, setFinishing] = useState(false)
   const [cancelling, setCancelling] = useState(false)
+  const [newPRs, setNewPRs] = useState<SessionNewPR[]>([])
+  const [showPrPop, setShowPrPop] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -97,6 +105,15 @@ export function WorkoutPage() {
       const result = await completeSession(session.id)
       setSession(result.session)
       setSummary(result.summary)
+      if (result.newPRs.length > 0) {
+        setNewPRs(result.newPRs)
+        setShowPrPop(true)
+        try {
+          if (navigator.vibrate) navigator.vibrate([18, 40, 18])
+        } catch {
+          /* ignore */
+        }
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo finalizar')
     } finally {
@@ -146,6 +163,10 @@ export function WorkoutPage() {
   if (summary && session.status === 'completed') {
     return (
       <div className="mx-auto flex min-h-dvh max-w-lg flex-col px-4 pb-10 pt-[max(1rem,env(safe-area-inset-top))]">
+        {showPrPop ? (
+          <PrTrophyPop prs={newPRs} onClose={() => setShowPrPop(false)} />
+        ) : null}
+
         <header className="space-y-1 pt-2">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand">
             Entrenamiento guardado
@@ -161,6 +182,26 @@ export function WorkoutPage() {
             </span>
           ) : null}
         </header>
+
+        {newPRs.length > 0 && !showPrPop ? (
+          <button
+            type="button"
+            onClick={() => setShowPrPop(true)}
+            className="mt-4 flex w-full items-center gap-3 rounded-2xl bg-success-soft px-4 py-3 text-left ring-1 ring-line transition active:scale-[0.99]"
+          >
+            <span className="text-2xl" aria-hidden>
+              🏆
+            </span>
+            <span>
+              <span className="block font-display text-base font-bold text-accent-strong">
+                {newPRs.length === 1
+                  ? '¡Nuevo PR en esta sesión!'
+                  : `¡${newPRs.length} PRs nuevos!`}
+              </span>
+              <span className="text-xs text-muted">Toca para verlos otra vez</span>
+            </span>
+          </button>
+        ) : null}
 
         <Card className="mt-6 space-y-4">
           <Stat label="Duración" value={formatDuration(summary.durationMs)} />

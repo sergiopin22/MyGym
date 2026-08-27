@@ -738,11 +738,16 @@ export async function applyPreviousWeights(
 export async function completeSession(sessionId: string): Promise<{
   session: WorkoutSession
   summary: SessionSummary
+  newPRs: SessionNewPR[]
 }> {
   const session = await getSessionById(sessionId)
   if (!session) throw new Error('Sesión no encontrada')
   if (session.status === 'completed') {
-    return { session, summary: toSummary(session) }
+    return {
+      session,
+      summary: toSummary(session),
+      newPRs: await detectNewPRsInSession(session),
+    }
   }
 
   const leftover = getIncompleteWorkoutParts(session)
@@ -762,7 +767,11 @@ export async function completeSession(sessionId: string): Promise<{
   await saveSession(completed)
   await onWorkoutCompletedForConstancy(completed)
 
-  return { session: completed, summary: toSummary(completed) }
+  return {
+    session: completed,
+    summary: toSummary(completed),
+    newPRs: await detectNewPRsInSession(completed),
+  }
 }
 
 /**
@@ -1567,7 +1576,9 @@ function isBetterPR(
 }
 
 /** PR de todas las máquinas vistas en historial (mejor peso; si empata, más reps) */
-export async function getAllExercisePRs(): Promise<ExercisePR[]> {
+export async function getAllExercisePRs(
+  excludeSessionId?: string,
+): Promise<ExercisePR[]> {
   const sessions = await db.sessions
     .where('status')
     .equals('completed')
@@ -1576,6 +1587,7 @@ export async function getAllExercisePRs(): Promise<ExercisePR[]> {
   const best = new Map<string, ExercisePR>()
 
   for (const session of sessions) {
+    if (excludeSessionId && session.id === excludeSessionId) continue
     for (const ex of session.exercises) {
       const key = normalizeExerciseName(ex.name)
       if (!key) continue
@@ -1598,6 +1610,65 @@ export async function getAllExercisePRs(): Promise<ExercisePR[]> {
   }
 
   return [...best.values()].sort((a, b) =>
+    a.exerciseName.localeCompare(b.exerciseName, 'es'),
+  )
+}
+
+export interface SessionNewPR {
+  exerciseName: string
+  weight: number
+  reps: number
+  rir: number | null
+  /** null = primera marca registrada de ese ejercicio */
+  previous: { weight: number; reps: number } | null
+}
+
+/** Detecta PRs nuevos de una sesión vs el historial (excluyendo esa sesión) */
+export async function detectNewPRsInSession(
+  session: WorkoutSession,
+): Promise<SessionNewPR[]> {
+  const prior = await getAllExercisePRs(session.id)
+  const priorByKey = new Map(
+    prior.map((p) => [normalizeExerciseName(p.exerciseName), p]),
+  )
+
+  const found: SessionNewPR[] = []
+
+  for (const ex of session.exercises) {
+    const key = normalizeExerciseName(ex.name)
+    if (!key) continue
+
+    let bestInSession: {
+      weight: number
+      reps: number
+      rir: number | null
+    } | null = null
+
+    for (const set of ex.sets) {
+      if (!set.completed || set.weight == null || set.reps == null) continue
+      if (set.weight <= 0 || set.reps <= 0) continue
+      const cand = { weight: set.weight, reps: set.reps, rir: set.rir }
+      if (!isBetterPR(cand, bestInSession)) continue
+      bestInSession = cand
+    }
+
+    if (!bestInSession) continue
+
+    const prev = priorByKey.get(key) ?? null
+    if (!isBetterPR(bestInSession, prev)) continue
+
+    found.push({
+      exerciseName: ex.name,
+      weight: bestInSession.weight,
+      reps: bestInSession.reps,
+      rir: bestInSession.rir,
+      previous: prev
+        ? { weight: prev.weight, reps: prev.reps }
+        : null,
+    })
+  }
+
+  return found.sort((a, b) =>
     a.exerciseName.localeCompare(b.exerciseName, 'es'),
   )
 }
