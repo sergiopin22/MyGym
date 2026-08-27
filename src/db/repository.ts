@@ -6,7 +6,6 @@ import type {
   ConstancyGoal,
   ExerciseImage,
   ExerciseLog,
-  Improvement,
   LastExercisePerformance,
   PrizePresetId,
   Routine,
@@ -30,8 +29,6 @@ import {
 import {
   buildExerciseLogFromRoutine,
   computeExerciseStatus,
-  detectImprovement,
-  getBestCompletedSet,
   getIncompleteWorkoutParts,
 } from '../utils/workout'
 
@@ -597,15 +594,6 @@ export async function updateSet(
   const next: WorkoutSession = { ...session, exercises }
   await saveSession(next)
 
-  const updatedEx = exercises.find((e) => e.id === exerciseLogId)
-  if (
-    updatedEx &&
-    updatedEx.status === 'completed' &&
-    session.exercises.find((e) => e.id === exerciseLogId)?.status !== 'completed'
-  ) {
-    await maybeRecordImprovement(next, updatedEx)
-  }
-
   return next
 }
 
@@ -830,57 +818,7 @@ export async function getExerciseHistory(
   return results
 }
 
-// ─── Mejoras / progreso ──────────────────────────────────────────────────────
-
-async function maybeRecordImprovement(
-  session: WorkoutSession,
-  exercise: ExerciseLog,
-): Promise<Improvement | null> {
-  const last = await getLastExercisePerformance(exercise.name, session.id)
-  if (!last) return null
-
-  const previousSets: SetLog[] = last.sets.map((s) => ({
-    id: createId(),
-    setNumber: s.setNumber,
-    weight: s.weight,
-    reps: s.reps,
-    rir: s.rir,
-    completed: s.completed,
-  }))
-
-  const detected = detectImprovement(exercise.sets, previousSets)
-  if (!detected) return null
-
-  const prevBest = getBestCompletedSet(previousSets)
-  const curBest = getBestCompletedSet(exercise.sets)
-
-  const improvement: Improvement = {
-    id: createId('imp'),
-    exerciseName: exercise.name,
-    routineExerciseId: exercise.routineExerciseId,
-    sessionId: session.id,
-    type: detected.type,
-    message: detected.message,
-    detectedAt: Date.now(),
-    previousBest: prevBest
-      ? { weight: prevBest.weight, reps: prevBest.reps }
-      : undefined,
-    currentBest: curBest
-      ? { weight: curBest.weight, reps: curBest.reps }
-      : undefined,
-  }
-
-  await db.improvements.put(improvement)
-  return improvement
-}
-
-export async function getRecentImprovements(
-  limit = 30,
-): Promise<Improvement[]> {
-  const all = await db.improvements.orderBy('detectedAt').reverse().limit(limit).toArray()
-  return all
-}
-
+/** Contadores de progreso de una sesión en curso */
 export async function getSessionProgress(sessionId: string): Promise<{
   completed: number
   total: number

@@ -1,8 +1,6 @@
 import type {
   ExerciseLog,
   ExerciseStatus,
-  Improvement,
-  ImprovementType,
   LastExercisePerformance,
   Routine,
   RoutineDay,
@@ -15,65 +13,11 @@ import type {
 
 const DEFAULT_IMAGE = '/exercises/default.svg'
 
-/** Mejor serie de un log: prioriza peso, luego reps */
-export function getBestCompletedSet(sets: SetLog[]): SetLog | null {
-  const completed = sets.filter((s) => s.completed && s.weight != null)
-  if (completed.length === 0) {
-    const withReps = sets.filter((s) => s.completed && s.reps != null)
-    return withReps.sort((a, b) => (b.reps ?? 0) - (a.reps ?? 0))[0] ?? null
-  }
-  return (
-    completed.sort((a, b) => {
-      const dw = (b.weight ?? 0) - (a.weight ?? 0)
-      if (dw !== 0) return dw
-      return (b.reps ?? 0) - (a.reps ?? 0)
-    })[0] ?? null
-  )
-}
-
 export function computeExerciseStatus(sets: SetLog[]): ExerciseStatus {
   const completedCount = sets.filter((s) => s.completed).length
   if (completedCount === 0) return 'pending'
   if (completedCount >= sets.length) return 'completed'
   return 'in_progress'
-}
-
-/**
- * Comparación simple vs última vez:
- * - 🏆 más peso
- * - 🔥 más reps con mismo peso
- * - 🏆 más peso manteniendo reps
- */
-export function detectImprovement(
-  current: SetLog[],
-  previous: SetLog[],
-): { type: ImprovementType; message: string } | null {
-  const cur = getBestCompletedSet(current)
-  const prev = getBestCompletedSet(previous)
-  if (!cur || !prev || cur.weight == null || prev.weight == null) return null
-
-  const curReps = cur.reps ?? 0
-  const prevReps = prev.reps ?? 0
-
-  if (cur.weight > prev.weight && curReps >= prevReps) {
-    return {
-      type: 'weight_same_reps',
-      message: `🏆 Nuevo mejor: ${cur.weight} lb × ${curReps} (antes ${prev.weight} lb × ${prevReps})`,
-    }
-  }
-  if (cur.weight > prev.weight) {
-    return {
-      type: 'weight',
-      message: `🏆 Más peso: ${cur.weight} lb (antes ${prev.weight} lb)`,
-    }
-  }
-  if (cur.weight === prev.weight && curReps > prevReps) {
-    return {
-      type: 'reps',
-      message: `🔥 Más reps: ${curReps} @ ${cur.weight} lb (antes ${prevReps})`,
-    }
-  }
-  return null
 }
 
 export function emptySets(targetSets: number, createId: () => string): SetLog[] {
@@ -131,4 +75,4 @@ export function buildExerciseLogFromRoutine(
   }
 }
 
-export type { Improvement, LastExercisePerformance, Routine, RoutineDay, RoutineExercise, SessionSummary, Weekday, WorkoutSession }
+export type { LastExercisePerformance, Routine, RoutineDay, RoutineExercise, SessionSummary, Weekday, WorkoutSession }

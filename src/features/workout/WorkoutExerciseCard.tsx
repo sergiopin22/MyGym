@@ -6,13 +6,11 @@ import { StatusBadge } from '../../components/StatusBadge'
 import {
   applyPreviousWeights,
   getLastExercisePerformance,
-  getRecentImprovements,
   updateExerciseNote,
   updateSet,
 } from '../../db/repository'
 import type {
   ExerciseLog,
-  Improvement,
   LastExercisePerformance,
   WorkoutSession,
 } from '../../types'
@@ -37,7 +35,6 @@ export function WorkoutExerciseCard({
   const [expandedLast, setExpandedLast] = useState(false)
   const [last, setLast] = useState<LastExercisePerformance | null | undefined>(undefined)
   const [loadingLast, setLoadingLast] = useState(false)
-  const [toast, setToast] = useState<Improvement | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [noteDraft, setNoteDraft] = useState(exercise.note ?? '')
@@ -47,12 +44,6 @@ export function WorkoutExerciseCard({
     setNoteDraft(exercise.note ?? '')
     if (exercise.note) setNoteOpen(true)
   }, [exercise.id, exercise.note])
-
-  useEffect(() => {
-    if (!toast) return
-    const t = window.setTimeout(() => setToast(null), 4500)
-    return () => window.clearTimeout(t)
-  }, [toast])
 
   async function loadLast() {
     setLoadingLast(true)
@@ -85,18 +76,8 @@ export function WorkoutExerciseCard({
       }
     }
     setError(null)
-    const prevStatus = exercise.status
     const updated = await updateSet(session.id, exercise.id, setId, patch)
     onSessionChange(updated)
-
-    const nextEx = updated.exercises.find((e) => e.id === exercise.id)
-    if (prevStatus !== 'completed' && nextEx?.status === 'completed') {
-      const improvements = await getRecentImprovements(5)
-      const hit = improvements.find(
-        (i) => i.sessionId === session.id && i.routineExerciseId === exercise.routineExerciseId,
-      )
-      if (hit) setToast(hit)
-    }
   }
 
   async function usePreviousWeight() {
@@ -199,12 +180,6 @@ export function WorkoutExerciseCard({
             <p className="text-muted">Todavía no hay historial de este ejercicio.</p>
           )}
         </div>
-      ) : null}
-
-      {toast ? (
-        <p className="rounded-2xl bg-success-soft px-3 py-3 text-sm font-medium text-accent-strong">
-          {toast.message}
-        </p>
       ) : null}
 
       {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
