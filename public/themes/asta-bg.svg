@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="asta-core" cx="50%" cy="35%" r="60%">
+      <stop offset="0%" stop-color="#22c55e" stop-opacity="0.2"/>
+      <stop offset="45%" stop-color="#16a34a" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#050505" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="asta-edge" cx="90%" cy="85%" r="45%">
+      <stop offset="0%" stop-color="#4ade80" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#050505" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="asta-glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.2" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <filter id="asta-noise" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="4" stitchTiles="stitch"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.02  0 0 0 0 0.05  0 0 0 0 0.03  0 0 0 0.04 0"/>
+    </filter>
+  </defs>
+  <rect width="390" height="844" fill="url(#asta-core)"/>
+  <rect width="390" height="844" fill="url(#asta-edge)"/>
+  <!-- anti-magic cracks -->
+  <g fill="none" stroke-linecap="round" stroke-linejoin="round" filter="url(#asta-glow)">
+    <path d="M40 80 L70 200 L55 320 L95 440 L60 560 L85 700 L50 844" stroke="#22c55e" stroke-opacity="0.28" stroke-width="1.8"/>
+    <path d="M350 40 L330 180 L355 300 L320 450 L345 600 L325 760 L350 844" stroke="#4ade80" stroke-opacity="0.2" stroke-width="1.6"/>
+    <path d="M195 120 L220 220 L200 320 L235 420 L210 520 L240 640" stroke="#22c55e" stroke-opacity="0.18" stroke-width="1.4"/>
+    <path d="M120 500 L150 560 L135 620 L165 700" stroke="#16a34a" stroke-opacity="0.16" stroke-width="1.2"/>
+    <path d="M270 200 L300 260 L285 330 L310 400" stroke="#4ade80" stroke-opacity="0.15" stroke-width="1.2"/>
+  </g>
+  <!-- sword-like strokes -->
+  <g stroke="#e5e5e5" stroke-opacity="0.08" stroke-width="1.5" fill="none" stroke-linecap="round">
+    <path d="M280 640 L340 520"/>
+    <path d="M295 655 L355 535"/>
+    <path d="M50 280 L110 200"/>
+  </g>
+  <!-- green sparks -->
+  <g fill="#22c55e" opacity="0.55">
+    <circle cx="70" cy="198" r="2.5"/>
+    <circle cx="95" cy="438" r="2"/>
+    <circle cx="220" cy="218" r="2"/>
+    <circle cx="330" cy="178" r="2.5"/>
+    <circle cx="240" cy="638" r="2"/>
+    <circle cx="150" cy="558" r="1.8"/>
+  </g>
+  <rect width="390" height="844" filter="url(#asta-noise)" opacity="0.5"/>
+</svg>

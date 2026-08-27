@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="ippo-warm" cx="50%" cy="0%" r="70%">
+      <stop offset="0%" stop-color="#c41e3a" stop-opacity="0.16"/>
+      <stop offset="55%" stop-color="#7f1d1d" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#0a0a0a" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ippo-floor" cx="50%" cy="100%" r="55%">
+      <stop offset="0%" stop-color="#b45309" stop-opacity="0.1"/>
+      <stop offset="100%" stop-color="#0a0a0a" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="ippo-noise" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" stitchTiles="stitch"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.04  0 0 0 0 0.02  0 0 0 0 0.01  0 0 0 0.035 0"/>
+    </filter>
+  </defs>
+  <rect width="390" height="844" fill="url(#ippo-warm)"/>
+  <rect width="390" height="844" fill="url(#ippo-floor)"/>
+  <!-- ring ropes suggestion -->
+  <g fill="none" stroke-linecap="round" opacity="0.14">
+    <path d="M20 160 H370" stroke="#c41e3a" stroke-width="2.5"/>
+    <path d="M20 185 H370" stroke="#e5e5e5" stroke-width="1.8"/>
+    <path d="M20 210 H370" stroke="#c41e3a" stroke-width="2.5"/>
+    <path d="M20 680 H370" stroke="#c41e3a" stroke-width="2"/>
+    <path d="M20 705 H370" stroke="#e5e5e5" stroke-width="1.5"/>
+    <path d="M20 730 H370" stroke="#c41e3a" stroke-width="2"/>
+  </g>
+  <!-- corner posts -->
+  <g fill="#c41e3a" opacity="0.2">
+    <rect x="14" y="150" width="10" height="90" rx="2"/>
+    <rect x="366" y="150" width="10" height="90" rx="2"/>
+    <rect x="14" y="670" width="10" height="80" rx="2"/>
+    <rect x="366" y="670" width="10" height="80" rx="2"/>
+  </g>
+  <!-- soft glove-like blobs -->
+  <g fill="#991b1b" opacity="0.12">
+    <ellipse cx="70" cy="400" rx="48" ry="36" transform="rotate(-20 70 400)"/>
+    <ellipse cx="320" cy="480" rx="55" ry="40" transform="rotate(15 320 480)"/>
+  </g>
+  <rect width="390" height="844" filter="url(#ippo-noise)" opacity="0.55"/>
+</svg>

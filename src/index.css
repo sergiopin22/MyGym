@@ -55,7 +55,9 @@
 
   html[data-theme='underground-red'],
   html[data-theme='underground-blue'],
-  html[data-theme='midnight'] {
+  html[data-theme='midnight'],
+  html[data-theme='ippo'],
+  html[data-theme='asta'] {
     color-scheme: dark;
   }
 

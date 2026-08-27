@@ -3,6 +3,8 @@ export type ThemeId =
   | 'underground-red'
   | 'underground-blue'
   | 'midnight'
+  | 'ippo'
+  | 'asta'
 
 export interface ThemePreset {
   id: ThemeId
@@ -144,6 +146,70 @@ export const THEMES: ThemePreset[] = [
       '--color-overlay': 'rgba(0, 0, 0, 0.82)',
       '--body-background':
         'radial-gradient(800px 400px at 50% -20%, rgba(255, 255, 255, 0.06) 0%, transparent 60%), linear-gradient(180deg, #000000 0%, #050505 100%)',
+    },
+  },
+  {
+    id: 'ippo',
+    name: 'Ippo',
+    tagline: 'Dark · ring · rojo Kamogawa',
+    swatch: ['#0c0a0a', '#c41e3a', '#e8c39a'],
+    metaColor: '#0c0a0a',
+    vars: {
+      '--color-fg': '#f5f0eb',
+      '--color-fg-muted': '#a89a8c',
+      '--color-chrome': '#c41e3a',
+      '--color-chrome-fg': '#ffffff',
+      '--color-chrome-soft': '#8b1528',
+      '--color-surface': '#0c0a0a',
+      '--color-surface-elevated': '#161210',
+      '--color-line': '#2e221e',
+      '--color-brand': '#c41e3a',
+      '--color-brand-soft': '#1f0c10',
+      '--color-brand-strong': '#9f1830',
+      '--color-accent': '#d4a574',
+      '--color-accent-strong': '#b8864e',
+      '--color-accent-fg': '#0a0a0a',
+      '--color-progress': '#e85a6e',
+      '--color-success-soft': '#1a1410',
+      '--color-progress-soft': '#1f1014',
+      '--color-danger': '#991b1b',
+      '--color-danger-strong': '#7f1d1d',
+      '--color-danger-fg': '#ffffff',
+      '--color-overlay': 'rgba(0, 0, 0, 0.8)',
+      '--body-background':
+        'url("/themes/ippo-bg.svg") center top / cover no-repeat, radial-gradient(900px 480px at 50% -8%, rgba(196, 30, 58, 0.18) 0%, transparent 55%), radial-gradient(700px 400px at 50% 100%, rgba(180, 83, 9, 0.08) 0%, transparent 50%), linear-gradient(180deg, #080606 0%, #0c0a0a 50%, #12100e 100%)',
+    },
+  },
+  {
+    id: 'asta',
+    name: 'Asta',
+    tagline: 'Dark · anti-magic · verde fuerte',
+    swatch: ['#050505', '#22c55e', '#4ade80'],
+    metaColor: '#050505',
+    vars: {
+      '--color-fg': '#f0fdf4',
+      '--color-fg-muted': '#86a894',
+      '--color-chrome': '#22c55e',
+      '--color-chrome-fg': '#052e16',
+      '--color-chrome-soft': '#16a34a',
+      '--color-surface': '#050505',
+      '--color-surface-elevated': '#0c1210',
+      '--color-line': '#1a2e22',
+      '--color-brand': '#22c55e',
+      '--color-brand-soft': '#0a1a12',
+      '--color-brand-strong': '#16a34a',
+      '--color-accent': '#4ade80',
+      '--color-accent-strong': '#22c55e',
+      '--color-accent-fg': '#052e16',
+      '--color-progress': '#4ade80',
+      '--color-success-soft': '#0a1a12',
+      '--color-progress-soft': '#0c1a14',
+      '--color-danger': '#ef4444',
+      '--color-danger-strong': '#dc2626',
+      '--color-danger-fg': '#ffffff',
+      '--color-overlay': 'rgba(0, 0, 0, 0.82)',
+      '--body-background':
+        'url("/themes/asta-bg.svg") center top / cover no-repeat, radial-gradient(900px 500px at 50% 30%, rgba(34, 197, 94, 0.18) 0%, transparent 55%), radial-gradient(700px 400px at 90% 90%, rgba(74, 222, 128, 0.1) 0%, transparent 50%), linear-gradient(180deg, #030503 0%, #050505 50%, #080c0a 100%)',
     },
   },
 ]
