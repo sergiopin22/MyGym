@@ -3,7 +3,6 @@ import { Link, useLocation } from 'react-router-dom'
 import { Card } from '../../components/Card'
 import { BackupPanel } from '../backup/BackupPanel'
 import { ThemePicker } from '../settings/ThemePicker'
-import { BodyCheckInPanel } from './BodyCheckInPanel'
 import { getRecentImprovements } from '../../db/repository'
 import type { Improvement } from '../../types'
 
@@ -13,9 +12,9 @@ export function ProgressPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    if (location.hash === '#temas' || location.hash === '#checkin') {
+    if (location.hash === '#temas') {
       window.setTimeout(() => {
-        document.getElementById(location.hash.slice(1))?.scrollIntoView({
+        document.getElementById('temas')?.scrollIntoView({
           behavior: 'smooth',
         })
       }, 100)
@@ -43,11 +42,9 @@ export function ProgressPage() {
       <header className="pt-2">
         <h1 className="font-display text-3xl font-extrabold tracking-tight">Progreso</h1>
         <p className="mt-1 text-muted">
-          Check-in físico, temas, respaldo y mejoras.
+          Temas, respaldo y mejoras.
         </p>
       </header>
-
-      <BodyCheckInPanel />
 
       <div id="temas">
         <ThemePicker />
