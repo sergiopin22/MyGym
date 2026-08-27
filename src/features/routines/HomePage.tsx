@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
@@ -36,6 +36,9 @@ export function HomePage() {
   const [starting, setStarting] = useState(false)
   const [recoveryDay, setRecoveryDay] = useState<RoutineDay | null>(null)
   const [goalRefresh, setGoalRefresh] = useState(0)
+  const [locateToday, setLocateToday] = useState(false)
+  const todayChipRef = useRef<HTMLButtonElement | null>(null)
+  const todayLocatePlayedRef = useRef(false)
 
   useEffect(() => {
     let alive = true
@@ -68,6 +71,28 @@ export function HomePage() {
       alive = false
     }
   }, [todayWeekday])
+
+  useEffect(() => {
+    if (loading || !routine || todayLocatePlayedRef.current) return
+    todayLocatePlayedRef.current = true
+    // Espera al paint del chip "Hoy" para scroll + animación
+    const frame = window.requestAnimationFrame(() => {
+      setLocateToday(true)
+      todayChipRef.current?.scrollIntoView({
+        behavior: 'smooth',
+        inline: 'center',
+        block: 'nearest',
+      })
+    })
+    const clearMs = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      ? 0
+      : 2600
+    const timer = window.setTimeout(() => setLocateToday(false), clearMs)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.clearTimeout(timer)
+    }
+  }, [loading, routine])
 
   const days = useMemo(
     () => (routine ? sortDays(routine.days) : []),
@@ -252,6 +277,7 @@ export function HomePage() {
             return (
               <button
                 key={day.id}
+                ref={isToday ? todayChipRef : undefined}
                 type="button"
                 onClick={() => {
                   if (recoveryDay && day.id !== recoveryDay.id) {
@@ -266,6 +292,7 @@ export function HomePage() {
                     : rest
                       ? 'bg-brand-soft/80 text-muted ring-1 ring-line'
                       : 'bg-surface-elevated text-muted ring-1 ring-line',
+                  isToday && locateToday ? 'today-chip-locate' : '',
                 ].join(' ')}
               >
                 {weekdayLabel(day.weekday).slice(0, 3)}

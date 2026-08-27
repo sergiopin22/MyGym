@@ -144,10 +144,37 @@
   animation: pr-trophy-glow 1.2s ease-in-out 0.4s 2;
 }
 
+@keyframes today-locate {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-brand) 0%, transparent);
+  }
+  35% {
+    transform: scale(1.07);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-brand) 40%, transparent);
+  }
+  65% {
+    transform: scale(1.03);
+    box-shadow: 0 0 0 9px color-mix(in srgb, var(--color-brand) 0%, transparent);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+.today-chip-locate {
+  position: relative;
+  z-index: 1;
+  animation: today-locate 1.15s cubic-bezier(0.22, 1, 0.36, 1) 0.2s 2 both;
+  will-change: transform, box-shadow;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pr-pop,
   .pr-pop-trophy,
-  .pr-pop-glow {
+  .pr-pop-glow,
+  .today-chip-locate {
     animation: none;
   }
 }
