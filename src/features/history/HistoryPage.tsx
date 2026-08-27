@@ -58,14 +58,21 @@ export function HistoryPage() {
                         })}
                       </p>
                       <h2 className="font-display text-lg font-bold">{item.dayLabel}</h2>
-                      {item.isRecovery ? (
-                        <span className="mt-2 inline-flex rounded-full bg-progress-soft px-2.5 py-1 text-xs font-bold text-progress">
-                          Recuperado
-                          {item.recoveredDayLabel
-                            ? ` · ${item.recoveredDayLabel}`
-                            : ''}
-                        </span>
-                      ) : null}
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {item.isRecovery ? (
+                          <span className="inline-flex rounded-full bg-progress-soft px-2.5 py-1 text-xs font-bold text-progress">
+                            Recuperado
+                            {item.recoveredDayLabel
+                              ? ` · ${item.recoveredDayLabel}`
+                              : ''}
+                          </span>
+                        ) : null}
+                        {item.editedAt ? (
+                          <span className="inline-flex rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-fg">
+                            Editado
+                          </span>
+                        ) : null}
+                      </div>
                       <p className="mt-1 text-sm text-muted">
                         {item.completedExercises}/{item.totalExercises} ejercicios ·{' '}
                         {item.totalSetsCompleted} series · {formatDuration(item.durationMs)}
@@ -142,14 +149,27 @@ export function HistoryDetailPage() {
         <h1 className="font-display text-3xl font-extrabold tracking-tight">
           {session.dayLabel}
         </h1>
-        {session.isRecovery ? (
-          <span className="inline-flex rounded-full bg-progress-soft px-3 py-1 text-xs font-bold text-progress">
-            Recuperado
-            {session.recoveredDayLabel
-              ? ` · rutina del ${session.recoveredDayLabel}`
-              : ''}
-          </span>
-        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {session.isRecovery ? (
+            <span className="inline-flex rounded-full bg-progress-soft px-3 py-1 text-xs font-bold text-progress">
+              Recuperado
+              {session.recoveredDayLabel
+                ? ` · rutina del ${session.recoveredDayLabel}`
+                : ''}
+            </span>
+          ) : null}
+          {session.editedAt ? (
+            <span className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-fg">
+              Editado ·{' '}
+              {new Date(session.editedAt).toLocaleString('es-ES', {
+                day: 'numeric',
+                month: 'short',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </span>
+          ) : null}
+        </div>
         <p className="text-muted">
           {new Date(session.date + 'T12:00:00').toLocaleDateString('es-ES', {
             weekday: 'long',
@@ -160,7 +180,15 @@ export function HistoryDetailPage() {
         </p>
       </header>
 
-      <CopyCoachMessageButton session={session} fullWidth />
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <CopyCoachMessageButton session={session} fullWidth />
+        <Link
+          to={`/historial/${session.id}/editar`}
+          className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-chrome px-5 text-base font-semibold text-chrome-fg transition active:scale-[0.98]"
+        >
+          Editar entrenamiento
+        </Link>
+      </div>
 
       <ul className="space-y-3">
         {exercises.map((ex) => (

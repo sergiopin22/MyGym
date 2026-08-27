@@ -96,6 +96,8 @@ export interface WorkoutSession {
   /** Día de la rutina que se está recuperando */
   recoveredWeekday?: Weekday
   recoveredDayLabel?: string
+  /** Si se corrigió después de completar (historial) */
+  editedAt?: number
 }
 
 export type PrizePresetId =
@@ -199,6 +201,7 @@ export interface SessionSummary {
   muscleGroups: string[]
   isRecovery?: boolean
   recoveredDayLabel?: string
+  editedAt?: number
 }
 
 export type BodyPhotoAngle = 'front' | 'side' | 'back'

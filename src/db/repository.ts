@@ -765,6 +765,91 @@ export async function completeSession(sessionId: string): Promise<{
   return { session: completed, summary: toSummary(completed) }
 }
 
+/**
+ * Corrige peso/reps/RIR de una sesión ya completada.
+ * No toca la meta de constancia ni el día de la rutina.
+ * Los PRs se recalculan solos al leer el historial.
+ */
+export async function saveCompletedSessionEdits(
+  sessionId: string,
+  nextExercises: ExerciseLog[],
+): Promise<WorkoutSession> {
+  const session = await getSessionById(sessionId)
+  if (!session) throw new Error('Sesión no encontrada')
+  if (session.status !== 'completed') {
+    throw new Error('Solo se pueden editar entrenamientos ya completados.')
+  }
+
+  if (nextExercises.length !== session.exercises.length) {
+    throw new Error('No se puede cambiar la lista de ejercicios de esta sesión.')
+  }
+
+  const byId = new Map(session.exercises.map((e) => [e.id, e]))
+  const normalized: ExerciseLog[] = []
+
+  for (const draft of nextExercises) {
+    const original = byId.get(draft.id)
+    if (!original) {
+      throw new Error('Hay un ejercicio que no pertenece a esta sesión.')
+    }
+    if (draft.sets.length !== original.sets.length) {
+      throw new Error(`No se pueden agregar ni quitar series en ${original.name}.`)
+    }
+
+    const originalSetIds = new Set(original.sets.map((s) => s.id))
+    const sets = draft.sets.map((s) => {
+      if (!originalSetIds.has(s.id)) {
+        throw new Error(`Serie inválida en ${original.name}.`)
+      }
+      if (s.completed && (s.weight == null || s.reps == null)) {
+        throw new Error(
+          `En ${original.name}, serie ${s.setNumber}: coloca peso y reps o desmárcala.`,
+        )
+      }
+      return {
+        ...s,
+        weight: s.weight,
+        reps: s.reps,
+        rir: s.rir,
+        completed: s.completed,
+        completedAt: s.completed
+          ? s.completedAt ?? Date.now()
+          : undefined,
+      } satisfies SetLog
+    })
+
+    const status = computeExerciseStatus(sets)
+    normalized.push({
+      ...original,
+      note: draft.note,
+      sets,
+      status,
+      completedAt:
+        status === 'completed'
+          ? original.completedAt ?? Date.now()
+          : undefined,
+    })
+  }
+
+  const leftover = getIncompleteWorkoutParts({
+    ...session,
+    exercises: normalized,
+  })
+  if (leftover.incompleteSets > 0) {
+    throw new Error(
+      `Quedan ${leftover.incompleteSets} serie(s) incompletas. Completa peso y reps o marca las series.`,
+    )
+  }
+
+  const updated: WorkoutSession = {
+    ...session,
+    exercises: normalized,
+    editedAt: Date.now(),
+  }
+  await saveSession(updated)
+  return updated
+}
+
 function toSummary(session: WorkoutSession): SessionSummary {
   const completedExercises = session.exercises.filter(
     (e) => e.status === 'completed',
@@ -784,6 +869,7 @@ function toSummary(session: WorkoutSession): SessionSummary {
     muscleGroups: session.muscleGroups,
     isRecovery: session.isRecovery,
     recoveredDayLabel: session.recoveredDayLabel,
+    editedAt: session.editedAt,
   }
 }
 

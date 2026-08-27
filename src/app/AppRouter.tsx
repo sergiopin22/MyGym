@@ -4,6 +4,7 @@ import { HomePage } from '../features/routines/HomePage'
 import { RoutinesPage } from '../features/routines/RoutinesPage'
 import { RoutineDayPage } from '../features/routines/RoutineDayPage'
 import { HistoryDetailPage, HistoryPage } from '../features/history/HistoryPage'
+import { EditCompletedSessionPage } from '../features/history/EditCompletedSessionPage'
 import { ProgressPage } from '../features/progress/ProgressPage'
 import { WorkoutPage } from '../features/workout/WorkoutPage'
 
@@ -12,6 +13,10 @@ export function AppRouter() {
     <BrowserRouter>
       <Routes>
         <Route path="entrenar/:sessionId" element={<WorkoutPage />} />
+        <Route
+          path="historial/:sessionId/editar"
+          element={<EditCompletedSessionPage />}
+        />
         <Route element={<AppLayout />}>
           <Route index element={<HomePage />} />
           <Route path="rutinas" element={<RoutinesPage />} />

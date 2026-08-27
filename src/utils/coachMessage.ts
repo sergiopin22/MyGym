@@ -39,6 +39,16 @@ export function formatWorkoutForCoach(session: WorkoutSession): string {
     )
   }
 
+  if (session.editedAt) {
+    const editedLabel = new Date(session.editedAt).toLocaleString('es-ES', {
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+    lines.push(`✏️ Editado · ${editedLabel}`)
+  }
+
   if (session.muscleGroups.length > 0) {
     lines.push(`💪 ${session.muscleGroups.join(' · ')}`)
   }
