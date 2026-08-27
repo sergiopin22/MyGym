@@ -280,6 +280,12 @@ export function HomePage() {
           day={selectedDay}
           routineId={routine.id}
           compact
+          disabled={todayDone}
+          disabledReason={
+            todayDone
+              ? 'Ya entrenaste hoy: no puedes marcarlo como descanso.'
+              : undefined
+          }
           onChange={handleDayUpdated}
         />
       ) : null}

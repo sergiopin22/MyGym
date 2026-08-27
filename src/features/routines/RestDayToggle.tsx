@@ -10,6 +10,9 @@ interface RestDayToggleProps {
   routineId: string
   onChange: (day: RoutineDay) => void
   compact?: boolean
+  /** Si ya entrenaste hoy, no tiene sentido marcarlo como descanso */
+  disabled?: boolean
+  disabledReason?: string
 }
 
 export function RestDayToggle({
@@ -17,11 +20,14 @@ export function RestDayToggle({
   routineId,
   onChange,
   compact = false,
+  disabled = false,
+  disabledReason,
 }: RestDayToggleProps) {
   const isRest = Boolean(day.isRestDay)
   const [busy, setBusy] = useState(false)
 
   async function toggle() {
+    if (disabled) return
     setBusy(true)
     try {
       const updated = await setDayRestMode(day.id, !isRest, routineId)
@@ -33,18 +39,23 @@ export function RestDayToggle({
 
   if (compact) {
     return (
-      <Button
-        variant={isRest ? 'secondary' : 'ghost'}
-        fullWidth
-        disabled={busy}
-        onClick={() => void toggle()}
-      >
-        {busy
-          ? 'Guardando…'
-          : isRest
-            ? 'Este día sí entreno'
-            : 'No iré al gym / descanso'}
-      </Button>
+      <div className="space-y-2">
+        <Button
+          variant={isRest ? 'secondary' : 'ghost'}
+          fullWidth
+          disabled={busy || disabled}
+          onClick={() => void toggle()}
+        >
+          {busy
+            ? 'Guardando…'
+            : isRest
+              ? 'Este día sí entreno'
+              : 'No iré al gym / descanso'}
+        </Button>
+        {disabled && disabledReason ? (
+          <p className="text-center text-xs text-muted">{disabledReason}</p>
+        ) : null}
+      </div>
     )
   }
 
@@ -68,7 +79,12 @@ export function RestDayToggle({
               </p>
             </div>
           </div>
-          <Button variant="secondary" fullWidth disabled={busy} onClick={() => void toggle()}>
+          <Button
+            variant="secondary"
+            fullWidth
+            disabled={busy || disabled}
+            onClick={() => void toggle()}
+          >
             {busy ? 'Guardando…' : 'Este día sí entreno'}
           </Button>
         </>
@@ -78,11 +94,19 @@ export function RestDayToggle({
             ¿Este día no vas al gym? Márcalo como descanso (ideal para sábado o
             domingo).
           </p>
-          <Button variant="ghost" fullWidth disabled={busy} onClick={() => void toggle()}>
+          <Button
+            variant="ghost"
+            fullWidth
+            disabled={busy || disabled}
+            onClick={() => void toggle()}
+          >
             {busy ? 'Guardando…' : 'No iré al gym / descanso'}
           </Button>
         </>
       )}
+      {disabled && disabledReason ? (
+        <p className="text-xs text-muted">{disabledReason}</p>
+      ) : null}
     </Card>
   )
 }
