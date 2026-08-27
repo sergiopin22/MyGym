@@ -101,6 +101,13 @@ export function ConstancyGoalCard({
     setError(null)
     try {
       if (goal?.status === 'active') {
+        const ok = window.confirm(
+          `Vas a reiniciar la meta actual (${goal.currentCount}/${goal.targetCount} · ${goal.prizeLabel}).\n\nSe borrará el progreso. ¿Continuar?`,
+        )
+        if (!ok) {
+          setSaving(false)
+          return
+        }
         await abandonConstancyGoal()
       }
       const label =
@@ -120,6 +127,16 @@ export function ConstancyGoalCard({
     } finally {
       setSaving(false)
     }
+  }
+
+  function handleOpenCreate() {
+    if (goal?.status === 'active') {
+      const ok = window.confirm(
+        `Vas a crear una nueva meta y se perderá la actual (${goal.currentCount}/${goal.targetCount}).\n\n¿Seguro?`,
+      )
+      if (!ok) return
+    }
+    setMode('create')
   }
 
   async function handleAckPenance() {
@@ -260,7 +277,7 @@ export function ConstancyGoalCard({
           <button
             type="button"
             className="text-xs font-semibold text-muted underline"
-            onClick={() => setMode('create')}
+            onClick={handleOpenCreate}
           >
             Reiniciar / nueva meta
           </button>

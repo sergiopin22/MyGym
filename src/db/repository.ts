@@ -35,6 +35,40 @@ import {
 const DEFAULT_IMAGE = '/exercises/default.svg'
 const DEFAULT_ROUTINE_NAME = 'Mi rutina semanal'
 
+function clampInt(n: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, Math.floor(n)))
+}
+
+function validateExerciseInput(input: {
+  name?: string
+  targetSets?: number
+  targetReps?: { min: number; max: number }
+  targetRir?: number
+}): {
+  name: string
+  targetSets: number
+  targetReps: { min: number; max: number }
+  targetRir: number
+} {
+  const name = (input.name ?? '').trim()
+  if (!name) throw new Error('El ejercicio necesita un nombre.')
+
+  const targetSets = clampInt(input.targetSets ?? 3, 1, 12)
+  const min = clampInt(input.targetReps?.min ?? 8, 1, 50)
+  const max = clampInt(input.targetReps?.max ?? 12, 1, 50)
+  if (min > max) {
+    throw new Error('El rango de reps es inválido (mínimo > máximo).')
+  }
+  const targetRir = clampInt(input.targetRir ?? 2, 0, 12)
+
+  return {
+    name,
+    targetSets,
+    targetReps: { min, max },
+    targetRir,
+  }
+}
+
 const WEEKDAY_ORDER: Weekday[] = [1, 2, 3, 4, 5, 6, 0] // Lun → Dom
 
 function isWeekendRest(weekday: Weekday) {
@@ -219,12 +253,14 @@ export async function addExerciseToDay(
   const day = findDay(routine, dayId)
   if (!day) throw new Error('Día de rutina no encontrado')
 
+  const validated = validateExerciseInput(input)
+
   const exercise: RoutineExercise = {
     id: createId('ex'),
-    name: input.name.trim(),
-    targetSets: input.targetSets ?? 3,
-    targetReps: input.targetReps ?? { min: 8, max: 12 },
-    targetRir: input.targetRir ?? 2,
+    name: validated.name,
+    targetSets: validated.targetSets,
+    targetReps: validated.targetReps,
+    targetRir: validated.targetRir,
     order: day.exercises.length,
     imageUrl: input.imageUrl ?? DEFAULT_IMAGE,
     videoUrl: input.videoUrl,
@@ -264,7 +300,21 @@ export async function updateExercise(
   const current = day.exercises.find((e) => e.id === exerciseId)
   if (!current) throw new Error('Ejercicio no encontrado')
 
-  const updated: RoutineExercise = { ...current, ...patch }
+  const validated = validateExerciseInput({
+    name: patch.name !== undefined ? patch.name : current.name,
+    targetSets: patch.targetSets !== undefined ? patch.targetSets : current.targetSets,
+    targetReps: patch.targetReps !== undefined ? patch.targetReps : current.targetReps,
+    targetRir: patch.targetRir !== undefined ? patch.targetRir : current.targetRir,
+  })
+
+  const updated: RoutineExercise = {
+    ...current,
+    ...patch,
+    name: validated.name,
+    targetSets: validated.targetSets,
+    targetReps: validated.targetReps,
+    targetRir: validated.targetRir,
+  }
   const nextDay: RoutineDay = {
     ...day,
     exercises: day.exercises.map((e) => (e.id === exerciseId ? updated : e)),
@@ -300,12 +350,18 @@ export async function reorderExercises(
   if (!day) throw new Error('Día de rutina no encontrado')
 
   const byId = new Map(day.exercises.map((e) => [e.id, e]))
-  const reordered = orderedExerciseIds
-    .map((id, index) => {
-      const ex = byId.get(id)
-      return ex ? { ...ex, order: index } : null
-    })
-    .filter((e): e is RoutineExercise => e !== null)
+  if (orderedExerciseIds.length !== day.exercises.length) {
+    throw new Error('La lista de ejercicios para reordenar está incompleta.')
+  }
+  for (const id of orderedExerciseIds) {
+    if (!byId.has(id)) {
+      throw new Error('Hay un ejercicio desconocido en el reordenamiento.')
+    }
+  }
+  const reordered = orderedExerciseIds.map((id, index) => {
+    const ex = byId.get(id)!
+    return { ...ex, order: index }
+  })
 
   const nextDay = { ...day, exercises: reordered }
   await saveRoutine(replaceDay(routine, nextDay))
@@ -454,7 +510,12 @@ export async function startSession(
   options?: { recovery?: boolean },
 ): Promise<WorkoutSession> {
   const existing = await getActiveSession()
-  if (existing) return existing
+  if (existing) {
+    if (existing.routineDayId === routineDayId) return existing
+    throw new Error(
+      `Ya tienes un entrenamiento en curso (${existing.dayLabel}). Continúalo o cancélalo antes de empezar otro.`,
+    )
+  }
 
   const found = await getRoutineDay(routineDayId, routineId)
   if (!found) throw new Error('Día de rutina no encontrado')
@@ -558,12 +619,24 @@ export async function updateSet(
     throw new Error('La sesión ya está finalizada')
   }
 
+  const exercise = session.exercises.find((e) => e.id === exerciseLogId)
+  if (!exercise) throw new Error('Ejercicio no encontrado en la sesión')
+  const currentSet = exercise.sets.find((s) => s.id === setId)
+  if (!currentSet) throw new Error('Serie no encontrada')
+
+  const nextWeight =
+    patch.weight !== undefined ? patch.weight : currentSet.weight
+  const nextReps = patch.reps !== undefined ? patch.reps : currentSet.reps
+  if (patch.completed === true && (nextWeight == null || nextReps == null)) {
+    throw new Error('Coloca peso y reps antes de marcar la serie.')
+  }
+
   const exercises = session.exercises.map((ex) => {
     if (ex.id !== exerciseLogId) return ex
 
     const sets = ex.sets.map((s) => {
       if (s.id !== setId) return s
-      const next: SetLog = {
+      return {
         ...s,
         ...patch,
         completedAt:
@@ -572,11 +645,7 @@ export async function updateSet(
             : patch.completed === false
               ? undefined
               : s.completedAt,
-      }
-      if (next.completed && (next.weight == null || next.reps == null)) {
-        return s
-      }
-      return next
+      } satisfies SetLog
     })
 
     const status = computeExerciseStatus(sets)
@@ -637,6 +706,9 @@ export async function applyPreviousWeights(
 ): Promise<WorkoutSession> {
   const session = await getSessionById(sessionId)
   if (!session) throw new Error('Sesión no encontrada')
+  if (session.status !== 'in_progress') {
+    throw new Error('La sesión ya está finalizada')
+  }
 
   const exercise = session.exercises.find((e) => e.id === exerciseLogId)
   if (!exercise) throw new Error('Ejercicio no encontrado en la sesión')

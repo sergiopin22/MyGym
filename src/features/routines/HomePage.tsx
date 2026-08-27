@@ -149,6 +149,15 @@ export function HomePage() {
     setError(null)
     try {
       if (activeSession) {
+        if (
+          selectedDay &&
+          activeSession.routineDayId !== selectedDay.id
+        ) {
+          setError(
+            `Ya tienes un entrenamiento en curso (${activeSession.dayLabel}). Continúalo o cancélalo antes de empezar otro.`,
+          )
+          return
+        }
         navigate(`/entrenar/${activeSession.id}`)
         return
       }

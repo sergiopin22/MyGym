@@ -62,10 +62,169 @@ async function blobToBase64(blob: Blob): Promise<string> {
 }
 
 function base64ToBlob(base64: string, mimeType: string): Blob {
-  const binary = atob(base64)
-  const bytes = new Uint8Array(binary.length)
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-  return new Blob([bytes], { type: mimeType })
+  try {
+    const binary = atob(base64)
+    const bytes = new Uint8Array(binary.length)
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+    return new Blob([bytes], { type: mimeType })
+  } catch {
+    throw new Error('Una imagen del respaldo está corrupta (base64 inválido).')
+  }
+}
+
+function assertNonEmptyString(value: unknown, label: string): string {
+  if (typeof value !== 'string' || !value.trim()) {
+    throw new Error(`Respaldo inválido: falta ${label}.`)
+  }
+  return value
+}
+
+function assertNumber(value: unknown, label: string): number {
+  if (typeof value !== 'number' || Number.isNaN(value)) {
+    throw new Error(`Respaldo inválido: ${label} no es un número.`)
+  }
+  return value
+}
+
+function assertUniqueIds(ids: string[], label: string): void {
+  const seen = new Set<string>()
+  for (const id of ids) {
+    if (seen.has(id)) {
+      throw new Error(`Respaldo inválido: hay ${label} duplicados (${id}).`)
+    }
+    seen.add(id)
+  }
+}
+
+function validateRoutine(raw: unknown, index: number): Routine {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error(`Respaldo inválido: rutina #${index + 1} mal formada.`)
+  }
+  const r = raw as Partial<Routine>
+  assertNonEmptyString(r.id, `id de rutina #${index + 1}`)
+  const name = assertNonEmptyString(r.name, `nombre de rutina #${index + 1}`)
+  if (!Array.isArray(r.days)) {
+    throw new Error(`Respaldo inválido: la rutina "${name}" no tiene días.`)
+  }
+  for (let i = 0; i < r.days.length; i++) {
+    const day = r.days[i] as Partial<Routine['days'][number]>
+    assertNonEmptyString(day?.id, `id del día #${i + 1} en "${name}"`)
+    if (typeof day?.weekday !== 'number' || day.weekday < 0 || day.weekday > 6) {
+      throw new Error(`Respaldo inválido: weekday inválido en "${name}".`)
+    }
+    if (!Array.isArray(day.exercises)) {
+      throw new Error(`Respaldo inválido: ejercicios faltantes en un día de "${name}".`)
+    }
+  }
+  return r as Routine
+}
+
+function validateSession(raw: unknown, index: number): WorkoutSession {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error(`Respaldo inválido: sesión #${index + 1} mal formada.`)
+  }
+  const s = raw as Partial<WorkoutSession>
+  assertNonEmptyString(s.id, `id de sesión #${index + 1}`)
+  assertNonEmptyString(s.routineDayId, `routineDayId de sesión #${index + 1}`)
+  assertNonEmptyString(s.date, `fecha de sesión #${index + 1}`)
+  if (s.status !== 'in_progress' && s.status !== 'completed') {
+    throw new Error(`Respaldo inválido: estado de sesión #${index + 1} desconocido.`)
+  }
+  if (!Array.isArray(s.exercises)) {
+    throw new Error(`Respaldo inválido: sesión #${index + 1} sin ejercicios.`)
+  }
+  return s as WorkoutSession
+}
+
+function validateStoredImage(raw: unknown, index: number, label: string): void {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error(`Respaldo inválido: ${label} #${index + 1} mal formada.`)
+  }
+  const img = raw as Partial<StoredExerciseImage>
+  assertNonEmptyString(img.id, `id de ${label} #${index + 1}`)
+  assertNonEmptyString(img.dataBase64, `datos de ${label} #${index + 1}`)
+  assertNonEmptyString(img.mimeType, `mimeType de ${label} #${index + 1}`)
+}
+
+function validateConstancyGoal(raw: unknown, index: number): ConstancyGoal {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error(`Respaldo inválido: meta #${index + 1} mal formada.`)
+  }
+  const g = raw as Partial<ConstancyGoal>
+  assertNonEmptyString(g.id, `id de meta #${index + 1}`)
+  assertNumber(g.targetCount, `targetCount de meta #${index + 1}`)
+  assertNumber(g.currentCount, `currentCount de meta #${index + 1}`)
+  if (g.status !== 'active' && g.status !== 'completed') {
+    throw new Error(`Respaldo inválido: estado de meta #${index + 1} desconocido.`)
+  }
+  return g as ConstancyGoal
+}
+
+function parseBackup(raw: unknown): MiGymBackup {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error('Archivo inválido')
+  }
+  const data = raw as Partial<MiGymBackup>
+  if (data.app !== BACKUP_APP_ID) {
+    throw new Error('Este archivo no es un respaldo de Mi Gym')
+  }
+  if (data.version !== 1 && data.version !== 2 && data.version !== 3) {
+    throw new Error('Versión de respaldo no compatible')
+  }
+  if (!Array.isArray(data.routines) || !Array.isArray(data.sessions)) {
+    throw new Error('El respaldo está incompleto (faltan rutinas o sesiones).')
+  }
+
+  const routines = data.routines.map((r, i) => validateRoutine(r, i))
+  const sessions = data.sessions.map((s, i) => validateSession(s, i))
+  const improvements = Array.isArray(data.improvements) ? data.improvements : []
+  const exerciseImages = Array.isArray(data.exerciseImages) ? data.exerciseImages : []
+  const bodyCheckIns = Array.isArray(data.bodyCheckIns) ? data.bodyCheckIns : []
+  const bodyCheckInPhotos = Array.isArray(data.bodyCheckInPhotos)
+    ? data.bodyCheckInPhotos
+    : []
+  const constancyGoals = Array.isArray(data.constancyGoals) ? data.constancyGoals : []
+
+  assertUniqueIds(
+    routines.map((r) => r.id),
+    'rutinas',
+  )
+  assertUniqueIds(
+    sessions.map((s) => s.id),
+    'sesiones',
+  )
+
+  exerciseImages.forEach((img, i) => validateStoredImage(img, i, 'imagen'))
+  bodyCheckInPhotos.forEach((img, i) => validateStoredImage(img, i, 'foto corporal'))
+  constancyGoals.forEach((g, i) => validateConstancyGoal(g, i))
+
+  if (constancyGoals.length > 0) {
+    assertUniqueIds(
+      constancyGoals.map((g) => g.id),
+      'metas de constancia',
+    )
+  }
+
+  const inProgress = sessions.filter((s) => s.status === 'in_progress')
+  if (inProgress.length > 1) {
+    throw new Error(
+      'Respaldo inválido: hay más de un entrenamiento en curso. Exporta de nuevo desde un dispositivo limpio.',
+    )
+  }
+
+  return {
+    version: data.version,
+    app: BACKUP_APP_ID,
+    exportedAt:
+      typeof data.exportedAt === 'number' ? data.exportedAt : Date.now(),
+    routines,
+    sessions,
+    improvements,
+    exerciseImages,
+    bodyCheckIns: bodyCheckIns as BodyCheckIn[],
+    bodyCheckInPhotos,
+    constancyGoals,
+  }
 }
 
 export async function exportFullBackup(): Promise<MiGymBackup> {
@@ -126,35 +285,6 @@ export async function exportFullBackupJson(pretty = true): Promise<string> {
   return JSON.stringify(backup, null, pretty ? 2 : 0)
 }
 
-function parseBackup(raw: unknown): MiGymBackup {
-  if (!raw || typeof raw !== 'object') {
-    throw new Error('Archivo inválido')
-  }
-  const data = raw as Partial<MiGymBackup>
-  if (data.app !== BACKUP_APP_ID) {
-    throw new Error('Este archivo no es un respaldo de Mi Gym')
-  }
-  if (data.version !== 1 && data.version !== 2 && data.version !== 3) {
-    throw new Error('Versión de respaldo no compatible')
-  }
-  if (!Array.isArray(data.routines) || !Array.isArray(data.sessions)) {
-    throw new Error('El respaldo está incompleto')
-  }
-
-  return {
-    version: data.version,
-    app: BACKUP_APP_ID,
-    exportedAt: data.exportedAt ?? Date.now(),
-    routines: data.routines,
-    sessions: data.sessions ?? [],
-    improvements: data.improvements ?? [],
-    exerciseImages: data.exerciseImages ?? [],
-    bodyCheckIns: data.bodyCheckIns ?? [],
-    bodyCheckInPhotos: data.bodyCheckInPhotos ?? [],
-    constancyGoals: data.constancyGoals ?? [],
-  }
-}
-
 export async function importFullBackup(raw: unknown): Promise<{
   routines: number
   sessions: number
@@ -165,55 +295,84 @@ export async function importFullBackup(raw: unknown): Promise<{
 }> {
   const backup = parseBackup(raw)
 
-  const images = backup.exerciseImages.map((img) => ({
-    id: img.id,
-    blob: base64ToBlob(img.dataBase64, img.mimeType),
-    mimeType: img.mimeType,
-    updatedAt: img.updatedAt,
-  }))
+  let images: Array<{
+    id: string
+    blob: Blob
+    mimeType: string
+    updatedAt: number
+  }>
+  let bodyPhotos: Array<{
+    id: string
+    checkInId: string
+    angle: BodyPhotoAngle
+    blob: Blob
+    mimeType: string
+    updatedAt: number
+  }>
 
-  const bodyPhotos = (backup.bodyCheckInPhotos ?? []).map((img) => ({
-    id: img.id,
-    checkInId: img.checkInId,
-    angle: img.angle,
-    blob: base64ToBlob(img.dataBase64, img.mimeType),
-    mimeType: img.mimeType,
-    updatedAt: img.updatedAt,
-  }))
+  try {
+    images = backup.exerciseImages.map((img) => ({
+      id: img.id,
+      blob: base64ToBlob(img.dataBase64, img.mimeType),
+      mimeType: img.mimeType,
+      updatedAt: img.updatedAt,
+    }))
+    bodyPhotos = (backup.bodyCheckInPhotos ?? []).map((img) => ({
+      id: img.id,
+      checkInId: img.checkInId,
+      angle: img.angle,
+      blob: base64ToBlob(img.dataBase64, img.mimeType),
+      mimeType: img.mimeType,
+      updatedAt: img.updatedAt,
+    }))
+  } catch (err) {
+    throw err instanceof Error
+      ? err
+      : new Error('No se pudieron leer las imágenes del respaldo.')
+  }
 
-  await db.transaction(
-    'rw',
-    [
-      db.routines,
-      db.sessions,
-      db.improvements,
-      db.exerciseImages,
-      db.bodyCheckIns,
-      db.bodyCheckInPhotos,
-      db.constancyGoals,
-    ],
-    async () => {
-      await db.routines.clear()
-      await db.sessions.clear()
-      await db.improvements.clear()
-      await db.exerciseImages.clear()
-      await db.bodyCheckIns.clear()
-      await db.bodyCheckInPhotos.clear()
-      await db.constancyGoals.clear()
+  try {
+    await db.transaction(
+      'rw',
+      [
+        db.routines,
+        db.sessions,
+        db.improvements,
+        db.exerciseImages,
+        db.bodyCheckIns,
+        db.bodyCheckInPhotos,
+        db.constancyGoals,
+      ],
+      async () => {
+        await db.routines.clear()
+        await db.sessions.clear()
+        await db.improvements.clear()
+        await db.exerciseImages.clear()
+        await db.bodyCheckIns.clear()
+        await db.bodyCheckInPhotos.clear()
+        await db.constancyGoals.clear()
 
-      if (backup.routines.length > 0) await db.routines.bulkAdd(backup.routines)
-      if (backup.sessions.length > 0) await db.sessions.bulkAdd(backup.sessions)
-      if (backup.improvements.length > 0) await db.improvements.bulkAdd(backup.improvements)
-      if (images.length > 0) await db.exerciseImages.bulkAdd(images)
-      if ((backup.bodyCheckIns?.length ?? 0) > 0) {
-        await db.bodyCheckIns.bulkAdd(backup.bodyCheckIns!)
-      }
-      if (bodyPhotos.length > 0) await db.bodyCheckInPhotos.bulkAdd(bodyPhotos)
-      if ((backup.constancyGoals?.length ?? 0) > 0) {
-        await db.constancyGoals.bulkAdd(backup.constancyGoals!)
-      }
-    },
-  )
+        if (backup.routines.length > 0) await db.routines.bulkAdd(backup.routines)
+        if (backup.sessions.length > 0) await db.sessions.bulkAdd(backup.sessions)
+        if (backup.improvements.length > 0) {
+          await db.improvements.bulkAdd(backup.improvements)
+        }
+        if (images.length > 0) await db.exerciseImages.bulkAdd(images)
+        if ((backup.bodyCheckIns?.length ?? 0) > 0) {
+          await db.bodyCheckIns.bulkAdd(backup.bodyCheckIns!)
+        }
+        if (bodyPhotos.length > 0) await db.bodyCheckInPhotos.bulkAdd(bodyPhotos)
+        if ((backup.constancyGoals?.length ?? 0) > 0) {
+          await db.constancyGoals.bulkAdd(backup.constancyGoals!)
+        }
+      },
+    )
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err)
+    throw new Error(
+      `No se pudo restaurar el respaldo. Tus datos anteriores pueden haberse borrado en este intento; importa de nuevo un respaldo válido. Detalle: ${msg}`,
+    )
+  }
 
   return {
     routines: backup.routines.length,
