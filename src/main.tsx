@@ -2,12 +2,14 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { initTheme } from './themes/applyTheme'
+import { initSafeAreaInsets } from './utils/safeArea'
 import './index.css'
 import App from './App.tsx'
 
 function boot() {
   try {
     initTheme()
+    initSafeAreaInsets()
   } catch (err) {
     console.warn('initTheme falló:', err)
   }

@@ -44,7 +44,7 @@ export function MoreMenuSheet({
     >
       <div
         className="flex max-h-[85dvh] w-full max-w-lg flex-col rounded-t-3xl bg-surface-elevated p-4 shadow-xl sm:rounded-3xl"
-        style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+        style={{ paddingBottom: 'max(1rem, var(--sab, env(safe-area-inset-bottom)))' }}
         onClick={(e) => e.stopPropagation()}
       >
         {view === 'menu' ? (
