@@ -8,6 +8,7 @@ import {
   NavRoutinesIcon,
 } from '../components/BottomNavIcons'
 import { isBackupReminderDue } from '../db/backup'
+import { useSafeAreaInsets } from '../hooks/useSafeAreaInsets'
 import { MoreMenuSheet } from './MoreMenuSheet'
 import { useWorkoutFabAction } from './useWorkoutFabAction'
 
@@ -24,6 +25,7 @@ function navTapFeedback() {
 export function BottomNav() {
   const navigate = useNavigate()
   const location = useLocation()
+  const { homeIndicator } = useSafeAreaInsets()
   const [moreOpen, setMoreOpen] = useState(false)
   const [fabRefresh, setFabRefresh] = useState(0)
   const [pillStyle, setPillStyle] = useState<{ left: number; width: number } | null>(
@@ -208,6 +210,13 @@ export function BottomNav() {
             </li>
           </ul>
         </div>
+        {homeIndicator > 0 ? (
+          <div
+            className="bottom-nav-home-indicator w-full shrink-0 bg-surface-elevated"
+            style={{ height: homeIndicator }}
+            aria-hidden
+          />
+        ) : null}
       </nav>
 
       <MoreMenuSheet

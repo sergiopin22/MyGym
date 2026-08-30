@@ -192,21 +192,26 @@
 
 .bottom-nav-glass {
   background: var(--color-surface-elevated);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
 }
 
-/* Barra fija en body (portal) */
+/* Barra fija en body (portal) — sin padding-bottom; el filler React cubre el home indicator */
 .bottom-nav-shell {
   position: fixed;
   right: 0;
   bottom: 0;
   left: 0;
   z-index: 40;
+  display: flex;
   width: 100%;
+  flex-direction: column;
   background: var(--color-surface-elevated);
-  padding-bottom: var(--bottom-nav-total, var(--sab, 0px));
   transform: translateZ(0);
+}
+
+/* Respaldo CSS por si React tarda un frame en PWA iOS */
+html[data-pwa-standalone] .bottom-nav-home-indicator {
+  min-height: 34px;
+  background: var(--color-surface-elevated);
 }
 
 .bottom-nav-inner {
@@ -237,6 +242,12 @@
 
 .main-with-bottom-nav {
   padding-bottom: calc(4.5rem + var(--bottom-nav-total, var(--sab, 0px)));
+}
+
+@media (display-mode: standalone) {
+  .main-with-bottom-nav {
+    padding-bottom: calc(4.5rem + max(var(--sab, 0px), 34px));
+  }
 }
 
 .bottom-nav-toast {
