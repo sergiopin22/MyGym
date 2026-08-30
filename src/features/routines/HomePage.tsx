@@ -13,7 +13,6 @@ import type { Routine, RoutineDay, Weekday, WorkoutSession } from '../../types'
 import { isWeekend, weekdayLabel } from '../../utils/id'
 import { ConstancyGoalCard } from './ConstancyGoalCard'
 import { BrandAvatarButton } from './BrandAvatarButton'
-import { PrFloatingButton } from './PrFloatingButton'
 import { RestDayToggle } from './RestDayToggle'
 import { BackupReminderCard } from '../backup/BackupReminderCard'
 
@@ -473,21 +472,6 @@ export function HomePage() {
           </Button>
         ) : null}
       </Card>
-
-      <Card className="space-y-3">
-        <div>
-          <h2 className="font-display text-lg font-bold">Caminadora</h2>
-          <p className="mt-1 text-sm text-muted">
-            Registra velocidad, inclinación, tiempo y calorías. No cuenta para la
-            meta de constancia.
-          </p>
-        </div>
-        <Button fullWidth variant="secondary" onClick={() => navigate('/caminadora')}>
-          Registrar caminadora
-        </Button>
-      </Card>
-
-      <PrFloatingButton />
     </div>
   )
 }

@@ -170,11 +170,38 @@
   will-change: transform, box-shadow;
 }
 
+.bottom-nav-glass {
+  background: color-mix(in srgb, var(--color-surface-elevated) 88%, transparent);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+.bottom-nav-pill {
+  transition: left 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes fab-live-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 45%, transparent);
+  }
+  50% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-accent) 0%, transparent);
+  }
+}
+
+.bottom-nav-fab-live {
+  animation: fab-live-pulse 2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pr-pop,
   .pr-pop-trophy,
   .pr-pop-glow,
-  .today-chip-locate {
+  .today-chip-locate,
+  .bottom-nav-pill,
+  .bottom-nav-fab-live {
     animation: none;
   }
 }

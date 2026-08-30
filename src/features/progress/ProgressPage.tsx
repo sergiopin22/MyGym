@@ -19,8 +19,10 @@ export function ProgressPage() {
   return (
     <div className="space-y-5">
       <header className="pt-2">
-        <h1 className="font-display text-3xl font-extrabold tracking-tight">Progreso</h1>
-        <p className="mt-1 text-muted">Temas y respaldo.</p>
+        <h1 className="font-display text-3xl font-extrabold tracking-tight">
+          Ajustes
+        </h1>
+        <p className="mt-1 text-muted">Temas, respaldo y preferencias.</p>
       </header>
 
       <div id="temas">

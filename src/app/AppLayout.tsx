@@ -1,45 +1,229 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import {
+  NavHistoryIcon,
+  NavHomeIcon,
+  NavMoreIcon,
+  NavPlayIcon,
+  NavRoutinesIcon,
+} from '../components/BottomNavIcons'
+import { isBackupReminderDue } from '../db/backup'
+import { MoreMenuSheet } from './MoreMenuSheet'
+import { useWorkoutFabAction } from './useWorkoutFabAction'
 
-const tabs = [
-  { to: '/', label: 'Inicio', end: true },
-  { to: '/rutinas', label: 'Rutinas' },
-  { to: '/historial', label: 'Historial' },
-  { to: '/progreso', label: 'Progreso' },
+const routeTabs = [
+  { to: '/', label: 'Inicio', end: true, icon: NavHomeIcon, slot: 0 },
+  { to: '/rutinas', label: 'Rutinas', icon: NavRoutinesIcon, slot: 1 },
+  { to: '/historial', label: 'Historial', icon: NavHistoryIcon, slot: 3 },
 ] as const
 
+function navTapFeedback() {
+  if (navigator.vibrate) navigator.vibrate(10)
+}
+
 export function AppLayout() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [fabRefresh, setFabRefresh] = useState(0)
+  const [pillStyle, setPillStyle] = useState<{ left: number; width: number } | null>(
+    null,
+  )
+  const navRef = useRef<HTMLDivElement>(null)
+  const tabRefs = useRef<Array<HTMLAnchorElement | null>>([])
+
+  const { state: fabState, busy, error, runAction, clearError } =
+    useWorkoutFabAction(fabRefresh)
+
+  const showBackupBadge = isBackupReminderDue()
+  const activeRouteIndex = routeTabs.findIndex((tab) =>
+    'end' in tab && tab.end
+      ? location.pathname === tab.to
+      : location.pathname === tab.to ||
+        location.pathname.startsWith(`${tab.to}/`),
+  )
+
+  useEffect(() => {
+    if (location.pathname === '/progreso') return
+    setFabRefresh((n) => n + 1)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (activeRouteIndex < 0) {
+      setPillStyle(null)
+      return
+    }
+    const el = tabRefs.current[activeRouteIndex]
+    const nav = navRef.current
+    if (!el || !nav) return
+
+    const navRect = nav.getBoundingClientRect()
+    const tabRect = el.getBoundingClientRect()
+    setPillStyle({
+      left: tabRect.left - navRect.left + 4,
+      width: tabRect.width - 8,
+    })
+  }, [activeRouteIndex, location.pathname, moreOpen])
+
+  async function handleFabClick() {
+    navTapFeedback()
+    clearError()
+    await runAction(navigate)
+  }
+
   return (
     <div className="mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden">
-      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 pt-[max(1rem,env(safe-area-inset-top))]">
+      <main
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))]"
+      >
         <Outlet />
       </main>
 
+      {error ? (
+        <div
+          className="pointer-events-none fixed inset-x-0 z-50 mx-auto max-w-lg px-4"
+          style={{ bottom: 'max(5.5rem, calc(4.5rem + env(safe-area-inset-bottom)))' }}
+        >
+          <p className="rounded-2xl bg-danger px-3 py-2 text-center text-sm font-semibold text-danger-fg shadow-lg">
+            {error}
+          </p>
+        </div>
+      ) : null}
+
       <nav
-        className="z-40 shrink-0 border-t border-line bg-surface-elevated"
-        style={{ paddingBottom: 'max(0.6rem, env(safe-area-inset-bottom))' }}
+        ref={navRef}
+        className="bottom-nav-glass relative z-40 shrink-0 border-t border-line/80"
+        style={{ paddingBottom: 'max(0.45rem, env(safe-area-inset-bottom))' }}
         aria-label="Navegación principal"
       >
-        <ul className="grid grid-cols-4 gap-1 px-2 pt-2">
-          {tabs.map((tab) => (
+        {pillStyle ? (
+          <span
+            className="bottom-nav-pill pointer-events-none absolute top-2 h-[calc(100%-0.5rem-env(safe-area-inset-bottom))] max-h-14 rounded-2xl bg-brand-soft"
+            style={{
+              left: pillStyle.left,
+              width: pillStyle.width,
+            }}
+            aria-hidden
+          />
+        ) : null}
+
+        <ul className="relative grid grid-cols-5 items-end gap-0 px-1 pt-2">
+          {routeTabs.slice(0, 2).map((tab, index) => (
             <li key={tab.to}>
               <NavLink
+                ref={(node) => {
+                  tabRefs.current[index] = node
+                }}
                 to={tab.to}
                 end={'end' in tab ? tab.end : false}
+                onClick={navTapFeedback}
                 className={({ isActive }) =>
                   [
-                    'flex min-h-12 items-center justify-center rounded-xl px-1 text-sm font-semibold transition',
-                    isActive
-                      ? 'bg-chrome text-chrome-fg'
-                      : 'text-muted hover:bg-brand-soft hover:text-fg',
+                    'bottom-nav-tab flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 pb-1 pt-1.5 text-[11px] font-semibold transition',
+                    isActive ? 'text-brand' : 'text-muted hover:text-fg',
                   ].join(' ')
                 }
               >
-                {tab.label}
+                <tab.icon
+                  className={[
+                    'h-5 w-5 transition',
+                    activeRouteIndex === index ? 'scale-110' : '',
+                  ].join(' ')}
+                />
+                <span>{tab.label}</span>
               </NavLink>
             </li>
           ))}
+
+          <li className="flex flex-col items-center justify-end">
+            <button
+              type="button"
+              onClick={() => void handleFabClick()}
+              disabled={busy || fabState.mode === 'loading'}
+              aria-label={fabState.ariaLabel}
+              className={[
+                'bottom-nav-fab -mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-accent text-accent-fg shadow-lg ring-4 ring-surface-elevated transition active:scale-95 disabled:opacity-60',
+                fabState.mode === 'continue' ? 'bottom-nav-fab-live' : '',
+              ].join(' ')}
+            >
+              <NavPlayIcon className="h-8 w-8" />
+            </button>
+            <span
+              className={[
+                'mt-1 min-h-[1rem] text-[11px] font-semibold leading-none',
+                fabState.mode === 'continue'
+                  ? 'text-accent'
+                  : fabState.mode === 'view_today'
+                    ? 'text-brand'
+                    : 'text-fg',
+              ].join(' ')}
+            >
+              {busy ? '…' : fabState.label}
+            </span>
+          </li>
+
+          {routeTabs.slice(2).map((tab, offset) => {
+            const index = offset + 2
+            return (
+              <li key={tab.to}>
+                <NavLink
+                  ref={(node) => {
+                    tabRefs.current[index] = node
+                  }}
+                  to={tab.to}
+                  onClick={navTapFeedback}
+                  className={({ isActive }) =>
+                    [
+                      'bottom-nav-tab flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 pb-1 pt-1.5 text-[11px] font-semibold transition',
+                      isActive ? 'text-brand' : 'text-muted hover:text-fg',
+                    ].join(' ')
+                  }
+                >
+                  <tab.icon
+                    className={[
+                      'h-5 w-5 transition',
+                      activeRouteIndex === index ? 'scale-110' : '',
+                    ].join(' ')}
+                  />
+                  <span>{tab.label}</span>
+                </NavLink>
+              </li>
+            )
+          })}
+
+          <li>
+            <button
+              type="button"
+              onClick={() => {
+                navTapFeedback()
+                setMoreOpen(true)
+              }}
+              className={[
+                'bottom-nav-tab relative flex min-h-[3.25rem] w-full flex-col items-center justify-center gap-0.5 rounded-2xl px-1 pb-1 pt-1.5 text-[11px] font-semibold transition',
+                moreOpen || location.pathname === '/progreso'
+                  ? 'text-brand'
+                  : 'text-muted hover:text-fg',
+              ].join(' ')}
+              aria-label="Más opciones"
+              aria-expanded={moreOpen}
+            >
+              <span className="relative">
+                <NavMoreIcon className="h-5 w-5" />
+                {showBackupBadge ? (
+                  <span className="absolute -right-1 -top-0.5 h-2 w-2 rounded-full bg-danger ring-2 ring-surface-elevated" />
+                ) : null}
+              </span>
+              <span>Más</span>
+            </button>
+          </li>
         </ul>
       </nav>
+
+      <MoreMenuSheet
+        open={moreOpen}
+        onClose={() => setMoreOpen(false)}
+        showBackupBadge={showBackupBadge}
+      />
     </div>
   )
 }
