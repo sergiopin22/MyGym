@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Outlet } from 'react-router-dom'
 import { isBackupReminderDue } from '../db/backup'
+import { useSafeAreaInsets } from '../hooks/useSafeAreaInsets'
 import { AppDrawer } from './AppDrawer'
 
 function MenuIcon() {
@@ -19,10 +20,15 @@ function MenuIcon() {
 export function AppLayout() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const showBackupBadge = isBackupReminderDue()
+  const { top, standalone } = useSafeAreaInsets()
+  const contentTop = Math.max(top + (standalone ? 32 : 20), standalone ? 80 : 56)
 
   return (
     <div className="mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden">
-      <main className="app-safe-top min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+      <main
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4"
+        style={{ paddingTop: contentTop }}
+      >
         <Outlet />
       </main>
 

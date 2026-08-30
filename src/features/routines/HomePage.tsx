@@ -233,7 +233,7 @@ export function HomePage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-start justify-between gap-3">
+      <header className="mt-2 flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <p className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand">
             Mi Gym
