@@ -8,7 +8,6 @@ import {
   NavRoutinesIcon,
 } from '../components/BottomNavIcons'
 import { isBackupReminderDue } from '../db/backup'
-import { useSafeAreaInsets } from '../hooks/useSafeAreaInsets'
 import { MoreMenuSheet } from './MoreMenuSheet'
 import { useWorkoutFabAction } from './useWorkoutFabAction'
 
@@ -25,7 +24,6 @@ function navTapFeedback() {
 export function BottomNav() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { homeIndicator } = useSafeAreaInsets()
   const [moreOpen, setMoreOpen] = useState(false)
   const [fabRefresh, setFabRefresh] = useState(0)
   const [pillStyle, setPillStyle] = useState<{ left: number; width: number } | null>(
@@ -76,7 +74,10 @@ export function BottomNav() {
   return (
     <>
       {error ? (
-        <div className="pointer-events-none fixed inset-x-0 z-50 mx-auto max-w-lg px-4 bottom-nav-toast">
+        <div
+          className="pointer-events-none fixed inset-x-0 z-50 mx-auto max-w-lg px-4"
+          style={{ bottom: 'max(5.5rem, calc(4.5rem + env(safe-area-inset-bottom)))' }}
+        >
           <p className="rounded-2xl bg-danger px-3 py-2 text-center text-sm font-semibold text-danger-fg shadow-lg">
             {error}
           </p>
@@ -84,10 +85,11 @@ export function BottomNav() {
       ) : null}
 
       <nav
-        className="bottom-nav-shell bottom-nav-glass border-t border-line/80"
+        className="relative z-40 shrink-0 border-t border-line/80 bg-surface-elevated"
+        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
         aria-label="Navegación principal"
       >
-        <div ref={innerRef} className="bottom-nav-inner">
+        <div ref={innerRef} className="relative px-1 pt-2">
           {pillStyle ? (
             <span
               className="bottom-nav-pill pointer-events-none absolute top-2 h-14 rounded-2xl bg-brand-soft"
@@ -99,7 +101,7 @@ export function BottomNav() {
             />
           ) : null}
 
-          <ul className="relative grid grid-cols-5 items-end gap-0 px-1 pb-1.5 pt-2">
+          <ul className="relative grid grid-cols-5 items-end gap-0 pb-1.5">
             {routeTabs.slice(0, 2).map((tab, index) => (
               <li key={tab.to}>
                 <NavLink
@@ -210,13 +212,6 @@ export function BottomNav() {
             </li>
           </ul>
         </div>
-        {homeIndicator > 0 ? (
-          <div
-            className="bottom-nav-home-indicator w-full shrink-0 bg-surface-elevated"
-            style={{ height: homeIndicator }}
-            aria-hidden
-          />
-        ) : null}
       </nav>
 
       <MoreMenuSheet

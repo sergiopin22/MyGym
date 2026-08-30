@@ -55,8 +55,8 @@
   body,
   #root {
     height: 100%;
-    min-height: 100%;
-    min-height: -webkit-fill-available;
+    height: 100dvh;
+    max-height: 100dvh;
     overflow: hidden;
   }
 
@@ -80,15 +80,6 @@
     -webkit-tap-highlight-color: transparent;
     text-rendering: optimizeLegibility;
     overscroll-behavior: none;
-    min-height: 100vh;
-    min-height: 100dvh;
-    min-height: -webkit-fill-available;
-  }
-
-  #root {
-    min-height: 100vh;
-    min-height: 100dvh;
-    min-height: -webkit-fill-available;
   }
 
   * {
@@ -190,37 +181,6 @@
   will-change: transform, box-shadow;
 }
 
-.bottom-nav-glass {
-  background: var(--color-surface-elevated);
-}
-
-/* Barra fija en body (portal) — sin padding-bottom; el filler React cubre el home indicator */
-.bottom-nav-shell {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  z-index: 40;
-  display: flex;
-  width: 100%;
-  flex-direction: column;
-  background: var(--color-surface-elevated);
-  transform: translateZ(0);
-}
-
-/* Respaldo CSS por si React tarda un frame en PWA iOS */
-html[data-pwa-standalone] .bottom-nav-home-indicator {
-  min-height: 34px;
-  background: var(--color-surface-elevated);
-}
-
-.bottom-nav-inner {
-  position: relative;
-  width: 100%;
-  max-width: 32rem;
-  margin-inline: auto;
-}
-
 .bottom-nav-pill {
   transition: left 0.22s cubic-bezier(0.22, 1, 0.36, 1),
     width 0.22s cubic-bezier(0.22, 1, 0.36, 1);
@@ -238,20 +198,6 @@ html[data-pwa-standalone] .bottom-nav-home-indicator {
 
 .bottom-nav-fab-live {
   animation: fab-live-pulse 2s ease-in-out infinite;
-}
-
-.main-with-bottom-nav {
-  padding-bottom: calc(4.5rem + var(--bottom-nav-total, var(--sab, 0px)));
-}
-
-@media (display-mode: standalone) {
-  .main-with-bottom-nav {
-    padding-bottom: calc(4.5rem + max(var(--sab, 0px), 34px));
-  }
-}
-
-.bottom-nav-toast {
-  bottom: calc(4.5rem + var(--bottom-nav-total, var(--sab, 0px)));
 }
 
 @media (prefers-reduced-motion: reduce) {
