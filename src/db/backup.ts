@@ -5,6 +5,7 @@ import type {
   ConstancyGoal,
   Improvement,
   Routine,
+  TreadmillSession,
   WorkoutSession,
 } from '../types'
 import {
@@ -16,7 +17,7 @@ import {
 import { applyTheme, getStoredThemeId } from '../themes/applyTheme'
 import { isThemeId, type ThemeId } from '../themes/presets'
 
-export const BACKUP_VERSION = 4 as const
+export const BACKUP_VERSION = 5 as const
 export const BACKUP_APP_ID = 'mi-gym'
 export const LAST_BACKUP_STORAGE_KEY = 'mi-gym-last-backup-at'
 export const BACKUP_REMINDER_DAYS = 3
@@ -43,7 +44,7 @@ export interface BackupPreferences {
 }
 
 export interface MiGymBackup {
-  version: 1 | 2 | 3 | 4
+  version: 1 | 2 | 3 | 4 | 5
   app: typeof BACKUP_APP_ID
   exportedAt: number
   routines: Routine[]
@@ -55,6 +56,8 @@ export interface MiGymBackup {
   constancyGoals?: ConstancyGoal[]
   /** Preferencias de UI (tema + avatar). Desde v4. */
   preferences?: BackupPreferences
+  /** Sesiones de caminadora. Desde v5. */
+  treadmillSessions?: TreadmillSession[]
 }
 
 export function getLastBackupAt(): number | null {
@@ -231,6 +234,22 @@ function parsePreferences(raw: unknown): BackupPreferences | undefined {
   }
 }
 
+function validateTreadmillSession(raw: unknown, index: number): TreadmillSession {
+  if (!raw || typeof raw !== 'object') {
+    throw new Error(`Respaldo inválido: caminadora #${index + 1} mal formada.`)
+  }
+  const t = raw as Partial<TreadmillSession>
+  assertNonEmptyString(t.id, `id de caminadora #${index + 1}`)
+  assertNonEmptyString(t.date, `fecha de caminadora #${index + 1}`)
+  assertNumber(t.createdAt, `createdAt de caminadora #${index + 1}`)
+  assertNumber(t.speedMph, `speedMph de caminadora #${index + 1}`)
+  assertNumber(t.inclinePercent, `inclinePercent de caminadora #${index + 1}`)
+  assertNumber(t.durationMinutes, `durationMinutes de caminadora #${index + 1}`)
+  assertNumber(t.durationSeconds, `durationSeconds de caminadora #${index + 1}`)
+  assertNumber(t.calories, `calories de caminadora #${index + 1}`)
+  return t as TreadmillSession
+}
+
 function parseBackup(raw: unknown): MiGymBackup {
   if (!raw || typeof raw !== 'object') {
     throw new Error('Archivo inválido')
@@ -243,7 +262,8 @@ function parseBackup(raw: unknown): MiGymBackup {
     data.version !== 1 &&
     data.version !== 2 &&
     data.version !== 3 &&
-    data.version !== 4
+    data.version !== 4 &&
+    data.version !== 5
   ) {
     throw new Error('Versión de respaldo no compatible')
   }
@@ -260,6 +280,9 @@ function parseBackup(raw: unknown): MiGymBackup {
     ? data.bodyCheckInPhotos
     : []
   const constancyGoals = Array.isArray(data.constancyGoals) ? data.constancyGoals : []
+  const treadmillSessions = Array.isArray(data.treadmillSessions)
+    ? data.treadmillSessions
+    : []
   const preferences = parsePreferences(data.preferences)
 
   assertUniqueIds(
@@ -274,11 +297,21 @@ function parseBackup(raw: unknown): MiGymBackup {
   exerciseImages.forEach((img, i) => validateStoredImage(img, i, 'imagen'))
   bodyCheckInPhotos.forEach((img, i) => validateStoredImage(img, i, 'foto corporal'))
   constancyGoals.forEach((g, i) => validateConstancyGoal(g, i))
+  const validatedTreadmill = treadmillSessions.map((t, i) =>
+    validateTreadmillSession(t, i),
+  )
 
   if (constancyGoals.length > 0) {
     assertUniqueIds(
       constancyGoals.map((g) => g.id),
       'metas de constancia',
+    )
+  }
+
+  if (validatedTreadmill.length > 0) {
+    assertUniqueIds(
+      validatedTreadmill.map((t) => t.id),
+      'sesiones de caminadora',
     )
   }
 
@@ -302,6 +335,7 @@ function parseBackup(raw: unknown): MiGymBackup {
     bodyCheckInPhotos,
     constancyGoals,
     preferences,
+    treadmillSessions: validatedTreadmill,
   }
 }
 
@@ -314,6 +348,7 @@ export async function exportFullBackup(): Promise<MiGymBackup> {
     bodyCheckIns,
     bodyPhotos,
     constancyGoals,
+    treadmillSessions,
   ] = await Promise.all([
     db.routines.toArray(),
     db.sessions.toArray(),
@@ -322,6 +357,7 @@ export async function exportFullBackup(): Promise<MiGymBackup> {
     db.bodyCheckIns.toArray(),
     db.bodyCheckInPhotos.toArray(),
     db.constancyGoals.toArray(),
+    db.treadmillSessions.toArray(),
   ])
 
   const exerciseImages: StoredExerciseImage[] = await Promise.all(
@@ -355,6 +391,7 @@ export async function exportFullBackup(): Promise<MiGymBackup> {
     bodyCheckIns,
     bodyCheckInPhotos,
     constancyGoals,
+    treadmillSessions,
     preferences: {
       themeId: getStoredThemeId(),
       brandAvatarId: getStoredBrandAvatarId(),
@@ -381,6 +418,7 @@ export async function importFullBackup(raw: unknown): Promise<{
   images: number
   bodyCheckIns: number
   constancyGoals: number
+  treadmillSessions: number
   restoredPreferences: boolean
 }> {
   const backup = parseBackup(raw)
@@ -432,6 +470,7 @@ export async function importFullBackup(raw: unknown): Promise<{
         db.bodyCheckIns,
         db.bodyCheckInPhotos,
         db.constancyGoals,
+        db.treadmillSessions,
       ],
       async () => {
         await db.routines.clear()
@@ -441,6 +480,7 @@ export async function importFullBackup(raw: unknown): Promise<{
         await db.bodyCheckIns.clear()
         await db.bodyCheckInPhotos.clear()
         await db.constancyGoals.clear()
+        await db.treadmillSessions.clear()
 
         if (backup.routines.length > 0) await db.routines.bulkAdd(backup.routines)
         if (backup.sessions.length > 0) await db.sessions.bulkAdd(backup.sessions)
@@ -454,6 +494,9 @@ export async function importFullBackup(raw: unknown): Promise<{
         if (bodyPhotos.length > 0) await db.bodyCheckInPhotos.bulkAdd(bodyPhotos)
         if ((backup.constancyGoals?.length ?? 0) > 0) {
           await db.constancyGoals.bulkAdd(backup.constancyGoals!)
+        }
+        if ((backup.treadmillSessions?.length ?? 0) > 0) {
+          await db.treadmillSessions.bulkAdd(backup.treadmillSessions!)
         }
       },
     )
@@ -480,6 +523,7 @@ export async function importFullBackup(raw: unknown): Promise<{
     images: images.length,
     bodyCheckIns: backup.bodyCheckIns?.length ?? 0,
     constancyGoals: backup.constancyGoals?.length ?? 0,
+    treadmillSessions: backup.treadmillSessions?.length ?? 0,
     restoredPreferences,
   }
 }

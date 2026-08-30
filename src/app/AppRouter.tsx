@@ -7,12 +7,14 @@ import { HistoryDetailPage, HistoryPage } from '../features/history/HistoryPage'
 import { EditCompletedSessionPage } from '../features/history/EditCompletedSessionPage'
 import { ProgressPage } from '../features/progress/ProgressPage'
 import { WorkoutPage } from '../features/workout/WorkoutPage'
+import { TreadmillPage } from '../features/cardio/TreadmillPage'
 
 export function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="entrenar/:sessionId" element={<WorkoutPage />} />
+        <Route path="caminadora" element={<TreadmillPage />} />
         <Route
           path="historial/:sessionId/editar"
           element={<EditCompletedSessionPage />}

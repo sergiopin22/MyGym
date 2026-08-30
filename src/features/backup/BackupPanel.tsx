@@ -64,7 +64,7 @@ export function BackupPanel() {
       const parsed: unknown = JSON.parse(text)
       const stats = await importFullBackup(parsed)
       setMessage(
-        `Respaldo restaurado: ${stats.routines} rutina(s), ${stats.sessions} sesión(es), ${stats.constancyGoals} meta(s), ${stats.images} imagen(es)${stats.restoredPreferences ? ', tema y avatar' : ''}.`,
+        `Respaldo restaurado: ${stats.routines} rutina(s), ${stats.sessions} sesión(es), ${stats.constancyGoals} meta(s), ${stats.treadmillSessions} caminadora(s), ${stats.images} imagen(es)${stats.restoredPreferences ? ', tema y avatar' : ''}.`,
       )
       window.setTimeout(() => window.location.reload(), 1200)
     } catch (err) {

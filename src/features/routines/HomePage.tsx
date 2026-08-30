@@ -474,6 +474,19 @@ export function HomePage() {
         ) : null}
       </Card>
 
+      <Card className="space-y-3">
+        <div>
+          <h2 className="font-display text-lg font-bold">Caminadora</h2>
+          <p className="mt-1 text-sm text-muted">
+            Registra velocidad, inclinación, tiempo y calorías. No cuenta para la
+            meta de constancia.
+          </p>
+        </div>
+        <Button fullWidth variant="secondary" onClick={() => navigate('/caminadora')}>
+          Registrar caminadora
+        </Button>
+      </Card>
+
       <PrFloatingButton />
     </div>
   )

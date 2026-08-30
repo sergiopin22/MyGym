@@ -6,6 +6,7 @@ import type {
   ExerciseImage,
   Improvement,
   Routine,
+  TreadmillSession,
   WorkoutSession,
 } from '../types'
 
@@ -21,6 +22,7 @@ export class MiGymDB extends Dexie {
   bodyCheckIns!: EntityTable<BodyCheckIn, 'id'>
   bodyCheckInPhotos!: EntityTable<BodyCheckInPhoto, 'id'>
   constancyGoals!: EntityTable<ConstancyGoal, 'id'>
+  treadmillSessions!: EntityTable<TreadmillSession, 'id'>
 
   constructor() {
     super('mi-gym')
@@ -49,6 +51,17 @@ export class MiGymDB extends Dexie {
       bodyCheckIns: 'id, date, createdAt',
       bodyCheckInPhotos: 'id, checkInId, angle',
       constancyGoals: 'id, status, updatedAt',
+    })
+
+    this.version(4).stores({
+      routines: 'id, updatedAt',
+      sessions: 'id, date, status, routineDayId, startedAt',
+      exerciseImages: 'id, updatedAt',
+      improvements: 'id, detectedAt, exerciseName, sessionId',
+      bodyCheckIns: 'id, date, createdAt',
+      bodyCheckInPhotos: 'id, checkInId, angle',
+      constancyGoals: 'id, status, updatedAt',
+      treadmillSessions: 'id, date, createdAt',
     })
   }
 }

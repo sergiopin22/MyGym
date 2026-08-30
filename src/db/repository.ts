@@ -13,6 +13,7 @@ import type {
   RoutineExercise,
   SessionSummary,
   SetLog,
+  TreadmillSession,
   Weekday,
   WorkoutSession,
 } from '../types'
@@ -1838,4 +1839,56 @@ export async function getFeaturedExercisePRs(): Promise<
       supportsStraps,
     }
   })
+}
+
+/* ─── Caminadora (cardio aparte) ─── */
+
+export interface TreadmillSessionInput {
+  speedMph: number
+  inclinePercent: number
+  durationMinutes: number
+  durationSeconds: number
+  calories: number
+  note?: string
+  date?: string
+}
+
+export async function saveTreadmillSession(
+  input: TreadmillSessionInput,
+): Promise<TreadmillSession> {
+  if (input.speedMph <= 0) throw new Error('Coloca la velocidad en mph.')
+  if (input.inclinePercent < 0) throw new Error('La inclinación no puede ser negativa.')
+  const totalSeconds = input.durationMinutes * 60 + input.durationSeconds
+  if (totalSeconds <= 0) throw new Error('Coloca el tiempo (min y seg).')
+  if (input.durationSeconds < 0 || input.durationSeconds > 59) {
+    throw new Error('Los segundos deben estar entre 0 y 59.')
+  }
+  if (input.calories < 0) throw new Error('Las calorías no pueden ser negativas.')
+
+  const session: TreadmillSession = {
+    id: createId('treadmill'),
+    date: input.date ?? todayISODate(),
+    createdAt: Date.now(),
+    speedMph: Math.round(input.speedMph * 10) / 10,
+    inclinePercent: Math.round(input.inclinePercent * 10) / 10,
+    durationMinutes: Math.floor(input.durationMinutes),
+    durationSeconds: Math.floor(input.durationSeconds),
+    calories: Math.round(input.calories),
+    note: input.note?.trim() || undefined,
+  }
+
+  await db.treadmillSessions.add(session)
+  return session
+}
+
+export async function listTreadmillSessions(
+  limit = 30,
+): Promise<TreadmillSession[]> {
+  return db.treadmillSessions.orderBy('createdAt').reverse().limit(limit).toArray()
+}
+
+export async function getLatestTreadmillSession(): Promise<
+  TreadmillSession | undefined
+> {
+  return db.treadmillSessions.orderBy('createdAt').reverse().first()
 }

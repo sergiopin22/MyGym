@@ -232,3 +232,20 @@ export interface BodyCheckInPhoto {
   updatedAt: number
 }
 
+/** Sesión de caminadora (cardio aparte — no cuenta para meta de constancia) */
+export interface TreadmillSession {
+  id: string
+  /** YYYY-MM-DD */
+  date: string
+  createdAt: number
+  /** Velocidad en mph */
+  speedMph: number
+  /** Inclinación en % */
+  inclinePercent: number
+  durationMinutes: number
+  durationSeconds: number
+  /** Calorías según la máquina */
+  calories: number
+  note?: string
+}
+
