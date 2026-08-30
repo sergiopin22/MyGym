@@ -1,6 +1,15 @@
-/** Insets reales para iPhone PWA (env() a veces devuelve 0 en standalone). */
+/** Insets reales para iPhone PWA (env() suele devolver 0 en standalone). */
 export function initSafeAreaInsets(): () => void {
   const root = document.documentElement
+
+  function isIosStandalone(): boolean {
+    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent)
+    const standalone =
+      window.matchMedia('(display-mode: standalone)').matches ||
+      // @ts-expect-error legacy iOS
+      window.navigator.standalone === true
+    return ios && standalone
+  }
 
   function readEnvInset(side: 'top' | 'bottom'): number {
     const probe = document.createElement('div')
@@ -18,43 +27,59 @@ export function initSafeAreaInsets(): () => void {
     return value
   }
 
-  function iosHomeIndicatorFallback(): number {
-    const standalone = window.matchMedia('(display-mode: standalone)').matches
-    const ios = /iPhone|iPad|iPod/i.test(navigator.userAgent)
-    if (!standalone || !ios) return 0
-    const longSide = Math.max(window.screen.height, window.screen.width)
-    if (longSide >= 812) return 34
-    return 0
-  }
+  /** Valores típicos cuando env() falla en PWA instalada */
+  function iosStandaloneFallback(): { top: number; bottom: number } {
+    if (!isIosStandalone()) return { top: 0, bottom: 0 }
 
-  function viewportBottomGap(): number {
-    const vv = window.visualViewport
-    if (!vv) return 0
-    return Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+    const h = window.screen.height
+    const w = window.screen.width
+    const long = Math.max(h, w)
+    const short = Math.min(h, w)
+
+    if (long < 812) return { top: 20, bottom: 0 }
+
+    const bottom = 34
+    // Dynamic Island / iPhone 14 Pro+
+    const top = short >= 393 && long >= 852 ? 59 : 47
+    return { top, bottom }
   }
 
   function update() {
-    const envBottom = readEnvInset('bottom')
     const envTop = readEnvInset('top')
-    const fallback = iosHomeIndicatorFallback()
-    const sab = Math.max(envBottom, fallback)
-    const gap = viewportBottomGap()
+    const envBottom = readEnvInset('bottom')
+    const fallback = iosStandaloneFallback()
+    const vv = window.visualViewport
 
+    const topGap = vv ? Math.max(0, vv.offsetTop) : 0
+    const bottomGap = vv
+      ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+      : 0
+
+    const sat = Math.max(envTop, fallback.top, topGap)
+    const sab = Math.max(envBottom, fallback.bottom, bottomGap)
+
+    root.style.setProperty('--sat', `${sat}px`)
     root.style.setProperty('--sab', `${sab}px`)
-    root.style.setProperty('--sat', `${envTop}px`)
-    root.style.setProperty('--app-bottom-gap', `${gap}px`)
-    root.style.setProperty('--bottom-nav-total', `${sab + gap}px`)
+    root.style.setProperty('--bottom-nav-total', `${sab}px`)
+
+    if (isIosStandalone()) {
+      root.dataset.pwaStandalone = 'true'
+    } else {
+      delete root.dataset.pwaStandalone
+    }
   }
 
   update()
   window.addEventListener('resize', update)
   window.addEventListener('orientationchange', update)
+  window.addEventListener('load', update)
   window.visualViewport?.addEventListener('resize', update)
   window.visualViewport?.addEventListener('scroll', update)
 
   return () => {
     window.removeEventListener('resize', update)
     window.removeEventListener('orientationchange', update)
+    window.removeEventListener('load', update)
     window.visualViewport?.removeEventListener('resize', update)
     window.visualViewport?.removeEventListener('scroll', update)
   }

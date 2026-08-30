@@ -43,8 +43,12 @@
   :root {
     --sab: env(safe-area-inset-bottom, 0px);
     --sat: env(safe-area-inset-top, 0px);
-    --app-bottom-gap: 0px;
     --bottom-nav-total: var(--sab);
+  }
+
+  /* Padding superior/inferior consistente (PWA + Safari) */
+  .app-safe-top {
+    padding-top: max(1rem, var(--sat, env(safe-area-inset-top, 0px)));
   }
 
   html,
@@ -192,16 +196,16 @@
   backdrop-filter: blur(12px);
 }
 
-/* Barra fija en body (portal) — baja hasta el borde físico en PWA iOS */
+/* Barra fija en body (portal) */
 .bottom-nav-shell {
   position: fixed;
   right: 0;
+  bottom: 0;
   left: 0;
   z-index: 40;
   width: 100%;
   background: var(--color-surface-elevated);
-  bottom: calc(-1 * var(--app-bottom-gap, 0px));
-  padding-bottom: calc(var(--sab, 0px) + var(--app-bottom-gap, 0px));
+  padding-bottom: var(--bottom-nav-total, var(--sab, 0px));
   transform: translateZ(0);
 }
 

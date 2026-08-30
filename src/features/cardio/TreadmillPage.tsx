@@ -92,7 +92,7 @@ export function TreadmillPage() {
   }
 
   return (
-    <div className="mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+    <div className="app-safe-top mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden px-4">
       <header className="shrink-0 space-y-2 border-b border-line py-3">
         <Link to="/" className="text-sm font-semibold text-muted hover:text-ink">
           ← Inicio
