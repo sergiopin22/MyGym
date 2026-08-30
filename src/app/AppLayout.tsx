@@ -1,11 +1,9 @@
 import { useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
-import { BrandAvatarButton } from '../features/routines/BrandAvatarButton'
 import { isBackupReminderDue } from '../db/backup'
 import { AppDrawer } from './AppDrawer'
 
 function pageTitle(pathname: string): string {
-  if (pathname === '/') return 'Inicio'
   if (pathname.startsWith('/rutinas')) return 'Rutinas'
   if (pathname.startsWith('/historial')) return 'Historial'
   if (pathname.startsWith('/progreso')) return 'Ajustes'
@@ -29,27 +27,31 @@ export function AppLayout() {
   const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const showBackupBadge = isBackupReminderDue()
+  const isHome = location.pathname === '/'
   const title = pageTitle(location.pathname)
 
   return (
     <div className="mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden">
-      <header className="app-safe-top z-40 flex shrink-0 items-center gap-2 border-b border-line bg-surface-elevated px-3 pb-2 pt-1">
+      <header className="app-safe-top z-40 flex shrink-0 items-center gap-2 border-b border-line bg-surface-elevated px-3 pb-2.5 pt-2">
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-fg transition hover:bg-brand-soft active:scale-95"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-fg transition hover:bg-brand-soft active:scale-95"
           aria-label="Abrir menú"
           aria-expanded={drawerOpen}
         >
           <MenuIcon />
         </button>
-        <h1 className="min-w-0 flex-1 truncate font-display text-lg font-bold tracking-tight text-fg">
-          {title}
-        </h1>
-        <BrandAvatarButton />
+        {!isHome ? (
+          <h1 className="min-w-0 flex-1 truncate font-display text-lg font-bold tracking-tight text-fg">
+            {title}
+          </h1>
+        ) : (
+          <span className="flex-1" aria-hidden />
+        )}
       </header>
 
-      <main className="app-safe-bottom min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+      <main className="app-safe-bottom min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 pt-5">
         <Outlet />
       </main>
 
