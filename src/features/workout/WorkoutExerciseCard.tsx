@@ -3,6 +3,7 @@ import { Button } from '../../components/Button'
 import { ExerciseThumb } from '../../components/ExerciseThumb'
 import { NumberStepper } from '../../components/NumberStepper'
 import { StatusBadge } from '../../components/StatusBadge'
+import { StrapsToggle } from '../../components/StrapsToggle'
 import {
   applyPreviousWeights,
   getLastExercisePerformance,
@@ -16,6 +17,7 @@ import type {
 } from '../../types'
 import { openTutorial } from '../exercises/media'
 import { WEIGHT_STEP, WEIGHT_UNIT } from '../../utils/weight'
+import { supportsStrapsTracking, formatStrapsSuffix } from '../../utils/straps'
 
 function setHasData(set: { weight: number | null; reps: number | null }) {
   return set.weight != null && set.reps != null
@@ -63,7 +65,13 @@ export function WorkoutExerciseCard({
 
   async function patchSet(
     setId: string,
-    patch: Partial<{ weight: number | null; reps: number | null; rir: number | null; completed: boolean }>,
+    patch: Partial<{
+      weight: number | null
+      reps: number | null
+      rir: number | null
+      completed: boolean
+      withStraps: boolean
+    }>,
   ) {
     if (patch.completed === true) {
       const current = exercise.sets.find((s) => s.id === setId)
@@ -107,6 +115,8 @@ export function WorkoutExerciseCard({
       setError(err instanceof Error ? err.message : 'No se pudo guardar la nota')
     }
   }
+
+  const showStraps = supportsStrapsTracking(exercise.name, session.muscleGroups)
 
   return (
     <article className="space-y-3 rounded-3xl border border-line bg-surface-elevated p-4 shadow-[0_10px_30px_-20px_rgba(12,26,20,0.45)]">
@@ -171,6 +181,7 @@ export function WorkoutExerciseCard({
                     <span>Serie {s.setNumber}</span>
                     <span className="font-medium text-ink">
                       {s.weight ?? '—'} {WEIGHT_UNIT} · {s.reps ?? '—'} reps · RIR {s.rir ?? '—'}
+                      {formatStrapsSuffix(s.withStraps)}
                     </span>
                   </li>
                 ))}
@@ -227,11 +238,25 @@ export function WorkoutExerciseCard({
               set.completed ? 'border-accent/40 bg-success-soft/60' : 'border-line bg-surface',
             ].join(' ')}
           >
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               <p className="font-display font-bold">Serie {set.setNumber}</p>
-              {set.completed ? (
-                <span className="text-sm font-semibold text-accent-strong">Completada</span>
-              ) : null}
+              <div className="flex items-center gap-2">
+                {showStraps && session.status === 'in_progress' ? (
+                  <StrapsToggle
+                    active={Boolean(set.withStraps)}
+                    onToggle={() =>
+                      void patchSet(set.id, { withStraps: !set.withStraps })
+                    }
+                  />
+                ) : showStraps && set.withStraps ? (
+                  <span className="text-xs font-bold uppercase tracking-wide text-brand">
+                    Con straps
+                  </span>
+                ) : null}
+                {set.completed ? (
+                  <span className="text-sm font-semibold text-accent-strong">Completada</span>
+                ) : null}
+              </div>
             </div>
 
             <div className="space-y-3">

@@ -31,6 +31,7 @@ import {
   computeExerciseStatus,
   getIncompleteWorkoutParts,
 } from '../utils/workout'
+import { supportsStrapsTracking } from '../utils/straps'
 
 const DEFAULT_IMAGE = '/exercises/default.svg'
 const DEFAULT_ROUTINE_NAME = 'Mi rutina semanal'
@@ -611,7 +612,7 @@ export async function updateSet(
   sessionId: string,
   exerciseLogId: string,
   setId: string,
-  patch: Partial<Pick<SetLog, 'weight' | 'reps' | 'rir' | 'completed'>>,
+  patch: Partial<Pick<SetLog, 'weight' | 'reps' | 'rir' | 'completed' | 'withStraps'>>,
 ): Promise<WorkoutSession> {
   const session = await getSessionById(sessionId)
   if (!session) throw new Error('Sesión no encontrada')
@@ -936,6 +937,7 @@ export async function getLastExercisePerformance(
         reps: s.reps,
         rir: s.rir,
         completed: s.completed,
+        withStraps: s.withStraps,
       })),
     }
   }
@@ -1516,6 +1518,8 @@ export interface ExercisePR {
   rir: number | null
   date: string
   sessionId: string
+  /** true = PR con straps de agarre (espalda) */
+  withStraps?: boolean
 }
 
 /** Ejercicios estrella que se muestran primero en el botón PR */
@@ -1523,6 +1527,7 @@ export const FEATURED_PR_EXERCISES: Array<{
   label: string
   /** fragmentos para emparejar con el nombre en la rutina */
   match: string[]
+  supportsStraps?: boolean
 }> = [
   {
     label: 'Elevaciones laterales con mancuerna',
@@ -1535,10 +1540,12 @@ export const FEATURED_PR_EXERCISES: Array<{
   {
     label: 'Jalón al pecho',
     match: ['jalon al pecho', 'jalón al pecho', 'jalon pecho', 'jalón pecho'],
+    supportsStraps: true,
   },
   {
     label: 'Remo T',
     match: ['remo t', 'remo-t', 'remo en t'],
+    supportsStraps: true,
   },
   {
     label: 'Predicador',
@@ -1575,6 +1582,24 @@ function isBetterPR(
   return false
 }
 
+function prStorageKey(exerciseName: string, withStraps: boolean): string {
+  return `${normalizeExerciseName(exerciseName)}::${withStraps ? 'straps' : 'free'}`
+}
+
+function findExercisePR(
+  all: ExercisePR[],
+  fragments: string[],
+  withStraps: boolean,
+): ExercisePR | null {
+  return (
+    all.find(
+      (p) =>
+        exerciseNameMatches(p.exerciseName, fragments) &&
+        Boolean(p.withStraps) === withStraps,
+    ) ?? null
+  )
+}
+
 /** PR de todas las máquinas vistas en historial (mejor peso; si empata, más reps) */
 export async function getAllExercisePRs(
   excludeSessionId?: string,
@@ -1589,11 +1614,13 @@ export async function getAllExercisePRs(
   for (const session of sessions) {
     if (excludeSessionId && session.id === excludeSessionId) continue
     for (const ex of session.exercises) {
-      const key = normalizeExerciseName(ex.name)
-      if (!key) continue
+      const keyBase = normalizeExerciseName(ex.name)
+      if (!keyBase) continue
       for (const set of ex.sets) {
         if (!set.completed || set.weight == null || set.reps == null) continue
         if (set.weight <= 0 || set.reps <= 0) continue
+        const withStraps = Boolean(set.withStraps)
+        const key = prStorageKey(ex.name, withStraps)
         const prev = best.get(key) ?? null
         const cand = { weight: set.weight, reps: set.reps }
         if (!isBetterPR(cand, prev)) continue
@@ -1604,6 +1631,7 @@ export async function getAllExercisePRs(
           rir: set.rir,
           date: session.date,
           sessionId: session.id,
+          withStraps: withStraps || undefined,
         })
       }
     }
@@ -1619,6 +1647,7 @@ export interface SessionNewPR {
   weight: number
   reps: number
   rir: number | null
+  withStraps?: boolean
   /** null = primera marca registrada de ese ejercicio */
   previous: { weight: number; reps: number } | null
 }
@@ -1629,43 +1658,54 @@ export async function detectNewPRsInSession(
 ): Promise<SessionNewPR[]> {
   const prior = await getAllExercisePRs(session.id)
   const priorByKey = new Map(
-    prior.map((p) => [normalizeExerciseName(p.exerciseName), p]),
+    prior.map((p) => [prStorageKey(p.exerciseName, Boolean(p.withStraps)), p]),
   )
 
   const found: SessionNewPR[] = []
 
   for (const ex of session.exercises) {
-    const key = normalizeExerciseName(ex.name)
-    if (!key) continue
+    const keyBase = normalizeExerciseName(ex.name)
+    if (!keyBase) continue
 
-    let bestInSession: {
-      weight: number
-      reps: number
-      rir: number | null
-    } | null = null
-
+    const strapModes = new Set<boolean>()
     for (const set of ex.sets) {
       if (!set.completed || set.weight == null || set.reps == null) continue
       if (set.weight <= 0 || set.reps <= 0) continue
-      const cand = { weight: set.weight, reps: set.reps, rir: set.rir }
-      if (!isBetterPR(cand, bestInSession)) continue
-      bestInSession = cand
+      strapModes.add(Boolean(set.withStraps))
     }
 
-    if (!bestInSession) continue
+    for (const withStraps of strapModes) {
+      let bestInSession: {
+        weight: number
+        reps: number
+        rir: number | null
+      } | null = null
 
-    const prev = priorByKey.get(key) ?? null
-    if (!isBetterPR(bestInSession, prev)) continue
+      for (const set of ex.sets) {
+        if (!set.completed || set.weight == null || set.reps == null) continue
+        if (set.weight <= 0 || set.reps <= 0) continue
+        if (Boolean(set.withStraps) !== withStraps) continue
+        const cand = { weight: set.weight, reps: set.reps, rir: set.rir }
+        if (!isBetterPR(cand, bestInSession)) continue
+        bestInSession = cand
+      }
 
-    found.push({
-      exerciseName: ex.name,
-      weight: bestInSession.weight,
-      reps: bestInSession.reps,
-      rir: bestInSession.rir,
-      previous: prev
-        ? { weight: prev.weight, reps: prev.reps }
-        : null,
-    })
+      if (!bestInSession) continue
+
+      const prev = priorByKey.get(prStorageKey(ex.name, withStraps)) ?? null
+      if (!isBetterPR(bestInSession, prev)) continue
+
+      found.push({
+        exerciseName: ex.name,
+        weight: bestInSession.weight,
+        reps: bestInSession.reps,
+        rir: bestInSession.rir,
+        withStraps: withStraps || undefined,
+        previous: prev
+          ? { weight: prev.weight, reps: prev.reps }
+          : null,
+      })
+    }
   }
 
   return found.sort((a, b) =>
@@ -1678,17 +1718,29 @@ export async function detectNewPRsInSession(
  * Así “Cualquier máquina” lista todo lo que tienes creado.
  */
 export async function getRoutineExercisePRs(): Promise<
-  Array<{ exerciseName: string; dayLabels: string[]; pr: ExercisePR | null }>
+  Array<{
+    exerciseName: string
+    dayLabels: string[]
+    pr: ExercisePR | null
+    prWithStraps: ExercisePR | null
+    supportsStraps: boolean
+  }>
 > {
   const routine = await getActiveRoutine()
   const prs = await getAllExercisePRs()
   const prByKey = new Map(
-    prs.map((p) => [normalizeExerciseName(p.exerciseName), p]),
+    prs.map((p) => [prStorageKey(p.exerciseName, Boolean(p.withStraps)), p]),
   )
 
   const byKey = new Map<
     string,
-    { exerciseName: string; dayLabels: string[]; pr: ExercisePR | null }
+    {
+      exerciseName: string
+      dayLabels: string[]
+      pr: ExercisePR | null
+      prWithStraps: ExercisePR | null
+      supportsStraps: boolean
+    }
   >()
 
   if (routine) {
@@ -1697,16 +1749,22 @@ export async function getRoutineExercisePRs(): Promise<
       for (const ex of day.exercises) {
         const key = normalizeExerciseName(ex.name)
         if (!key) continue
+        const supportsStraps = supportsStrapsTracking(ex.name, day.muscleGroups)
         const existing = byKey.get(key)
         if (existing) {
           if (!existing.dayLabels.includes(day.label)) {
             existing.dayLabels.push(day.label)
           }
+          if (supportsStraps) existing.supportsStraps = true
         } else {
           byKey.set(key, {
             exerciseName: ex.name,
             dayLabels: [day.label],
-            pr: prByKey.get(key) ?? null,
+            pr: prByKey.get(prStorageKey(ex.name, false)) ?? null,
+            prWithStraps: supportsStraps
+              ? prByKey.get(prStorageKey(ex.name, true)) ?? null
+              : null,
+            supportsStraps,
           })
         }
       }
@@ -1720,7 +1778,9 @@ export async function getRoutineExercisePRs(): Promise<
       byKey.set(key, {
         exerciseName: pr.exerciseName,
         dayLabels: [],
-        pr,
+        pr: pr.withStraps ? null : pr,
+        prWithStraps: pr.withStraps ? pr : null,
+        supportsStraps: Boolean(pr.withStraps),
       })
     }
   }
@@ -1731,12 +1791,23 @@ export async function getRoutineExercisePRs(): Promise<
 }
 
 export async function getFeaturedExercisePRs(): Promise<
-  Array<{ label: string; pr: ExercisePR | null }>
+  Array<{
+    label: string
+    pr: ExercisePR | null
+    prWithStraps: ExercisePR | null
+    supportsStraps: boolean
+  }>
 > {
   const all = await getAllExercisePRs()
   return FEATURED_PR_EXERCISES.map((feat) => {
-    const pr =
-      all.find((p) => exerciseNameMatches(p.exerciseName, feat.match)) ?? null
-    return { label: feat.label, pr }
+    const supportsStraps = Boolean(feat.supportsStraps)
+    return {
+      label: feat.label,
+      pr: findExercisePR(all, feat.match, false),
+      prWithStraps: supportsStraps
+        ? findExercisePR(all, feat.match, true)
+        : null,
+      supportsStraps,
+    }
   })
 }

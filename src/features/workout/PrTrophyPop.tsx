@@ -1,4 +1,5 @@
 import type { SessionNewPR } from '../../db/repository'
+import { formatStrapsLabel } from '../../utils/straps'
 
 interface PrTrophyPopProps {
   prs: SessionNewPR[]
@@ -38,10 +39,17 @@ export function PrTrophyPop({ prs, onClose }: PrTrophyPopProps) {
         <ul className="mt-4 space-y-2 text-left">
           {shown.map((pr) => (
             <li
-              key={pr.exerciseName}
+              key={`${pr.exerciseName}-${pr.withStraps ? 'straps' : 'free'}`}
               className="rounded-2xl bg-surface px-3 py-3 ring-1 ring-line"
             >
-              <p className="text-sm font-semibold text-fg">{pr.exerciseName}</p>
+              <p className="text-sm font-semibold text-fg">
+                {pr.exerciseName}
+                {pr.withStraps ? (
+                  <span className="ml-1 text-xs font-bold uppercase text-brand">
+                    · {formatStrapsLabel(true)}
+                  </span>
+                ) : null}
+              </p>
               <p className="mt-1 text-sm font-bold text-fg">
                 {pr.weight} lb × {pr.reps}
                 {pr.rir != null ? ` · RIR ${pr.rir}` : ''}

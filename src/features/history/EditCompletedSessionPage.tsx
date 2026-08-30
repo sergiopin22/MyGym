@@ -9,6 +9,8 @@ import {
 import type { ExerciseLog, SetLog, WorkoutSession } from '../../types'
 import { WEIGHT_STEP, WEIGHT_UNIT } from '../../utils/weight'
 import { getIncompleteWorkoutParts } from '../../utils/workout'
+import { StrapsToggle } from '../../components/StrapsToggle'
+import { supportsStrapsTracking } from '../../utils/straps'
 
 function cloneExercises(exercises: ExerciseLog[]): ExerciseLog[] {
   return exercises.map((ex) => ({
@@ -69,7 +71,7 @@ export function EditCompletedSessionPage() {
   function patchSet(
     exerciseId: string,
     setId: string,
-    patch: Partial<Pick<SetLog, 'weight' | 'reps' | 'rir' | 'completed'>>,
+    patch: Partial<Pick<SetLog, 'weight' | 'reps' | 'rir' | 'completed' | 'withStraps'>>,
   ) {
     setError(null)
     setExercises((prev) =>
@@ -159,7 +161,12 @@ export function EditCompletedSessionPage() {
       </header>
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-4">
-        {sorted.map((exercise) => (
+        {sorted.map((exercise) => {
+          const showStraps = supportsStrapsTracking(
+            exercise.name,
+            original.muscleGroups,
+          )
+          return (
           <article
             key={exercise.id}
             className="space-y-3 rounded-3xl border border-line bg-surface-elevated p-4"
@@ -170,10 +177,22 @@ export function EditCompletedSessionPage() {
                 .sort((a, b) => a.setNumber - b.setNumber)
                 .map((set) => (
                   <li key={set.id} className="space-y-2 rounded-2xl bg-surface p-3">
-                    <p className="text-sm font-semibold text-muted">
-                      Serie {set.setNumber}
-                      {set.completed ? ' · completada' : ''}
-                    </p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-muted">
+                        Serie {set.setNumber}
+                        {set.completed ? ' · completada' : ''}
+                      </p>
+                      {showStraps ? (
+                        <StrapsToggle
+                          active={Boolean(set.withStraps)}
+                          onToggle={() =>
+                            patchSet(exercise.id, set.id, {
+                              withStraps: !set.withStraps,
+                            })
+                          }
+                        />
+                      ) : null}
+                    </div>
                     <div className="grid grid-cols-3 gap-2">
                       <NumberStepper
                         label={`Peso (${WEIGHT_UNIT})`}
@@ -224,7 +243,8 @@ export function EditCompletedSessionPage() {
                 ))}
             </ul>
           </article>
-        ))}
+          )
+        })}
       </div>
 
       {error ? (

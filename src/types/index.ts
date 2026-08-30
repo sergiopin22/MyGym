@@ -57,6 +57,8 @@ export interface SetLog {
   rir: number | null
   completed: boolean
   completedAt?: number
+  /** Solo ejercicios de espalda: serie hecha con straps de agarre */
+  withStraps?: boolean
 }
 
 /** Instancia de un ejercicio dentro de una sesión */
@@ -187,6 +189,7 @@ export interface LastExercisePerformance {
     reps: number | null
     rir: number | null
     completed: boolean
+    withStraps?: boolean
   }>
 }
 

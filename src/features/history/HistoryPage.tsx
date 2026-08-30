@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router-dom'
 import { Card } from '../../components/Card'
 import { StatusBadge } from '../../components/StatusBadge'
 import { getExerciseHistory, getHistory, getSessionDetail } from '../../db/repository'
+import { formatStrapsSuffix } from '../../utils/straps'
 import type { SessionSummary, WorkoutSession } from '../../types'
 import { formatDuration } from '../../utils/id'
 import { CopyCoachMessageButton } from './CopyCoachMessageButton'
@@ -216,6 +217,7 @@ export function HistoryDetailPage() {
                     <span>Serie {s.setNumber}{s.completed ? '' : ' (no)'}</span>
                     <span className="font-medium text-ink">
                       {s.weight ?? '—'} lb · {s.reps ?? '—'} · RIR {s.rir ?? '—'}
+                      {formatStrapsSuffix(s.withStraps)}
                     </span>
                   </li>
                 ))}
@@ -302,6 +304,7 @@ function ExerciseHistoryView({
                       <span>S{s.setNumber}</span>
                       <span className="text-ink">
                         {s.weight ?? '—'} lb · {s.reps ?? '—'} · RIR {s.rir ?? '—'}
+                        {formatStrapsSuffix(s.withStraps)}
                       </span>
                     </li>
                   ))}

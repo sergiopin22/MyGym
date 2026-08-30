@@ -5,6 +5,7 @@ import {
   getRoutineExercisePRs,
   type ExercisePR,
 } from '../../db/repository'
+import { formatStrapsLabel } from '../../utils/straps'
 
 function formatPrDate(iso: string): string {
   return new Date(iso + 'T12:00:00').toLocaleDateString('es-ES', {
@@ -43,11 +44,15 @@ function PrRow({
   title,
   subtitle,
   pr,
+  prWithStraps,
+  supportsStraps = false,
   showTrophy = false,
 }: {
   title: string
   subtitle?: string
   pr: ExercisePR | null
+  prWithStraps?: ExercisePR | null
+  supportsStraps?: boolean
   showTrophy?: boolean
 }) {
   return (
@@ -57,7 +62,41 @@ function PrRow({
         {subtitle ? (
           <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
         ) : null}
-        {pr ? (
+        {supportsStraps ? (
+          <div className="mt-2 space-y-1.5">
+            <p className="text-sm text-muted">
+              <span className="text-xs font-bold uppercase tracking-wide text-muted">
+                {formatStrapsLabel(false)}:{' '}
+              </span>
+              {pr ? (
+                <>
+                  <span className="font-bold text-fg">{formatPrLine(pr)}</span>
+                  <span className="text-muted"> · {formatPrDate(pr.date)}</span>
+                </>
+              ) : (
+                <span className="text-muted">Sin marca</span>
+              )}
+            </p>
+            <p className="text-sm text-muted">
+              <span className="text-xs font-bold uppercase tracking-wide text-muted">
+                {formatStrapsLabel(true)}:{' '}
+              </span>
+              {prWithStraps ? (
+                <>
+                  <span className="font-bold text-fg">
+                    {formatPrLine(prWithStraps)}
+                  </span>
+                  <span className="text-muted">
+                    {' '}
+                    · {formatPrDate(prWithStraps.date)}
+                  </span>
+                </>
+              ) : (
+                <span className="text-muted">Sin marca</span>
+              )}
+            </p>
+          </div>
+        ) : pr ? (
           <p className="mt-1 text-sm text-muted">
             <span className="font-bold text-fg">{formatPrLine(pr)}</span>
             <span className="text-muted"> · {formatPrDate(pr.date)}</span>
@@ -66,7 +105,7 @@ function PrRow({
           <p className="mt-1 text-sm text-muted">Aún sin marca registrada</p>
         )}
       </div>
-      {showTrophy ? <GoldenTrophy /> : null}
+      {showTrophy && (pr || prWithStraps) ? <GoldenTrophy /> : null}
     </li>
   )
 }
@@ -75,10 +114,21 @@ export function PrFloatingButton() {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<'featured' | 'all'>('featured')
   const [featured, setFeatured] = useState<
-    Array<{ label: string; pr: ExercisePR | null }>
+    Array<{
+      label: string
+      pr: ExercisePR | null
+      prWithStraps: ExercisePR | null
+      supportsStraps: boolean
+    }>
   >([])
   const [routineRows, setRoutineRows] = useState<
-    Array<{ exerciseName: string; dayLabels: string[]; pr: ExercisePR | null }>
+    Array<{
+      exerciseName: string
+      dayLabels: string[]
+      pr: ExercisePR | null
+      prWithStraps: ExercisePR | null
+      supportsStraps: boolean
+    }>
   >([])
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
@@ -143,7 +193,7 @@ export function PrFloatingButton() {
                   Tus PR
                 </h2>
                 <p className="text-sm text-muted">
-                  Mejor peso × reps · RIR de esa serie
+                  Mejor peso × reps · RIR · sin/con straps en espalda
                 </p>
               </div>
               <button
@@ -202,6 +252,8 @@ export function PrFloatingButton() {
                       key={row.label}
                       title={row.label}
                       pr={row.pr}
+                      prWithStraps={row.prWithStraps}
+                      supportsStraps={row.supportsStraps}
                       showTrophy
                     />
                   ))}
@@ -224,6 +276,8 @@ export function PrFloatingButton() {
                           : undefined
                       }
                       pr={row.pr}
+                      prWithStraps={row.prWithStraps}
+                      supportsStraps={row.supportsStraps}
                     />
                   ))}
                 </ul>

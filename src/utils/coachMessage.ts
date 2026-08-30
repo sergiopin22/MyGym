@@ -1,5 +1,6 @@
 import type { WorkoutSession } from '../types'
 import { formatDuration } from './id'
+import { formatStrapsSuffix } from './straps'
 
 function formatSetLine(set: {
   setNumber: number
@@ -7,15 +8,17 @@ function formatSetLine(set: {
   reps: number | null
   rir: number | null
   completed: boolean
+  withStraps?: boolean
 }): string | null {
   if (!set.completed && set.weight == null && set.reps == null) return null
 
   const weight = set.weight != null ? `${set.weight} lb` : '— lb'
   const reps = set.reps != null ? `${set.reps} reps` : '— reps'
   const rir = set.rir != null ? ` · RIR ${set.rir}` : ''
+  const straps = formatStrapsSuffix(set.withStraps)
   const note = set.completed ? '' : ' (no completada)'
 
-  return `  Serie ${set.setNumber}: ${weight} × ${reps}${rir}${note}`
+  return `  Serie ${set.setNumber}: ${weight} × ${reps}${rir}${straps}${note}`
 }
 
 /** Texto listo para WhatsApp / coach */
