@@ -116,10 +116,12 @@
 
 @keyframes drawer-in {
   from {
-    transform: translateX(-100%);
+    opacity: 0;
+    transform: translateY(12px);
   }
   to {
-    transform: translateX(0);
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
@@ -138,29 +140,20 @@
   z-index: 70;
 }
 
-.app-drawer-overlay {
-  position: absolute;
-  inset: 0;
-  border: none;
-  background: var(--color-overlay);
-  animation: overlay-in 0.2s ease-out both;
-}
-
 .app-drawer-panel {
   position: absolute;
-  top: 0;
-  left: 0;
+  inset: 0;
   display: flex;
-  width: min(88vw, 18.5rem);
+  width: 100%;
   height: 100%;
   flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
   background: var(--color-surface-elevated);
-  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.2);
-  animation: drawer-in 0.25s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: drawer-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .app-drawer-overlay,
   .app-drawer-panel {
     animation: none;
   }

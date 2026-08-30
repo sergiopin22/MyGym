@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { PrPanel } from '../features/routines/PrPanel'
+import { useSafeAreaInsets } from '../hooks/useSafeAreaInsets'
 
 type DrawerView = 'menu' | 'prs'
 
@@ -109,6 +110,9 @@ export function AppDrawer({
 }: AppDrawerProps) {
   const navigate = useNavigate()
   const [view, setView] = useState<DrawerView>('menu')
+  const { top, bottom, standalone } = useSafeAreaInsets()
+  const panelPaddingTop = Math.max(top + (standalone ? 24 : 16), standalone ? 64 : 48)
+  const panelPaddingBottom = Math.max(bottom + 16, 24)
 
   useEffect(() => {
     if (!open) setView('menu')
@@ -137,38 +141,34 @@ export function AppDrawer({
 
   return (
     <div className="app-drawer-root" role="presentation">
-      <button
-        type="button"
-        className="app-drawer-overlay"
-        aria-label="Cerrar menú"
-        onClick={closeAll}
-      />
       <aside
-        className="app-drawer-panel app-safe-top app-safe-bottom"
+        className="app-drawer-panel"
         role="dialog"
         aria-modal="true"
         aria-label="Menú de navegación"
+        style={{
+          paddingTop: panelPaddingTop,
+          paddingBottom: panelPaddingBottom,
+        }}
       >
         {view === 'menu' ? (
-          <>
-            <div className="flex items-start justify-between gap-2 border-b border-line px-4 pb-3 pt-1">
-              <div>
-                <p className="font-display text-xs font-semibold uppercase tracking-[0.18em] text-brand">
-                  Mi Gym
-                </p>
-                <h2 className="font-display text-xl font-extrabold text-fg">Menú</h2>
-              </div>
+          <div className="mx-auto flex h-full w-full max-w-sm flex-col justify-center px-5">
+            <div className="relative mb-8 text-center">
               <button
                 type="button"
                 onClick={closeAll}
-                className="rounded-xl bg-brand-soft px-3 py-2 text-sm font-bold text-fg"
+                className="absolute right-0 top-0 rounded-xl bg-brand-soft px-3 py-2 text-sm font-bold text-fg"
               >
                 Cerrar
               </button>
+              <p className="font-display text-xs font-semibold uppercase tracking-[0.18em] text-brand">
+                Mi Gym
+              </p>
+              <h2 className="font-display text-2xl font-extrabold text-fg">Menú</h2>
             </div>
 
-            <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-              <p className="mb-2 px-1 text-xs font-semibold uppercase tracking-wide text-muted">
+            <nav className="min-h-0 overflow-y-auto">
+              <p className="mb-2 text-center text-xs font-semibold uppercase tracking-wide text-muted">
                 Principal
               </p>
               <ul className="space-y-2">
@@ -196,7 +196,7 @@ export function AppDrawer({
                 />
               </ul>
 
-              <p className="mb-2 mt-5 px-1 text-xs font-semibold uppercase tracking-wide text-muted">
+              <p className="mb-2 mt-6 text-center text-xs font-semibold uppercase tracking-wide text-muted">
                 Más
               </p>
               <ul className="space-y-2">
@@ -221,13 +221,13 @@ export function AppDrawer({
                 />
               </ul>
             </nav>
-          </>
+          </div>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col px-3 py-3">
+          <div className="mx-auto flex h-full w-full max-w-sm flex-col justify-center px-5">
             <button
               type="button"
               onClick={() => setView('menu')}
-              className="mb-3 self-start text-sm font-semibold text-brand"
+              className="mb-4 self-center text-sm font-semibold text-brand"
             >
               ← Volver al menú
             </button>
