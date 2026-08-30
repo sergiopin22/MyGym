@@ -162,12 +162,12 @@ export function WorkoutPage() {
 
   if (summary && session.status === 'completed') {
     return (
-      <div className="mx-auto flex min-h-dvh max-w-lg flex-col px-4 pb-10 pt-[max(1rem,env(safe-area-inset-top))]">
+      <div className="mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))]">
         {showPrPop ? (
           <PrTrophyPop prs={newPRs} onClose={() => setShowPrPop(false)} />
         ) : null}
 
-        <header className="space-y-1 pt-2">
+        <header className="shrink-0 space-y-1 border-b border-line py-3 pt-2">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand">
             Entrenamiento guardado
           </p>
@@ -183,65 +183,70 @@ export function WorkoutPage() {
           ) : null}
         </header>
 
-        {newPRs.length > 0 && !showPrPop ? (
-          <button
-            type="button"
-            onClick={() => setShowPrPop(true)}
-            className="mt-4 flex w-full items-center gap-3 rounded-2xl bg-success-soft px-4 py-3 text-left ring-1 ring-line transition active:scale-[0.99]"
-          >
-            <span className="text-2xl" aria-hidden>
-              🏆
-            </span>
-            <span>
-              <span className="block font-display text-base font-bold text-accent-strong">
-                {newPRs.length === 1
-                  ? '¡Nuevo PR en esta sesión!'
-                  : `¡${newPRs.length} PRs nuevos!`}
-              </span>
-              <span className="text-xs text-muted">Toca para verlos otra vez</span>
-            </span>
-          </button>
-        ) : null}
-
-        <Card className="mt-6 space-y-4">
-          <Stat label="Duración" value={formatDuration(summary.durationMs)} />
-          <Stat
-            label="Ejercicios"
-            value={`${summary.completedExercises} de ${summary.totalExercises}`}
-          />
-          <Stat label="Series completadas" value={String(summary.totalSetsCompleted)} />
-          {summary.muscleGroups.length ? (
-            <p className="text-sm text-muted">{summary.muscleGroups.join(' · ')}</p>
-          ) : null}
-        </Card>
-
-        <CopyCoachMessageButton session={session} fullWidth className="mt-4" />
-
-        <ul className="mt-5 space-y-2">
-          {exercises.map((ex) => (
-            <li
-              key={ex.id}
-              className="flex items-center justify-between rounded-2xl bg-surface-elevated px-3 py-3 text-sm ring-1 ring-line"
+        <div
+          className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4"
+          style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+        >
+          {newPRs.length > 0 && !showPrPop ? (
+            <button
+              type="button"
+              onClick={() => setShowPrPop(true)}
+              className="mb-4 flex w-full items-center gap-3 rounded-2xl bg-success-soft px-4 py-3 text-left ring-1 ring-line transition active:scale-[0.99]"
             >
-              <span className="font-medium">{ex.name}</span>
-              <span>
-                {ex.status === 'completed'
-                  ? '✅'
-                  : ex.sets.some((s) => s.completed)
-                    ? '🟡'
-                    : '⏳'}
+              <span className="text-2xl" aria-hidden>
+                🏆
               </span>
-            </li>
-          ))}
-        </ul>
+              <span>
+                <span className="block font-display text-base font-bold text-accent-strong">
+                  {newPRs.length === 1
+                    ? '¡Nuevo PR en esta sesión!'
+                    : `¡${newPRs.length} PRs nuevos!`}
+                </span>
+                <span className="text-xs text-muted">Toca para verlos otra vez</span>
+              </span>
+            </button>
+          ) : null}
 
-        <div className="mt-auto space-y-2 pt-8">
-          <Button fullWidth onClick={() => navigate('/historial')}>
-            Ver historial
-          </Button>
-          <Button variant="ghost" fullWidth onClick={() => navigate('/')}>
-            Volver al inicio
-          </Button>
+          <Card className="space-y-4">
+            <Stat label="Duración" value={formatDuration(summary.durationMs)} />
+            <Stat
+              label="Ejercicios"
+              value={`${summary.completedExercises} de ${summary.totalExercises}`}
+            />
+            <Stat label="Series completadas" value={String(summary.totalSetsCompleted)} />
+            {summary.muscleGroups.length ? (
+              <p className="text-sm text-muted">{summary.muscleGroups.join(' · ')}</p>
+            ) : null}
+          </Card>
+
+          <CopyCoachMessageButton session={session} fullWidth className="mt-4" />
+
+          <ul className="mt-5 space-y-2">
+            {exercises.map((ex) => (
+              <li
+                key={ex.id}
+                className="flex items-center justify-between rounded-2xl bg-surface-elevated px-3 py-3 text-sm ring-1 ring-line"
+              >
+                <span className="font-medium">{ex.name}</span>
+                <span>
+                  {ex.status === 'completed'
+                    ? '✅'
+                    : ex.sets.some((s) => s.completed)
+                      ? '🟡'
+                      : '⏳'}
+                </span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="mt-6 space-y-2">
+            <Button fullWidth onClick={() => navigate('/historial')}>
+              Ver historial
+            </Button>
+            <Button variant="ghost" fullWidth onClick={() => navigate('/')}>
+              Volver al inicio
+            </Button>
+          </div>
         </div>
       </div>
     )
