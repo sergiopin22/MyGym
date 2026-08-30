@@ -45,6 +45,8 @@
   #root {
     height: 100%;
     height: 100dvh;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
     max-height: 100dvh;
     overflow: hidden;
   }
@@ -176,6 +178,20 @@
   -webkit-backdrop-filter: blur(16px);
 }
 
+/* Anclado al borde físico del iPhone; el fondo cubre el área del home indicator */
+.bottom-nav-shell {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  margin-inline: auto;
+  width: 100%;
+  max-width: 32rem;
+  padding-bottom: constant(safe-area-inset-bottom, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 .bottom-nav-pill {
   transition: left 0.22s cubic-bezier(0.22, 1, 0.36, 1),
     width 0.22s cubic-bezier(0.22, 1, 0.36, 1);
@@ -193,6 +209,16 @@
 
 .bottom-nav-fab-live {
   animation: fab-live-pulse 2s ease-in-out infinite;
+}
+
+.main-with-bottom-nav {
+  padding-bottom: calc(5.75rem + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+.bottom-nav-toast {
+  bottom: calc(5.75rem + constant(safe-area-inset-bottom, 0px));
+  bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
 }
 
 @media (prefers-reduced-motion: reduce) {

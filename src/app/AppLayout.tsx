@@ -73,17 +73,12 @@ export function AppLayout() {
 
   return (
     <div className="mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden">
-      <main
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-28 pt-[max(1rem,env(safe-area-inset-top))]"
-      >
+      <main className="main-with-bottom-nav min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pt-[max(1rem,env(safe-area-inset-top))]">
         <Outlet />
       </main>
 
       {error ? (
-        <div
-          className="pointer-events-none fixed inset-x-0 z-50 mx-auto max-w-lg px-4"
-          style={{ bottom: 'max(5.5rem, calc(4.5rem + env(safe-area-inset-bottom)))' }}
-        >
+        <div className="pointer-events-none fixed inset-x-0 z-50 mx-auto max-w-lg px-4 bottom-nav-toast">
           <p className="rounded-2xl bg-danger px-3 py-2 text-center text-sm font-semibold text-danger-fg shadow-lg">
             {error}
           </p>
@@ -92,13 +87,12 @@ export function AppLayout() {
 
       <nav
         ref={navRef}
-        className="bottom-nav-glass relative z-40 shrink-0 border-t border-line/80"
-        style={{ paddingBottom: 'max(0.45rem, env(safe-area-inset-bottom))' }}
+        className="bottom-nav-shell bottom-nav-glass border-t border-line/80"
         aria-label="Navegación principal"
       >
         {pillStyle ? (
           <span
-            className="bottom-nav-pill pointer-events-none absolute top-2 h-[calc(100%-0.5rem-env(safe-area-inset-bottom))] max-h-14 rounded-2xl bg-brand-soft"
+            className="bottom-nav-pill pointer-events-none absolute top-2 h-14 rounded-2xl bg-brand-soft"
             style={{
               left: pillStyle.left,
               width: pillStyle.width,
@@ -107,7 +101,7 @@ export function AppLayout() {
           />
         ) : null}
 
-        <ul className="relative grid grid-cols-5 items-end gap-0 px-1 pt-2">
+        <ul className="relative grid grid-cols-5 items-end gap-0 px-1 pb-2 pt-2">
           {routeTabs.slice(0, 2).map((tab, index) => (
             <li key={tab.to}>
               <NavLink
@@ -119,7 +113,7 @@ export function AppLayout() {
                 onClick={navTapFeedback}
                 className={({ isActive }) =>
                   [
-                    'bottom-nav-tab flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 pb-1 pt-1.5 text-[11px] font-semibold transition',
+                    'bottom-nav-tab flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 pb-0.5 pt-1.5 text-[11px] font-semibold transition',
                     isActive ? 'text-brand' : 'text-muted hover:text-fg',
                   ].join(' ')
                 }
@@ -174,7 +168,7 @@ export function AppLayout() {
                   onClick={navTapFeedback}
                   className={({ isActive }) =>
                     [
-                      'bottom-nav-tab flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 pb-1 pt-1.5 text-[11px] font-semibold transition',
+                      'bottom-nav-tab flex min-h-[3.25rem] flex-col items-center justify-center gap-0.5 rounded-2xl px-1 pb-0.5 pt-1.5 text-[11px] font-semibold transition',
                       isActive ? 'text-brand' : 'text-muted hover:text-fg',
                     ].join(' ')
                   }
@@ -199,7 +193,7 @@ export function AppLayout() {
                 setMoreOpen(true)
               }}
               className={[
-                'bottom-nav-tab relative flex min-h-[3.25rem] w-full flex-col items-center justify-center gap-0.5 rounded-2xl px-1 pb-1 pt-1.5 text-[11px] font-semibold transition',
+                'bottom-nav-tab relative flex min-h-[3.25rem] w-full flex-col items-center justify-center gap-0.5 rounded-2xl px-1 pb-0.5 pt-1.5 text-[11px] font-semibold transition',
                 moreOpen || location.pathname === '/progreso'
                   ? 'text-brand'
                   : 'text-muted hover:text-fg',
