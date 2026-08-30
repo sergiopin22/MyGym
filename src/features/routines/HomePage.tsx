@@ -12,7 +12,6 @@ import {
 import type { Routine, RoutineDay, Weekday, WorkoutSession } from '../../types'
 import { isWeekend, weekdayLabel } from '../../utils/id'
 import { ConstancyGoalCard } from './ConstancyGoalCard'
-import { BrandAvatarButton } from './BrandAvatarButton'
 import { RestDayToggle } from './RestDayToggle'
 import { BackupReminderCard } from '../backup/BackupReminderCard'
 
@@ -233,23 +232,20 @@ export function HomePage() {
 
   return (
     <div className="space-y-6">
-      <header className="flex items-center justify-between gap-3 pt-2">
-        <div className="min-w-0 space-y-1">
-          <p className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand">
-            Mi Gym
-          </p>
-          <h1 className="font-display text-3xl font-extrabold tracking-tight text-fg">
-            {weekdayLabel(todayWeekday)}
-          </h1>
-          <p className="text-muted">
-            {today.toLocaleDateString('es-ES', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}
-          </p>
-        </div>
-        <BrandAvatarButton />
+      <header className="space-y-1 pt-1">
+        <p className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand">
+          Mi Gym
+        </p>
+        <h1 className="font-display text-3xl font-extrabold tracking-tight text-fg">
+          {weekdayLabel(todayWeekday)}
+        </h1>
+        <p className="text-muted">
+          {today.toLocaleDateString('es-ES', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}
+        </p>
       </header>
 
       <BackupReminderCard />
