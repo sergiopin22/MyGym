@@ -697,6 +697,31 @@ export async function updateExerciseNote(
   return saveSession({ ...session, exercises })
 }
 
+export async function setExerciseStraps(
+  sessionId: string,
+  exerciseLogId: string,
+  withStraps: boolean,
+): Promise<WorkoutSession> {
+  const session = await getSessionById(sessionId)
+  if (!session) throw new Error('Sesión no encontrada')
+  if (session.status !== 'in_progress') {
+    throw new Error('La sesión ya está finalizada')
+  }
+
+  const exercises = session.exercises.map((ex) => {
+    if (ex.id !== exerciseLogId) return ex
+    return {
+      ...ex,
+      sets: ex.sets.map((s) => ({
+        ...s,
+        withStraps: withStraps || undefined,
+      })),
+    }
+  })
+
+  return saveSession({ ...session, exercises })
+}
+
 /**
  * Copia el peso de la última vez a las series de hoy.
  * Deja reps y RIR vacíos (null).

@@ -7,6 +7,7 @@ import { StrapsToggle } from '../../components/StrapsToggle'
 import {
   applyPreviousWeights,
   getLastExercisePerformance,
+  setExerciseStraps,
   updateExerciseNote,
   updateSet,
 } from '../../db/repository'
@@ -116,6 +117,17 @@ export function WorkoutExerciseCard({
     }
   }
 
+  async function setAllStraps(withStraps: boolean) {
+    if (session.status !== 'in_progress') return
+    setError(null)
+    try {
+      const updated = await setExerciseStraps(session.id, exercise.id, withStraps)
+      onSessionChange(updated)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar straps')
+    }
+  }
+
   const showStraps = supportsStrapsTracking(exercise.name, session.muscleGroups)
 
   return (
@@ -160,6 +172,24 @@ export function WorkoutExerciseCard({
         >
           Usar peso anterior
         </Button>
+        {showStraps && session.status === 'in_progress' ? (
+          <>
+            <Button
+              variant="secondary"
+              className="min-h-11 px-3 text-sm"
+              onClick={() => void setAllStraps(true)}
+            >
+              Todas con straps
+            </Button>
+            <Button
+              variant="ghost"
+              className="min-h-11 px-3 text-sm"
+              onClick={() => void setAllStraps(false)}
+            >
+              Sin straps
+            </Button>
+          </>
+        ) : null}
       </div>
 
       {expandedLast ? (

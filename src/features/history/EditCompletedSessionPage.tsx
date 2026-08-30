@@ -90,6 +90,47 @@ export function EditCompletedSessionPage() {
     )
   }
 
+  function setStrapsForExercise(exerciseId: string, withStraps: boolean) {
+    if (!original) return
+    setError(null)
+    setExercises((prev) =>
+      prev.map((ex) => {
+        if (ex.id !== exerciseId) return ex
+        if (!supportsStrapsTracking(ex.name, original.muscleGroups)) return ex
+        return {
+          ...ex,
+          sets: ex.sets.map((s) => ({
+            ...s,
+            withStraps: withStraps || undefined,
+          })),
+        }
+      }),
+    )
+  }
+
+  function setStrapsForAllBack(withStraps: boolean) {
+    if (!original) return
+    setError(null)
+    setExercises((prev) =>
+      prev.map((ex) => {
+        if (!supportsStrapsTracking(ex.name, original.muscleGroups)) return ex
+        return {
+          ...ex,
+          sets: ex.sets.map((s) => ({
+            ...s,
+            withStraps: withStraps || undefined,
+          })),
+        }
+      }),
+    )
+  }
+
+  const hasBackStrapsExercises = original
+    ? sorted.some((ex) =>
+        supportsStrapsTracking(ex.name, original.muscleGroups),
+      )
+    : false
+
   async function handleSave() {
     if (!sessionId || !original) return
     const draftSession = { ...original, exercises }
@@ -155,9 +196,29 @@ export function EditCompletedSessionPage() {
         </h1>
         <p className="text-sm text-muted">{original.dayLabel}</p>
         <p className="rounded-2xl bg-brand-soft px-3 py-2 text-xs text-fg">
-          Solo puedes corregir peso, reps y RIR. No cambia el día ni la meta de
-          constancia. Al guardar, el historial y los PR se actualizan.
+          Corrige peso, reps, RIR y straps en espalda. No cambia el día ni la meta
+          de constancia. Al guardar, el historial y los PR se actualizan.
         </p>
+        {hasBackStrapsExercises ? (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              className="min-h-10 px-3 text-sm"
+              disabled={saving}
+              onClick={() => setStrapsForAllBack(true)}
+            >
+              Marcar espalda con straps
+            </Button>
+            <Button
+              variant="ghost"
+              className="min-h-10 px-3 text-sm"
+              disabled={saving}
+              onClick={() => setStrapsForAllBack(false)}
+            >
+              Quitar straps en espalda
+            </Button>
+          </div>
+        ) : null}
       </header>
 
       <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-4">
@@ -171,7 +232,27 @@ export function EditCompletedSessionPage() {
             key={exercise.id}
             className="space-y-3 rounded-3xl border border-line bg-surface-elevated p-4"
           >
-            <h2 className="font-display text-lg font-bold">{exercise.name}</h2>
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <h2 className="font-display text-lg font-bold">{exercise.name}</h2>
+              {showStraps ? (
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="secondary"
+                    className="min-h-9 px-2.5 text-xs"
+                    onClick={() => setStrapsForExercise(exercise.id, true)}
+                  >
+                    Todas con straps
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    className="min-h-9 px-2.5 text-xs"
+                    onClick={() => setStrapsForExercise(exercise.id, false)}
+                  >
+                    Sin straps
+                  </Button>
+                </div>
+              ) : null}
+            </div>
             <ul className="space-y-4">
               {[...exercise.sets]
                 .sort((a, b) => a.setNumber - b.setNumber)
