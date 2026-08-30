@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { HomeQuickPanel, type HomeQuickPanelType } from '../../app/HomeQuickPanel'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { ProgressBar } from '../../components/ProgressBar'
@@ -15,6 +16,7 @@ import { ConstancyGoalCard } from './ConstancyGoalCard'
 import { BrandAvatarButton } from './BrandAvatarButton'
 import { RestDayToggle } from './RestDayToggle'
 import { BackupReminderCard } from '../backup/BackupReminderCard'
+import { useEdgeSwipe } from '../../hooks/useEdgeSwipe'
 
 function sortDays(days: RoutineDay[]): RoutineDay[] {
   const order = [1, 2, 3, 4, 5, 6, 0]
@@ -38,6 +40,14 @@ export function HomePage() {
   const [locateToday, setLocateToday] = useState(false)
   const todayChipRef = useRef<HTMLButtonElement | null>(null)
   const todayLocatePlayedRef = useRef(false)
+  const [quickPanel, setQuickPanel] = useState<HomeQuickPanelType>(null)
+
+  useEdgeSwipe({
+    enabled: quickPanel === null,
+    onSwipeLeft: () => setQuickPanel('prs'),
+    onSwipeRight: () => setQuickPanel('history'),
+    excludeSelector: '[data-horizontal-scroll]',
+  })
 
   useEffect(() => {
     let alive = true
@@ -232,7 +242,17 @@ export function HomePage() {
   if (loading) return <p className="pt-8 text-muted">Cargando tu gimnasio…</p>
 
   return (
-    <div className="space-y-6">
+    <>
+      <div className="relative space-y-6">
+        <div
+          className="pointer-events-none absolute inset-y-16 -left-4 z-10 w-6 bg-gradient-to-r from-brand/15 to-transparent"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-y-16 -right-4 z-10 w-6 bg-gradient-to-l from-brand/15 to-transparent"
+          aria-hidden
+        />
+
       <header className="mt-2 flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <p className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand">
@@ -267,7 +287,10 @@ export function HomePage() {
             ? `Recuperando ${weekdayLabel(recoveryDay!.weekday)} — verás su rutina abajo`
             : 'Ver rutina de la semana (solo puedes entrenar hoy)'}
         </p>
-        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+        <div
+          className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
+          data-horizontal-scroll
+        >
           {days.map((day) => {
             const active = day.weekday === (recoveryDay?.weekday ?? selectedWeekday)
             const isToday = day.weekday === todayWeekday
@@ -472,6 +495,9 @@ export function HomePage() {
           </Button>
         ) : null}
       </Card>
-    </div>
+      </div>
+
+      <HomeQuickPanel panel={quickPanel} onClose={() => setQuickPanel(null)} />
+    </>
   )
 }

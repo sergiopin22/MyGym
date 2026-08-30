@@ -2,32 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Card } from '../../components/Card'
 import { StatusBadge } from '../../components/StatusBadge'
-import { getExerciseHistory, getHistory, getSessionDetail } from '../../db/repository'
+import { getExerciseHistory, getSessionDetail } from '../../db/repository'
 import { formatStrapsSuffix } from '../../utils/straps'
-import type { SessionSummary, WorkoutSession } from '../../types'
+import type { WorkoutSession } from '../../types'
 import { formatDuration } from '../../utils/id'
 import { CopyCoachMessageButton } from './CopyCoachMessageButton'
+import { HistoryList } from './HistoryList'
 
 export function HistoryPage() {
-  const [items, setItems] = useState<SessionSummary[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let alive = true
-    getHistory()
-      .then((rows) => {
-        if (alive) setItems(rows)
-      })
-      .finally(() => {
-        if (alive) setLoading(false)
-      })
-    return () => {
-      alive = false
-    }
-  }, [])
-
-  if (loading) return <p className="pt-8 text-muted">Cargando historial…</p>
-
   return (
     <div className="space-y-5">
       <header className="pt-2">
@@ -37,59 +19,7 @@ export function HistoryPage() {
         </p>
       </header>
 
-      {items.length === 0 ? (
-        <Card>
-          <p className="text-sm text-muted">
-            Aún no hay sesiones completadas. Finaliza un entrenamiento para verlo aquí.
-          </p>
-        </Card>
-      ) : (
-        <ul className="space-y-3">
-          {items.map((item) => (
-            <li key={item.sessionId}>
-              <Card className="space-y-3">
-                <Link to={`/historial/${item.sessionId}`} className="block">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-                        {new Date(item.date + 'T12:00:00').toLocaleDateString('es-ES', {
-                          weekday: 'long',
-                          day: 'numeric',
-                          month: 'short',
-                        })}
-                      </p>
-                      <h2 className="font-display text-lg font-bold">{item.dayLabel}</h2>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {item.isRecovery ? (
-                          <span className="inline-flex rounded-full bg-progress-soft px-2.5 py-1 text-xs font-bold text-progress">
-                            Recuperado
-                            {item.recoveredDayLabel
-                              ? ` · ${item.recoveredDayLabel}`
-                              : ''}
-                          </span>
-                        ) : null}
-                        {item.editedAt ? (
-                          <span className="inline-flex rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-fg">
-                            Editado
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-1 text-sm text-muted">
-                        {item.completedExercises}/{item.totalExercises} ejercicios ·{' '}
-                        {item.totalSetsCompleted} series · {formatDuration(item.durationMs)}
-                      </p>
-                    </div>
-                    <span className="text-2xl text-muted" aria-hidden>
-                      ›
-                    </span>
-                  </div>
-                </Link>
-                <CopyCoachMessageButton summary={item} fullWidth />
-              </Card>
-            </li>
-          ))}
-        </ul>
-      )}
+      <HistoryList />
     </div>
   )
 }

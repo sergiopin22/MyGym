@@ -411,6 +411,16 @@ export async function exportAndMarkBackup(pretty = true): Promise<string> {
   return json
 }
 
+function backupIncludesTreadmillSessions(raw: unknown): boolean {
+  if (!raw || typeof raw !== 'object') return false
+  const data = raw as Partial<MiGymBackup>
+  return (
+    typeof data.version === 'number' &&
+    data.version >= 5 &&
+    Array.isArray(data.treadmillSessions)
+  )
+}
+
 export async function importFullBackup(raw: unknown): Promise<{
   routines: number
   sessions: number
@@ -419,9 +429,14 @@ export async function importFullBackup(raw: unknown): Promise<{
   bodyCheckIns: number
   constancyGoals: number
   treadmillSessions: number
+  preservedTreadmillSessions: number
   restoredPreferences: boolean
 }> {
   const backup = parseBackup(raw)
+  const restoreTreadmill = backupIncludesTreadmillSessions(raw)
+  const preservedTreadmillSessions = restoreTreadmill
+    ? 0
+    : await db.treadmillSessions.count()
 
   let images: Array<{
     id: string
@@ -460,19 +475,18 @@ export async function importFullBackup(raw: unknown): Promise<{
   }
 
   try {
-    await db.transaction(
-      'rw',
-      [
-        db.routines,
-        db.sessions,
-        db.improvements,
-        db.exerciseImages,
-        db.bodyCheckIns,
-        db.bodyCheckInPhotos,
-        db.constancyGoals,
-        db.treadmillSessions,
-      ],
-      async () => {
+    const storeScope = [
+      db.routines,
+      db.sessions,
+      db.improvements,
+      db.exerciseImages,
+      db.bodyCheckIns,
+      db.bodyCheckInPhotos,
+      db.constancyGoals,
+      ...(restoreTreadmill ? [db.treadmillSessions] : []),
+    ]
+
+    await db.transaction('rw', storeScope, async () => {
         await db.routines.clear()
         await db.sessions.clear()
         await db.improvements.clear()
@@ -480,7 +494,9 @@ export async function importFullBackup(raw: unknown): Promise<{
         await db.bodyCheckIns.clear()
         await db.bodyCheckInPhotos.clear()
         await db.constancyGoals.clear()
-        await db.treadmillSessions.clear()
+        if (restoreTreadmill) {
+          await db.treadmillSessions.clear()
+        }
 
         if (backup.routines.length > 0) await db.routines.bulkAdd(backup.routines)
         if (backup.sessions.length > 0) await db.sessions.bulkAdd(backup.sessions)
@@ -495,7 +511,10 @@ export async function importFullBackup(raw: unknown): Promise<{
         if ((backup.constancyGoals?.length ?? 0) > 0) {
           await db.constancyGoals.bulkAdd(backup.constancyGoals!)
         }
-        if ((backup.treadmillSessions?.length ?? 0) > 0) {
+        if (
+          restoreTreadmill &&
+          (backup.treadmillSessions?.length ?? 0) > 0
+        ) {
           await db.treadmillSessions.bulkAdd(backup.treadmillSessions!)
         }
       },
@@ -523,7 +542,8 @@ export async function importFullBackup(raw: unknown): Promise<{
     images: images.length,
     bodyCheckIns: backup.bodyCheckIns?.length ?? 0,
     constancyGoals: backup.constancyGoals?.length ?? 0,
-    treadmillSessions: backup.treadmillSessions?.length ?? 0,
+    treadmillSessions: restoreTreadmill ? (backup.treadmillSessions?.length ?? 0) : 0,
+    preservedTreadmillSessions,
     restoredPreferences,
   }
 }

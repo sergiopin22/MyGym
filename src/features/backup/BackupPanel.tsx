@@ -23,7 +23,7 @@ export function BackupPanel() {
       const json = await exportAndMarkBackup(true)
       downloadTextFile(backupFilename(), json)
       setMessage(
-        'Respaldo descargado (rutina, historial, PRs, meta, tema y avatar). Guárdalo en iCloud, Drive o correo.',
+        'Respaldo descargado (rutina, historial, PRs, meta, caminadora, tema y avatar). Guárdalo en iCloud, Drive o correo.',
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo exportar')
@@ -51,7 +51,7 @@ export function BackupPanel() {
     if (!file) return
 
     const ok = window.confirm(
-      'Importar respaldo reemplazará tu rutina, historial y progreso actual en este dispositivo.\n\n¿Continuar?',
+      'Importar respaldo reemplazará tu rutina, historial y progreso actual en este dispositivo.\n\nSi el archivo es antiguo (sin caminadora), tus sesiones de caminadora actuales se conservarán.\n\n¿Continuar?',
     )
     if (!ok) return
 
@@ -63,8 +63,14 @@ export function BackupPanel() {
       const text = await file.text()
       const parsed: unknown = JSON.parse(text)
       const stats = await importFullBackup(parsed)
+      const treadmillPart =
+        stats.treadmillSessions > 0
+          ? `${stats.treadmillSessions} caminadora(s)`
+          : stats.preservedTreadmillSessions > 0
+            ? `${stats.preservedTreadmillSessions} caminadora(s) conservada(s)`
+            : null
       setMessage(
-        `Respaldo restaurado: ${stats.routines} rutina(s), ${stats.sessions} sesión(es), ${stats.constancyGoals} meta(s), ${stats.treadmillSessions} caminadora(s), ${stats.images} imagen(es)${stats.restoredPreferences ? ', tema y avatar' : ''}.`,
+        `Respaldo restaurado: ${stats.routines} rutina(s), ${stats.sessions} sesión(es), ${stats.constancyGoals} meta(s)${treadmillPart ? `, ${treadmillPart}` : ''}, ${stats.images} imagen(es)${stats.restoredPreferences ? ', tema y avatar' : ''}.`,
       )
       window.setTimeout(() => window.location.reload(), 1200)
     } catch (err) {
@@ -80,7 +86,7 @@ export function BackupPanel() {
       <div>
         <h2 className="font-display text-lg font-bold">Respaldo y recuperación</h2>
         <p className="mt-1 text-sm text-muted">
-          Exporta rutina, historial, PRs, meta, tema, avatar e imágenes. Si
+          Exporta rutina, historial, PRs, meta, caminadora, tema, avatar e imágenes. Si
           cambias de celular o borras datos, importa el archivo para recuperar
           todo.
         </p>
