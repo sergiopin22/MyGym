@@ -1,14 +1,7 @@
 import { useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Outlet } from 'react-router-dom'
 import { isBackupReminderDue } from '../db/backup'
 import { AppDrawer } from './AppDrawer'
-
-function pageTitle(pathname: string): string {
-  if (pathname.startsWith('/rutinas')) return 'Rutinas'
-  if (pathname.startsWith('/historial')) return 'Historial'
-  if (pathname.startsWith('/progreso')) return 'Ajustes'
-  return 'Mi Gym'
-}
 
 function MenuIcon() {
   return (
@@ -24,36 +17,33 @@ function MenuIcon() {
 }
 
 export function AppLayout() {
-  const location = useLocation()
   const [drawerOpen, setDrawerOpen] = useState(false)
   const showBackupBadge = isBackupReminderDue()
-  const isHome = location.pathname === '/'
-  const title = pageTitle(location.pathname)
 
   return (
     <div className="mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden">
-      <header className="app-safe-top z-40 flex shrink-0 items-center gap-2 border-b border-line bg-surface-elevated px-3 pb-2.5 pt-2">
+      <main className="app-safe-top min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">
+        <Outlet />
+      </main>
+
+      <footer
+        className="shrink-0 border-t border-line bg-surface-elevated px-4 pt-2 app-safe-bottom"
+        style={{ paddingBottom: 'max(0.6rem, env(safe-area-inset-bottom))' }}
+      >
         <button
           type="button"
           onClick={() => setDrawerOpen(true)}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-fg transition hover:bg-brand-soft active:scale-95"
+          className="relative flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-chrome text-sm font-semibold text-chrome-fg transition active:scale-[0.98] hover:opacity-90"
           aria-label="Abrir menú"
           aria-expanded={drawerOpen}
         >
           <MenuIcon />
+          Menú
+          {showBackupBadge ? (
+            <span className="absolute right-3 top-2 h-2 w-2 rounded-full bg-danger" />
+          ) : null}
         </button>
-        {!isHome ? (
-          <h1 className="min-w-0 flex-1 truncate font-display text-lg font-bold tracking-tight text-fg">
-            {title}
-          </h1>
-        ) : (
-          <span className="flex-1" aria-hidden />
-        )}
-      </header>
-
-      <main className="app-safe-bottom min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 pb-4 pt-5">
-        <Outlet />
-      </main>
+      </footer>
 
       <AppDrawer
         open={drawerOpen}

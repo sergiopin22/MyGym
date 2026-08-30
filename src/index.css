@@ -52,7 +52,7 @@
   }
 
   .app-safe-bottom {
-    padding-bottom: max(1rem, var(--sab, env(safe-area-inset-bottom, 0px)));
+    padding-bottom: max(0.6rem, var(--sab, env(safe-area-inset-bottom, 0px)));
   }
 
   .app-shell-header {
