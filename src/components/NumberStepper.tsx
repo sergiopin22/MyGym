@@ -44,6 +44,7 @@ export function NumberStepper({
   }, [value, focused])
 
   function bump(delta: number) {
+    if (rest.disabled) return
     const next = clamp(
       Math.round((numeric + delta) * 100) / 100,
       lo,
@@ -84,7 +85,8 @@ export function NumberStepper({
       <div className="flex items-center gap-2">
         <button
           type="button"
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-3xl font-bold leading-none text-fg active:scale-95"
+          disabled={rest.disabled}
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-3xl font-bold leading-none text-fg active:scale-95 disabled:opacity-40"
           onClick={() => bump(-step)}
           aria-label={`Bajar ${label}`}
         >
@@ -124,7 +126,8 @@ export function NumberStepper({
         />
         <button
           type="button"
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-3xl font-bold leading-none text-fg active:scale-95"
+          disabled={rest.disabled}
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand-soft text-3xl font-bold leading-none text-fg active:scale-95 disabled:opacity-40"
           onClick={() => bump(step)}
           aria-label={`Subir ${label}`}
         >

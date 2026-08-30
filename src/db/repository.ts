@@ -847,6 +847,7 @@ export async function saveCompletedSessionEdits(
         reps: s.reps,
         rir: s.rir,
         completed: s.completed,
+        withStraps: s.withStraps || undefined,
         completedAt: s.completed
           ? s.completedAt ?? Date.now()
           : undefined,

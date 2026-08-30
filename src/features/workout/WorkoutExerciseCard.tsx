@@ -14,29 +14,119 @@ import {
 import type {
   ExerciseLog,
   LastExercisePerformance,
+  SetLog,
   WorkoutSession,
 } from '../../types'
 import { openTutorial } from '../exercises/media'
 import { WEIGHT_STEP, WEIGHT_UNIT } from '../../utils/weight'
 import { supportsStrapsTracking, formatStrapsSuffix } from '../../utils/straps'
+import { computeExerciseStatus } from '../../utils/workout'
 
 function setHasData(set: { weight: number | null; reps: number | null }) {
   return set.weight != null && set.reps != null
+}
+
+type SetPatch = Partial<{
+  weight: number | null
+  reps: number | null
+  rir: number | null
+  completed: boolean
+  withStraps: boolean
+}>
+
+function applyLocalSetPatch(
+  session: WorkoutSession,
+  exerciseId: string,
+  setId: string,
+  patch: SetPatch,
+): WorkoutSession {
+  const exercises = session.exercises.map((ex) => {
+    if (ex.id !== exerciseId) return ex
+    const sets = ex.sets.map((s) => {
+      if (s.id !== setId) return s
+      const next: SetLog = {
+        ...s,
+        ...patch,
+        withStraps:
+          patch.withStraps === undefined
+            ? s.withStraps
+            : patch.withStraps || undefined,
+        completedAt:
+          patch.completed === true
+            ? Date.now()
+            : patch.completed === false
+              ? undefined
+              : s.completedAt,
+      }
+      return next
+    })
+    const status = computeExerciseStatus(sets)
+    return {
+      ...ex,
+      sets,
+      status,
+      completedAt:
+        status === 'completed' && ex.status !== 'completed'
+          ? Date.now()
+          : ex.completedAt,
+    }
+  })
+  return { ...session, exercises }
+}
+
+function applyLocalExerciseStraps(
+  session: WorkoutSession,
+  exerciseId: string,
+  withStraps: boolean,
+): WorkoutSession {
+  const exercises = session.exercises.map((ex) => {
+    if (ex.id !== exerciseId) return ex
+    return {
+      ...ex,
+      sets: ex.sets.map((s) => ({
+        ...s,
+        withStraps: withStraps || undefined,
+      })),
+    }
+  })
+  return { ...session, exercises }
+}
+
+function applyLocalNote(
+  session: WorkoutSession,
+  exerciseId: string,
+  note: string,
+): WorkoutSession {
+  const trimmed = note.trim()
+  return {
+    ...session,
+    exercises: session.exercises.map((ex) =>
+      ex.id === exerciseId
+        ? { ...ex, note: trimmed ? trimmed : undefined }
+        : ex,
+    ),
+  }
 }
 
 interface WorkoutExerciseCardProps {
   session: WorkoutSession
   exercise: ExerciseLog
   onSessionChange: (session: WorkoutSession) => void
+  /** Edición de sesión completada: misma UI, sin escribir a DB hasta Guardar */
+  editMode?: boolean
 }
 
 export function WorkoutExerciseCard({
   session,
   exercise,
   onSessionChange,
+  editMode = false,
 }: WorkoutExerciseCardProps) {
+  const canEdit = editMode || session.status === 'in_progress'
   const [expandedLast, setExpandedLast] = useState(false)
-  const [last, setLast] = useState<LastExercisePerformance | null | undefined>(undefined)
+  const [last, setLast] = useState<LastExercisePerformance | null | undefined>(
+    undefined,
+  )
   const [loadingLast, setLoadingLast] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -64,16 +154,7 @@ export function WorkoutExerciseCard({
     if (next && last === undefined) await loadLast()
   }
 
-  async function patchSet(
-    setId: string,
-    patch: Partial<{
-      weight: number | null
-      reps: number | null
-      rir: number | null
-      completed: boolean
-      withStraps: boolean
-    }>,
-  ) {
+  async function patchSet(setId: string, patch: SetPatch) {
     if (patch.completed === true) {
       const current = exercise.sets.find((s) => s.id === setId)
       if (!current) return
@@ -85,6 +166,10 @@ export function WorkoutExerciseCard({
       }
     }
     setError(null)
+    if (editMode) {
+      onSessionChange(applyLocalSetPatch(session, exercise.id, setId, patch))
+      return
+    }
     const updated = await updateSet(session.id, exercise.id, setId, patch)
     onSessionChange(updated)
   }
@@ -93,6 +178,34 @@ export function WorkoutExerciseCard({
     setBusy(true)
     setError(null)
     try {
+      if (editMode) {
+        const perf =
+          last === undefined
+            ? await getLastExercisePerformance(exercise.name, session.id)
+            : last
+        if (last === undefined) setLast(perf ?? null)
+        if (!perf) throw new Error('No hay historial previo para este ejercicio')
+        const weights = perf.sets.map((s) => s.weight)
+        const straps = perf.sets.map((s) => s.withStraps)
+        const exercises = session.exercises.map((ex) => {
+          if (ex.id !== exercise.id) return ex
+          const sets = ex.sets.map((s, index) => ({
+            ...s,
+            weight: weights[index] ?? weights[weights.length - 1] ?? null,
+            reps: null,
+            rir: null,
+            withStraps:
+              straps[index] ?? straps[straps.length - 1] ?? undefined,
+          }))
+          return {
+            ...ex,
+            sets,
+            status: computeExerciseStatus(sets),
+          }
+        })
+        onSessionChange({ ...session, exercises })
+        return
+      }
       const updated = await applyPreviousWeights(session.id, exercise.id)
       onSessionChange(updated)
       if (last === undefined) await loadLast()
@@ -104,12 +217,16 @@ export function WorkoutExerciseCard({
   }
 
   async function saveNote() {
-    if (session.status !== 'in_progress') return
+    if (!canEdit) return
     const next = noteDraft.trim()
     const current = (exercise.note ?? '').trim()
     if (next === current) return
     setError(null)
     try {
+      if (editMode) {
+        onSessionChange(applyLocalNote(session, exercise.id, next))
+        return
+      }
       const updated = await updateExerciseNote(session.id, exercise.id, next)
       onSessionChange(updated)
     } catch (err) {
@@ -118,9 +235,15 @@ export function WorkoutExerciseCard({
   }
 
   async function setAllStraps(withStraps: boolean) {
-    if (session.status !== 'in_progress') return
+    if (!canEdit) return
     setError(null)
     try {
+      if (editMode) {
+        onSessionChange(
+          applyLocalExerciseStraps(session, exercise.id, withStraps),
+        )
+        return
+      }
       const updated = await setExerciseStraps(session.id, exercise.id, withStraps)
       onSessionChange(updated)
     } catch (err) {
@@ -141,19 +264,25 @@ export function WorkoutExerciseCard({
         />
         <div className="min-w-0 flex-1 space-y-1">
           <div className="flex flex-wrap items-start justify-between gap-2">
-            <h2 className="font-display text-lg font-bold leading-tight">{exercise.name}</h2>
+            <h2 className="font-display text-lg font-bold leading-tight">
+              {exercise.name}
+            </h2>
             <StatusBadge status={exercise.status} />
           </div>
           <p className="text-sm text-muted">
-            Meta: {exercise.targetSets}×{exercise.targetReps.min}–{exercise.targetReps.max} · RIR{' '}
-            {exercise.targetRir}
+            Meta: {exercise.targetSets}×{exercise.targetReps.min}–
+            {exercise.targetReps.max} · RIR {exercise.targetRir}
           </p>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
         {exercise.videoUrl ? (
-          <Button variant="ghost" className="min-h-11 px-3 text-sm" onClick={() => openTutorial(exercise.videoUrl)}>
+          <Button
+            variant="ghost"
+            className="min-h-11 px-3 text-sm"
+            onClick={() => openTutorial(exercise.videoUrl)}
+          >
             Ver tutorial
           </Button>
         ) : null}
@@ -164,15 +293,17 @@ export function WorkoutExerciseCard({
         >
           {expandedLast ? 'Ocultar última vez' : 'Ver última vez'}
         </Button>
-        <Button
-          variant="secondary"
-          className="min-h-11 px-3 text-sm"
-          disabled={busy}
-          onClick={() => void usePreviousWeight()}
-        >
-          Usar peso anterior
-        </Button>
-        {showStraps && session.status === 'in_progress' ? (
+        {canEdit ? (
+          <Button
+            variant="secondary"
+            className="min-h-11 px-3 text-sm"
+            disabled={busy}
+            onClick={() => void usePreviousWeight()}
+          >
+            Usar peso anterior
+          </Button>
+        ) : null}
+        {showStraps && canEdit ? (
           <>
             <Button
               variant="secondary"
@@ -207,10 +338,14 @@ export function WorkoutExerciseCard({
               </p>
               <ul className="space-y-1">
                 {last.sets.map((s) => (
-                  <li key={s.setNumber} className="flex justify-between text-muted">
+                  <li
+                    key={s.setNumber}
+                    className="flex justify-between text-muted"
+                  >
                     <span>Serie {s.setNumber}</span>
                     <span className="font-medium text-ink">
-                      {s.weight ?? '—'} {WEIGHT_UNIT} · {s.reps ?? '—'} reps · RIR {s.rir ?? '—'}
+                      {s.weight ?? '—'} {WEIGHT_UNIT} · {s.reps ?? '—'} reps ·
+                      RIR {s.rir ?? '—'}
                       {formatStrapsSuffix(s.withStraps)}
                     </span>
                   </li>
@@ -225,7 +360,7 @@ export function WorkoutExerciseCard({
 
       {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
-      {session.status === 'in_progress' ? (
+      {canEdit ? (
         <div className="space-y-2">
           {!noteOpen && !noteDraft ? (
             <Button
@@ -265,13 +400,15 @@ export function WorkoutExerciseCard({
             key={set.id}
             className={[
               'space-y-3 rounded-2xl border p-3',
-              set.completed ? 'border-accent/40 bg-success-soft/60' : 'border-line bg-surface',
+              set.completed
+                ? 'border-accent/40 bg-success-soft/60'
+                : 'border-line bg-surface',
             ].join(' ')}
           >
             <div className="flex items-center justify-between gap-2">
               <p className="font-display font-bold">Serie {set.setNumber}</p>
               <div className="flex items-center gap-2">
-                {showStraps && session.status === 'in_progress' ? (
+                {showStraps && canEdit ? (
                   <StrapsToggle
                     active={Boolean(set.withStraps)}
                     onToggle={() =>
@@ -284,7 +421,9 @@ export function WorkoutExerciseCard({
                   </span>
                 ) : null}
                 {set.completed ? (
-                  <span className="text-sm font-semibold text-accent-strong">Completada</span>
+                  <span className="text-sm font-semibold text-accent-strong">
+                    Completada
+                  </span>
                 ) : null}
               </div>
             </div>
@@ -296,7 +435,7 @@ export function WorkoutExerciseCard({
                 step={WEIGHT_STEP}
                 min={0}
                 value={set.weight}
-                disabled={session.status !== 'in_progress'}
+                disabled={!canEdit}
                 onChange={(weight) => void patchSet(set.id, { weight })}
               />
               <NumberStepper
@@ -304,7 +443,7 @@ export function WorkoutExerciseCard({
                 step={1}
                 min={0}
                 value={set.reps}
-                disabled={session.status !== 'in_progress'}
+                disabled={!canEdit}
                 onChange={(reps) => void patchSet(set.id, { reps })}
               />
               <NumberStepper
@@ -313,17 +452,19 @@ export function WorkoutExerciseCard({
                 min={0}
                 max={10}
                 value={set.rir}
-                disabled={session.status !== 'in_progress'}
+                disabled={!canEdit}
                 onChange={(rir) => void patchSet(set.id, { rir })}
               />
             </div>
 
-            {session.status === 'in_progress' ? (
+            {canEdit ? (
               <Button
                 fullWidth
                 variant={set.completed ? 'ghost' : 'primary'}
                 disabled={!set.completed && !setHasData(set)}
-                onClick={() => void patchSet(set.id, { completed: !set.completed })}
+                onClick={() =>
+                  void patchSet(set.id, { completed: !set.completed })
+                }
               >
                 {set.completed
                   ? 'Desmarcar serie'

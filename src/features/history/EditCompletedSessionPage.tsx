@@ -1,34 +1,32 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../../components/Button'
-import { NumberStepper } from '../../components/NumberStepper'
+import { ProgressBar } from '../../components/ProgressBar'
 import {
   getSessionById,
   saveCompletedSessionEdits,
 } from '../../db/repository'
-import type { ExerciseLog, SetLog, WorkoutSession } from '../../types'
-import { WEIGHT_STEP, WEIGHT_UNIT } from '../../utils/weight'
+import type { WorkoutSession } from '../../types'
 import { getIncompleteWorkoutParts } from '../../utils/workout'
-import { StrapsToggle } from '../../components/StrapsToggle'
 import { supportsStrapsTracking } from '../../utils/straps'
+import { WorkoutExerciseCard } from '../workout/WorkoutExerciseCard'
 
-function cloneExercises(exercises: ExerciseLog[]): ExerciseLog[] {
-  return exercises.map((ex) => ({
-    ...ex,
-    targetReps: { ...ex.targetReps },
-    sets: ex.sets.map((s) => ({ ...s })),
-  }))
-}
-
-function setHasData(set: Pick<SetLog, 'weight' | 'reps'>) {
-  return set.weight != null && set.reps != null
+function cloneSession(session: WorkoutSession): WorkoutSession {
+  return {
+    ...session,
+    muscleGroups: [...session.muscleGroups],
+    exercises: session.exercises.map((ex) => ({
+      ...ex,
+      targetReps: { ...ex.targetReps },
+      sets: ex.sets.map((s) => ({ ...s })),
+    })),
+  }
 }
 
 export function EditCompletedSessionPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
-  const [original, setOriginal] = useState<WorkoutSession | null>(null)
-  const [exercises, setExercises] = useState<ExerciseLog[]>([])
+  const [draft, setDraft] = useState<WorkoutSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -47,8 +45,7 @@ export function EditCompletedSessionPage() {
           setError('Solo se pueden editar entrenamientos ya completados.')
           return
         }
-        setOriginal(s)
-        setExercises(cloneExercises(s.exercises))
+        setDraft(cloneSession(s))
       })
       .catch((err: unknown) => {
         if (alive) {
@@ -63,78 +60,41 @@ export function EditCompletedSessionPage() {
     }
   }, [sessionId])
 
-  const sorted = useMemo(
-    () => [...exercises].sort((a, b) => a.order - b.order),
-    [exercises],
+  const exercises = useMemo(
+    () =>
+      draft ? [...draft.exercises].sort((a, b) => a.order - b.order) : [],
+    [draft],
   )
 
-  function patchSet(
-    exerciseId: string,
-    setId: string,
-    patch: Partial<Pick<SetLog, 'weight' | 'reps' | 'rir' | 'completed' | 'withStraps'>>,
-  ) {
-    setError(null)
-    setExercises((prev) =>
-      prev.map((ex) => {
-        if (ex.id !== exerciseId) return ex
-        const sets = ex.sets.map((s) => {
-          if (s.id !== setId) return s
-          const next = { ...s, ...patch }
-          if (patch.completed === true && !setHasData(next)) {
-            return s
-          }
-          return next
-        })
-        return { ...ex, sets }
-      }),
-    )
-  }
+  const completedCount = exercises.filter((e) => e.status === 'completed').length
 
-  function setStrapsForExercise(exerciseId: string, withStraps: boolean) {
-    if (!original) return
-    setError(null)
-    setExercises((prev) =>
-      prev.map((ex) => {
-        if (ex.id !== exerciseId) return ex
-        if (!supportsStrapsTracking(ex.name, original.muscleGroups)) return ex
-        return {
-          ...ex,
-          sets: ex.sets.map((s) => ({
-            ...s,
-            withStraps: withStraps || undefined,
-          })),
-        }
-      }),
-    )
-  }
-
-  function setStrapsForAllBack(withStraps: boolean) {
-    if (!original) return
-    setError(null)
-    setExercises((prev) =>
-      prev.map((ex) => {
-        if (!supportsStrapsTracking(ex.name, original.muscleGroups)) return ex
-        return {
-          ...ex,
-          sets: ex.sets.map((s) => ({
-            ...s,
-            withStraps: withStraps || undefined,
-          })),
-        }
-      }),
-    )
-  }
-
-  const hasBackStrapsExercises = original
-    ? sorted.some((ex) =>
-        supportsStrapsTracking(ex.name, original.muscleGroups),
+  const hasBackStrapsExercises = draft
+    ? exercises.some((ex) =>
+        supportsStrapsTracking(ex.name, draft.muscleGroups),
       )
     : false
 
+  function setStrapsForAllBack(withStraps: boolean) {
+    if (!draft) return
+    setError(null)
+    setDraft({
+      ...draft,
+      exercises: draft.exercises.map((ex) => {
+        if (!supportsStrapsTracking(ex.name, draft.muscleGroups)) return ex
+        return {
+          ...ex,
+          sets: ex.sets.map((s) => ({
+            ...s,
+            withStraps: withStraps || undefined,
+          })),
+        }
+      }),
+    })
+  }
+
   async function handleSave() {
-    if (!sessionId || !original) return
-    const draftSession = { ...original, exercises }
-    const leftover = getIncompleteWorkoutParts(draftSession)
+    if (!sessionId || !draft) return
+    const leftover = getIncompleteWorkoutParts(draft)
     if (leftover.incompleteSets > 0) {
       const preview = leftover.details.slice(0, 4).join('\n')
       setError(
@@ -154,7 +114,7 @@ export function EditCompletedSessionPage() {
     setSaving(true)
     setError(null)
     try {
-      await saveCompletedSessionEdits(sessionId, exercises)
+      await saveCompletedSessionEdits(sessionId, draft.exercises)
       navigate(`/historial/${sessionId}`, { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar')
@@ -165,15 +125,15 @@ export function EditCompletedSessionPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-lg px-4 pt-8">
+      <div className="mx-auto min-h-dvh max-w-lg px-4 pt-8">
         <p className="text-muted">Cargando sesión…</p>
       </div>
     )
   }
 
-  if (!original) {
+  if (!draft) {
     return (
-      <div className="mx-auto max-w-lg space-y-3 px-4 pt-8">
+      <div className="mx-auto min-h-dvh max-w-lg space-y-3 px-4 pt-8">
         <p className="text-danger">{error ?? 'Sesión no encontrada'}</p>
         <Link to="/historial" className="font-semibold text-brand underline">
           Volver al historial
@@ -183,21 +143,40 @@ export function EditCompletedSessionPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-dvh max-w-lg flex-col px-4 pb-10 pt-[max(1rem,env(safe-area-inset-top))]">
-      <header className="shrink-0 space-y-2 border-b border-line py-3">
-        <Link
-          to={`/historial/${original.id}`}
-          className="text-sm font-semibold text-muted hover:text-ink"
-        >
-          ← Cancelar
-        </Link>
-        <h1 className="font-display text-2xl font-extrabold tracking-tight">
-          Editar entrenamiento
-        </h1>
-        <p className="text-sm text-muted">{original.dayLabel}</p>
+    <div className="mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+      <header className="shrink-0 space-y-3 border-b border-line py-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <Link
+              to={`/historial/${draft.id}`}
+              className="text-sm font-semibold text-muted hover:text-ink"
+            >
+              ← Cancelar
+            </Link>
+            <h1 className="font-display text-2xl font-extrabold tracking-tight">
+              Editar · {draft.dayLabel}
+            </h1>
+            {draft.isRecovery ? (
+              <span className="mt-1 inline-flex rounded-full bg-progress-soft px-2.5 py-1 text-xs font-bold text-progress">
+                Recuperado
+                {draft.recoveredDayLabel
+                  ? ` · ${draft.recoveredDayLabel}`
+                  : ''}
+              </span>
+            ) : null}
+            <p className="text-sm text-muted">
+              {completedCount} de {exercises.length} ejercicios · misma vista
+              que el entrenamiento
+            </p>
+          </div>
+        </div>
+        <ProgressBar
+          value={completedCount}
+          max={Math.max(exercises.length, 1)}
+        />
         <p className="rounded-2xl bg-brand-soft px-3 py-2 text-xs text-fg">
-          Corrige peso, reps, RIR y straps en espalda. No cambia el día ni la meta
-          de constancia. Al guardar, el historial y los PR se actualizan.
+          Corrige peso, reps, RIR y straps. No cambia el día ni la meta. Los PR
+          se actualizan al guardar.
         </p>
         {hasBackStrapsExercises ? (
           <div className="flex flex-wrap gap-2">
@@ -221,129 +200,46 @@ export function EditCompletedSessionPage() {
         ) : null}
       </header>
 
-      <div className="min-h-0 flex-1 space-y-4 overflow-y-auto py-4">
-        {sorted.map((exercise) => {
-          const showStraps = supportsStrapsTracking(
-            exercise.name,
-            original.muscleGroups,
-          )
-          return (
-          <article
-            key={exercise.id}
-            className="space-y-3 rounded-3xl border border-line bg-surface-elevated p-4"
+      <div
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4"
+        style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+      >
+        <div className="space-y-4">
+          {exercises.map((exercise) => (
+            <WorkoutExerciseCard
+              key={exercise.id}
+              session={draft}
+              exercise={exercise}
+              editMode
+              onSessionChange={setDraft}
+            />
+          ))}
+        </div>
+
+        {error ? (
+          <p className="mt-4 text-sm font-medium text-danger">{error}</p>
+        ) : null}
+
+        <div className="mt-6 space-y-2">
+          <Button
+            fullWidth
+            disabled={saving}
+            onClick={() => void handleSave()}
           >
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <h2 className="font-display text-lg font-bold">{exercise.name}</h2>
-              {showStraps ? (
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="secondary"
-                    className="min-h-9 px-2.5 text-xs"
-                    onClick={() => setStrapsForExercise(exercise.id, true)}
-                  >
-                    Todas con straps
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="min-h-9 px-2.5 text-xs"
-                    onClick={() => setStrapsForExercise(exercise.id, false)}
-                  >
-                    Sin straps
-                  </Button>
-                </div>
-              ) : null}
-            </div>
-            <ul className="space-y-4">
-              {[...exercise.sets]
-                .sort((a, b) => a.setNumber - b.setNumber)
-                .map((set) => (
-                  <li key={set.id} className="space-y-2 rounded-2xl bg-surface p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-muted">
-                        Serie {set.setNumber}
-                        {set.completed ? ' · completada' : ''}
-                      </p>
-                      {showStraps ? (
-                        <StrapsToggle
-                          active={Boolean(set.withStraps)}
-                          onToggle={() =>
-                            patchSet(exercise.id, set.id, {
-                              withStraps: !set.withStraps,
-                            })
-                          }
-                        />
-                      ) : null}
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <NumberStepper
-                        label={`Peso (${WEIGHT_UNIT})`}
-                        step={WEIGHT_STEP}
-                        min={0}
-                        value={set.weight}
-                        onChange={(weight) =>
-                          patchSet(exercise.id, set.id, { weight })
-                        }
-                      />
-                      <NumberStepper
-                        label="Reps"
-                        step={1}
-                        min={0}
-                        value={set.reps}
-                        onChange={(reps) =>
-                          patchSet(exercise.id, set.id, { reps })
-                        }
-                      />
-                      <NumberStepper
-                        label="RIR"
-                        step={1}
-                        min={0}
-                        max={10}
-                        value={set.rir}
-                        onChange={(rir) =>
-                          patchSet(exercise.id, set.id, { rir })
-                        }
-                      />
-                    </div>
-                    <Button
-                      fullWidth
-                      variant={set.completed ? 'ghost' : 'secondary'}
-                      disabled={!set.completed && !setHasData(set)}
-                      onClick={() =>
-                        patchSet(exercise.id, set.id, {
-                          completed: !set.completed,
-                        })
-                      }
-                    >
-                      {set.completed
-                        ? 'Desmarcar serie'
-                        : setHasData(set)
-                          ? 'Marcar serie completada'
-                          : 'Coloca peso y reps'}
-                    </Button>
-                  </li>
-                ))}
-            </ul>
-          </article>
-          )
-        })}
-      </div>
-
-      {error ? (
-        <p className="pb-2 text-sm font-medium text-danger">{error}</p>
-      ) : null}
-
-      <div className="shrink-0 space-y-2 border-t border-line pt-3">
-        <Button fullWidth disabled={saving} onClick={() => void handleSave()}>
-          {saving ? 'Guardando…' : 'Guardar cambios'}
-        </Button>
-        <Button
-          fullWidth
-          variant="ghost"
-          disabled={saving}
-          onClick={() => navigate(`/historial/${original.id}`)}
-        >
-          Cancelar
-        </Button>
+            {saving ? 'Guardando…' : 'Guardar cambios'}
+          </Button>
+          <Button
+            fullWidth
+            variant="ghost"
+            disabled={saving}
+            onClick={() => navigate(`/historial/${draft.id}`)}
+          >
+            Cancelar
+          </Button>
+          <p className="text-center text-xs text-muted">
+            Los cambios no se guardan hasta que pulses Guardar.
+          </p>
+        </div>
       </div>
     </div>
   )
