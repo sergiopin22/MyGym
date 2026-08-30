@@ -90,18 +90,19 @@ export function AppLayout() {
         className="bottom-nav-shell bottom-nav-glass border-t border-line/80"
         aria-label="Navegación principal"
       >
-        {pillStyle ? (
-          <span
-            className="bottom-nav-pill pointer-events-none absolute top-2 h-14 rounded-2xl bg-brand-soft"
-            style={{
-              left: pillStyle.left,
-              width: pillStyle.width,
-            }}
-            aria-hidden
-          />
-        ) : null}
+        <div className="bottom-nav-inner">
+          {pillStyle ? (
+            <span
+              className="bottom-nav-pill pointer-events-none absolute top-2 h-14 rounded-2xl bg-brand-soft"
+              style={{
+                left: pillStyle.left,
+                width: pillStyle.width,
+              }}
+              aria-hidden
+            />
+          ) : null}
 
-        <ul className="relative grid grid-cols-5 items-end gap-0 px-1 pb-2 pt-2">
+          <ul className="relative grid grid-cols-5 items-end gap-0 px-1 pb-1.5 pt-2">
           {routeTabs.slice(0, 2).map((tab, index) => (
             <li key={tab.to}>
               <NavLink
@@ -211,6 +212,8 @@ export function AppLayout() {
             </button>
           </li>
         </ul>
+        </div>
+        <div className="bottom-nav-safe" aria-hidden />
       </nav>
 
       <MoreMenuSheet

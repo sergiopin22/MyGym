@@ -173,23 +173,41 @@
 }
 
 .bottom-nav-glass {
-  background: color-mix(in srgb, var(--color-surface-elevated) 88%, transparent);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: var(--color-surface-elevated);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
-/* Anclado al borde físico del iPhone; el fondo cubre el área del home indicator */
+/* Barra pegada al borde físico; fondo sólido (no transparente) hasta abajo */
 .bottom-nav-shell {
   position: fixed;
   right: 0;
   bottom: 0;
   left: 0;
   z-index: 40;
-  margin-inline: auto;
+  width: 100%;
+  background: var(--color-surface-elevated);
+}
+
+.bottom-nav-inner {
+  position: relative;
   width: 100%;
   max-width: 32rem;
-  padding-bottom: constant(safe-area-inset-bottom, 0px);
-  padding-bottom: env(safe-area-inset-bottom, 0px);
+  margin-inline: auto;
+}
+
+/* Relleno opaco bajo los tabs = home indicator del iPhone */
+.bottom-nav-safe {
+  width: 100%;
+  background: var(--color-surface-elevated);
+  height: constant(safe-area-inset-bottom, 0px);
+  height: env(safe-area-inset-bottom, 0px);
+}
+
+@media (display-mode: standalone) {
+  .bottom-nav-safe {
+    height: max(env(safe-area-inset-bottom, 0px), 20px);
+  }
 }
 
 .bottom-nav-pill {
@@ -212,13 +230,25 @@
 }
 
 .main-with-bottom-nav {
-  padding-bottom: calc(5.75rem + constant(safe-area-inset-bottom, 0px));
-  padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(4.5rem + constant(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (display-mode: standalone) {
+  .main-with-bottom-nav {
+    padding-bottom: calc(4.5rem + max(env(safe-area-inset-bottom, 0px), 20px));
+  }
 }
 
 .bottom-nav-toast {
-  bottom: calc(5.75rem + constant(safe-area-inset-bottom, 0px));
-  bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px));
+  bottom: calc(4.5rem + constant(safe-area-inset-bottom, 0px));
+  bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (display-mode: standalone) {
+  .bottom-nav-toast {
+    bottom: calc(4.5rem + max(env(safe-area-inset-bottom, 0px), 20px));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
