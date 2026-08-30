@@ -723,8 +723,8 @@ export async function setExerciseStraps(
 }
 
 /**
- * Copia el peso de la última vez a las series de hoy.
- * Deja reps y RIR vacíos (null).
+ * Copia el peso (y straps si aplica) de la última vez a las series de hoy.
+ * Deja reps y RIR vacíos y desmarca las series.
  */
 export async function applyPreviousWeights(
   sessionId: string,
@@ -743,11 +743,13 @@ export async function applyPreviousWeights(
   if (!last) throw new Error('No hay historial previo para este ejercicio')
 
   const weights = last.sets.map((s) => s.weight)
+  const straps = last.sets.map((s) => s.withStraps)
   const sets = exercise.sets.map((s, index) => ({
     ...s,
     weight: weights[index] ?? weights[weights.length - 1] ?? null,
     reps: null,
     rir: null,
+    withStraps: straps[index] ?? straps[straps.length - 1] ?? undefined,
     completed: false,
     completedAt: undefined,
   }))

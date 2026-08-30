@@ -6,6 +6,7 @@ function normalize(value: string): string {
     .replace(/\p{M}/gu, '')
 }
 
+/** Aislamientos de brazo en un día de espalda (no usan straps de agarre) */
 const ARM_ONLY_FRAGMENTS = [
   'curl',
   'biceps',
@@ -13,11 +14,15 @@ const ARM_ONLY_FRAGMENTS = [
   'predicador',
   'triceps',
   'tríceps',
-  'extension',
-  'extensión',
   'martillo',
   'concentracion',
   'concentración',
+  'extension de triceps',
+  'extensión de tríceps',
+  'extension de tríceps',
+  'extensión de triceps',
+  'triceps extension',
+  'tríceps extension',
 ]
 
 const BACK_EXERCISE_FRAGMENTS = [
@@ -48,9 +53,12 @@ export function supportsStrapsTracking(
   if (!hasBackDay) return false
 
   const name = normalize(exerciseName)
-  if (ARM_ONLY_FRAGMENTS.some((f) => name.includes(normalize(f)))) return false
+  // Espalda primero: "hiperextension" no debe caer en "extension" de brazos
   if (BACK_EXERCISE_FRAGMENTS.some((f) => name.includes(normalize(f)))) {
     return true
+  }
+  if (ARM_ONLY_FRAGMENTS.some((f) => name.includes(normalize(f)))) {
+    return false
   }
 
   return muscleGroups.length === 1

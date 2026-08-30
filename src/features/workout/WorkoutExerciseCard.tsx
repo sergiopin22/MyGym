@@ -196,11 +196,14 @@ export function WorkoutExerciseCard({
             rir: null,
             withStraps:
               straps[index] ?? straps[straps.length - 1] ?? undefined,
+            completed: false,
+            completedAt: undefined,
           }))
           return {
             ...ex,
             sets,
             status: computeExerciseStatus(sets),
+            completedAt: undefined,
           }
         })
         onSessionChange({ ...session, exercises })
