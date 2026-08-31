@@ -184,55 +184,6 @@
   .app-drawer-panel {
     animation: none;
   }
-
-  .home-quick-panel {
-    animation: none;
-  }
-}
-
-.home-quick-panel-root {
-  position: fixed;
-  inset: 0;
-  z-index: 75;
-}
-
-.home-quick-panel {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: var(--color-surface-elevated);
-}
-
-.home-quick-panel--history {
-  animation: home-panel-from-left 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-.home-quick-panel--prs {
-  animation: home-panel-from-right 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes home-panel-from-left {
-  from {
-    opacity: 0.7;
-    transform: translateX(-100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-@keyframes home-panel-from-right {
-  from {
-    opacity: 0.7;
-    transform: translateX(100%);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
 }
 
 @keyframes pr-pop-in {

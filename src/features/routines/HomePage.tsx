@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { HomeQuickPanel, type HomeQuickPanelType } from '../../app/HomeQuickPanel'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { ProgressBar } from '../../components/ProgressBar'
@@ -16,7 +15,6 @@ import { ConstancyGoalCard } from './ConstancyGoalCard'
 import { BrandAvatarButton } from './BrandAvatarButton'
 import { RestDayToggle } from './RestDayToggle'
 import { BackupReminderCard } from '../backup/BackupReminderCard'
-import { useEdgeSwipe } from '../../hooks/useEdgeSwipe'
 
 function sortDays(days: RoutineDay[]): RoutineDay[] {
   const order = [1, 2, 3, 4, 5, 6, 0]
@@ -40,14 +38,6 @@ export function HomePage() {
   const [locateToday, setLocateToday] = useState(false)
   const todayChipRef = useRef<HTMLButtonElement | null>(null)
   const todayLocatePlayedRef = useRef(false)
-  const [quickPanel, setQuickPanel] = useState<HomeQuickPanelType>(null)
-
-  useEdgeSwipe({
-    enabled: quickPanel === null,
-    onSwipeLeft: () => setQuickPanel('prs'),
-    onSwipeRight: () => setQuickPanel('history'),
-    excludeSelector: '[data-horizontal-scroll]',
-  })
 
   useEffect(() => {
     let alive = true
@@ -289,7 +279,6 @@ export function HomePage() {
         </p>
         <div
           className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
-          data-horizontal-scroll
         >
           {days.map((day) => {
             const active = day.weekday === (recoveryDay?.weekday ?? selectedWeekday)
@@ -496,8 +485,6 @@ export function HomePage() {
         ) : null}
       </Card>
       </div>
-
-      <HomeQuickPanel panel={quickPanel} onClose={() => setQuickPanel(null)} />
     </>
   )
 }
