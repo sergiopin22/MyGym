@@ -76,7 +76,8 @@
   html[data-theme='underground-blue'],
   html[data-theme='midnight'],
   html[data-theme='ippo'],
-  html[data-theme='asta'] {
+  html[data-theme='asta'],
+  html[data-theme='temach'] {
     color-scheme: dark;
   }
 
@@ -289,5 +290,35 @@
   .pr-pop-glow,
   .today-chip-locate {
     animation: none;
+  }
+}
+
+/* ─── Tema Temach (modo guerra) ─── */
+html[data-theme='temach'] .daily-quote-bar {
+  border-bottom-width: 3px;
+  border-bottom-color: var(--color-brand);
+  background: rgba(20, 6, 6, 0.95);
+}
+
+html[data-theme='temach'] .daily-quote-bar__label {
+  letter-spacing: 0.28em;
+}
+
+html[data-theme='temach'] .daily-quote-bar p:last-child {
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+html[data-theme='temach'] .pr-pop-glow {
+  animation-name: pr-trophy-glow-temach;
+}
+
+@keyframes pr-trophy-glow-temach {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px rgba(225, 6, 0, 0.45));
+  }
+  50% {
+    filter: drop-shadow(0 0 14px rgba(225, 6, 0, 0.95));
   }
 }

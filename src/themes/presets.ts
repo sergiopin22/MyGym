@@ -5,6 +5,7 @@ export type ThemeId =
   | 'midnight'
   | 'ippo'
   | 'asta'
+  | 'temach'
 
 export interface ThemePreset {
   id: ThemeId
@@ -210,6 +211,38 @@ export const THEMES: ThemePreset[] = [
       '--color-overlay': 'rgba(0, 0, 0, 0.82)',
       '--body-background':
         'url("/themes/asta-bg.svg") center top / cover no-repeat, radial-gradient(900px 500px at 50% 30%, rgba(34, 197, 94, 0.18) 0%, transparent 55%), radial-gradient(700px 400px at 90% 90%, rgba(74, 222, 128, 0.1) 0%, transparent 50%), linear-gradient(180deg, #030503 0%, #050505 50%, #080c0a 100%)',
+    },
+  },
+  {
+    id: 'temach',
+    name: 'Temach',
+    tagline: 'Modo guerra · negro · rojo · blanco',
+    swatch: ['#000000', '#e10600', '#ffffff'],
+    metaColor: '#000000',
+    vars: {
+      '--color-fg': '#ffffff',
+      '--color-fg-muted': '#8a8a8a',
+      '--color-chrome': '#ffffff',
+      '--color-chrome-fg': '#0a0a0a',
+      '--color-chrome-soft': '#e5e5e5',
+      '--color-surface': '#000000',
+      '--color-surface-elevated': '#111111',
+      '--color-line': '#2a2a2a',
+      '--color-brand': '#e10600',
+      '--color-brand-soft': '#1a0808',
+      '--color-brand-strong': '#b90500',
+      '--color-accent': '#e10600',
+      '--color-accent-strong': '#991b1b',
+      '--color-accent-fg': '#ffffff',
+      '--color-progress': '#ff4444',
+      '--color-success-soft': '#1a0a0a',
+      '--color-progress-soft': '#1f0a0a',
+      '--color-danger': '#ef4444',
+      '--color-danger-strong': '#b91c1c',
+      '--color-danger-fg': '#ffffff',
+      '--color-overlay': 'rgba(0, 0, 0, 0.85)',
+      '--body-background':
+        'url("/themes/temach-bg.svg") center top / cover no-repeat, radial-gradient(900px 480px at 50% -5%, rgba(225, 6, 0, 0.2) 0%, transparent 55%), radial-gradient(700px 400px at 100% 100%, rgba(127, 29, 29, 0.12) 0%, transparent 50%), linear-gradient(180deg, #000000 0%, #050505 50%, #0a0a0a 100%)',
     },
   },
 ]

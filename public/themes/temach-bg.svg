@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 390 844" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <radialGradient id="temach-glow" cx="50%" cy="18%" r="55%">
+      <stop offset="0%" stop-color="#e10600" stop-opacity="0.14"/>
+      <stop offset="45%" stop-color="#7f1d1d" stop-opacity="0.05"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="temach-floor" cx="50%" cy="100%" r="50%">
+      <stop offset="0%" stop-color="#e10600" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="temach-noise" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" stitchTiles="stitch"/>
+      <feColorMatrix type="matrix" values="0 0 0 0 0.03  0 0 0 0 0.01  0 0 0 0 0.01  0 0 0 0.04 0"/>
+    </filter>
+  </defs>
+  <rect width="390" height="844" fill="#000000"/>
+  <rect width="390" height="844" fill="url(#temach-glow)"/>
+  <rect width="390" height="844" fill="url(#temach-floor)"/>
+  <!-- Sigilo TE geométrico (marca de agua) -->
+  <g transform="translate(195 200)" opacity="0.07" fill="none" stroke="#ffffff" stroke-width="2">
+    <circle cx="0" cy="0" r="118"/>
+    <path d="M0 -102 L88 76 L-88 76 Z"/>
+    <path d="M-6 -72 L-6 48 M-6 -72 L34 -72 M-6 -18 L28 -18 M-6 48 L34 48" stroke-width="10" stroke-linecap="square"/>
+    <path d="M18 -72 L18 48 M18 -72 L58 -72 M18 -18 L52 -18 M18 48 L58 48" stroke-width="10" stroke-linecap="square"/>
+  </g>
+  <!-- Triángulos decorativos -->
+  <g fill="none" stroke="#e10600" stroke-width="1" opacity="0.08">
+    <path d="M0 120 L40 180 L-40 180 Z" transform="translate(40 520)"/>
+    <path d="M0 120 L40 180 L-40 180 Z" transform="translate(350 620)"/>
+    <path d="M0 120 L40 180 L-40 180 Z" transform="translate(320 180)"/>
+  </g>
+  <!-- Líneas tipo rack -->
+  <g stroke="#ffffff" stroke-width="1.5" opacity="0.06" stroke-linecap="square">
+    <path d="M24 320 H366"/>
+    <path d="M24 340 H366"/>
+    <path d="M24 360 H366"/>
+    <path d="M24 560 H366"/>
+    <path d="M24 580 H366"/>
+  </g>
+  <rect width="390" height="844" filter="url(#temach-noise)" opacity="0.45"/>
+</svg>

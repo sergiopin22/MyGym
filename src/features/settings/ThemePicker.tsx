@@ -10,7 +10,7 @@ export function ThemePicker() {
       <div>
         <h2 className="font-display text-lg font-bold">Temas visuales</h2>
         <p className="mt-1 text-sm text-muted">
-          Underground, Ippo, Asta, dark o clásico — elige tu vibe.
+          Underground, Temach, Ippo, Asta, dark o clásico — elige tu vibe.
         </p>
       </div>
 
