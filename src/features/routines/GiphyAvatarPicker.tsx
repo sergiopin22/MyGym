@@ -90,6 +90,14 @@ export function GiphyAvatarPicker({ selected, onSelect }: GiphyAvatarPickerProps
     }
   }, [configured])
 
+  const handleSearch = useCallback(() => {
+    void runSearch(query)
+    if (typeof document !== 'undefined') {
+      const active = document.activeElement
+      if (active instanceof HTMLElement) active.blur()
+    }
+  }, [query, runSearch])
+
   if (!configured) {
     return (
       <div className="rounded-2xl bg-brand-soft px-3 py-4 text-sm text-fg">
@@ -106,10 +114,10 @@ export function GiphyAvatarPicker({ selected, onSelect }: GiphyAvatarPickerProps
   return (
     <div className="space-y-3">
       <form
-        className="flex gap-2"
+        className="space-y-2"
         onSubmit={(e) => {
           e.preventDefault()
-          void runSearch(query)
+          handleSearch()
         }}
       >
         <input
@@ -121,11 +129,23 @@ export function GiphyAvatarPicker({ selected, onSelect }: GiphyAvatarPickerProps
           spellCheck={false}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              handleSearch()
+            }
+          }}
           placeholder="Buscar GIF (gym, anime, boxing…)"
-          className="input-ios-safe min-h-11 min-w-0 flex-1 rounded-xl border border-line bg-surface px-3 text-fg outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
+          className="input-ios-safe min-h-11 w-full rounded-xl border border-line bg-surface px-3 text-fg outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
         />
-        <Button type="submit" variant="secondary" disabled={loading}>
-          Buscar
+        <Button
+          type="button"
+          variant="secondary"
+          fullWidth
+          disabled={loading || !query.trim()}
+          onClick={handleSearch}
+        >
+          {loading ? 'Buscando…' : 'Buscar'}
         </Button>
       </form>
 
