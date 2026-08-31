@@ -23,7 +23,7 @@ export function BackupPanel() {
       const json = await exportAndMarkBackup(true)
       downloadTextFile(backupFilename(), json)
       setMessage(
-        'Respaldo descargado (rutina, historial, PRs, meta, caminadora, tema y avatar). Guárdalo en iCloud, Drive o correo.',
+        'Respaldo descargado (rutina, historial, PRs, meta, caminadora, tema, avatar clásico o GIF). Guárdalo en iCloud, Drive o correo.',
       )
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo exportar')
@@ -51,7 +51,7 @@ export function BackupPanel() {
     if (!file) return
 
     const ok = window.confirm(
-      'Importar respaldo reemplazará tu rutina, historial y progreso actual en este dispositivo.\n\nSi el archivo es antiguo (sin caminadora), tus sesiones de caminadora actuales se conservarán.\n\n¿Continuar?',
+      'Importar respaldo reemplazará tu rutina, historial y progreso actual en este dispositivo.\n\nSi el archivo es antiguo (sin caminadora), tus sesiones de caminadora actuales se conservarán.\n\nSi el archivo no trae GIF de avatar, tu GIF actual se conservará.\n\n¿Continuar?',
     )
     if (!ok) return
 
@@ -69,8 +69,14 @@ export function BackupPanel() {
           : stats.preservedTreadmillSessions > 0
             ? `${stats.preservedTreadmillSessions} caminadora(s) conservada(s)`
             : null
+      const avatarPart =
+        stats.customAvatar > 0
+          ? ', avatar GIF'
+          : stats.preservedCustomAvatar
+            ? ', GIF de avatar conservado'
+            : ''
       setMessage(
-        `Respaldo restaurado: ${stats.routines} rutina(s), ${stats.sessions} sesión(es), ${stats.constancyGoals} meta(s)${treadmillPart ? `, ${treadmillPart}` : ''}, ${stats.images} imagen(es)${stats.restoredPreferences ? ', tema y avatar' : ''}.`,
+        `Respaldo restaurado: ${stats.routines} rutina(s), ${stats.sessions} sesión(es), ${stats.constancyGoals} meta(s)${treadmillPart ? `, ${treadmillPart}` : ''}, ${stats.images} imagen(es)${stats.restoredPreferences ? ', tema y avatar clásico' : ''}${avatarPart}.`,
       )
       window.setTimeout(() => window.location.reload(), 1200)
     } catch (err) {

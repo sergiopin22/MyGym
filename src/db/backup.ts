@@ -14,10 +14,17 @@ import {
   setStoredBrandAvatarId,
   type BrandAvatarId,
 } from '../brand/avatars'
+import {
+  getStoredAvatarMode,
+  isAvatarMode,
+  setStoredAvatarMode,
+  type AvatarMode,
+} from '../brand/avatarMode'
 import { applyTheme, getStoredThemeId } from '../themes/applyTheme'
 import { isThemeId, type ThemeId } from '../themes/presets'
+import { CUSTOM_AVATAR_ID, getCustomAvatarRecord } from './customAvatar'
 
-export const BACKUP_VERSION = 5 as const
+export const BACKUP_VERSION = 6 as const
 export const BACKUP_APP_ID = 'mi-gym'
 export const LAST_BACKUP_STORAGE_KEY = 'mi-gym-last-backup-at'
 export const BACKUP_REMINDER_DAYS = 3
@@ -41,10 +48,20 @@ export interface StoredBodyPhoto {
 export interface BackupPreferences {
   themeId: ThemeId
   brandAvatarId: BrandAvatarId
+  /** preset | custom (GIF Giphy). Desde v6. */
+  avatarMode?: AvatarMode
+}
+
+export interface StoredCustomAvatar {
+  giphyId: string
+  title: string
+  mimeType: string
+  updatedAt: number
+  dataBase64: string
 }
 
 export interface MiGymBackup {
-  version: 1 | 2 | 3 | 4 | 5
+  version: 1 | 2 | 3 | 4 | 5 | 6
   app: typeof BACKUP_APP_ID
   exportedAt: number
   routines: Routine[]
@@ -58,6 +75,8 @@ export interface MiGymBackup {
   preferences?: BackupPreferences
   /** Sesiones de caminadora. Desde v5. */
   treadmillSessions?: TreadmillSession[]
+  /** Avatar GIF personalizado (Giphy). Desde v6. */
+  customAvatar?: StoredCustomAvatar
 }
 
 export function getLastBackupAt(): number | null {
@@ -227,10 +246,15 @@ function parsePreferences(raw: unknown): BackupPreferences | undefined {
     typeof p.brandAvatarId === 'string' && isBrandAvatarId(p.brandAvatarId)
       ? p.brandAvatarId
       : undefined
-  if (!themeId && !brandAvatarId) return undefined
+  const avatarMode =
+    typeof p.avatarMode === 'string' && isAvatarMode(p.avatarMode)
+      ? p.avatarMode
+      : undefined
+  if (!themeId && !brandAvatarId && !avatarMode) return undefined
   return {
     themeId: themeId ?? getStoredThemeId(),
     brandAvatarId: brandAvatarId ?? getStoredBrandAvatarId(),
+    avatarMode: avatarMode ?? getStoredAvatarMode(),
   }
 }
 
@@ -263,7 +287,8 @@ function parseBackup(raw: unknown): MiGymBackup {
     data.version !== 2 &&
     data.version !== 3 &&
     data.version !== 4 &&
-    data.version !== 5
+    data.version !== 5 &&
+    data.version !== 6
   ) {
     throw new Error('Versión de respaldo no compatible')
   }
@@ -284,6 +309,22 @@ function parseBackup(raw: unknown): MiGymBackup {
     ? data.treadmillSessions
     : []
   const preferences = parsePreferences(data.preferences)
+  const customAvatar =
+    data.customAvatar && typeof data.customAvatar === 'object'
+      ? (data.customAvatar as StoredCustomAvatar)
+      : undefined
+  if (customAvatar) {
+    validateStoredImage(
+      {
+        id: 'avatar',
+        mimeType: customAvatar.mimeType,
+        dataBase64: customAvatar.dataBase64,
+        updatedAt: customAvatar.updatedAt,
+      },
+      0,
+      'avatar GIF',
+    )
+  }
 
   assertUniqueIds(
     routines.map((r) => r.id),
@@ -336,6 +377,7 @@ function parseBackup(raw: unknown): MiGymBackup {
     constancyGoals,
     preferences,
     treadmillSessions: validatedTreadmill,
+    customAvatar,
   }
 }
 
@@ -380,6 +422,17 @@ export async function exportFullBackup(): Promise<MiGymBackup> {
     })),
   )
 
+  const customRecord = await getCustomAvatarRecord()
+  const customAvatar: StoredCustomAvatar | undefined = customRecord
+    ? {
+        giphyId: customRecord.giphyId,
+        title: customRecord.title,
+        mimeType: customRecord.mimeType,
+        updatedAt: customRecord.updatedAt,
+        dataBase64: await blobToBase64(customRecord.blob),
+      }
+    : undefined
+
   return {
     version: BACKUP_VERSION,
     app: BACKUP_APP_ID,
@@ -395,7 +448,9 @@ export async function exportFullBackup(): Promise<MiGymBackup> {
     preferences: {
       themeId: getStoredThemeId(),
       brandAvatarId: getStoredBrandAvatarId(),
+      avatarMode: getStoredAvatarMode(),
     },
+    customAvatar,
   }
 }
 
@@ -421,6 +476,17 @@ function backupIncludesTreadmillSessions(raw: unknown): boolean {
   )
 }
 
+function backupIncludesCustomAvatar(raw: unknown): boolean {
+  if (!raw || typeof raw !== 'object') return false
+  const data = raw as Partial<MiGymBackup>
+  return (
+    typeof data.version === 'number' &&
+    data.version >= 6 &&
+    data.customAvatar != null &&
+    typeof data.customAvatar === 'object'
+  )
+}
+
 export async function importFullBackup(raw: unknown): Promise<{
   routines: number
   sessions: number
@@ -430,13 +496,19 @@ export async function importFullBackup(raw: unknown): Promise<{
   constancyGoals: number
   treadmillSessions: number
   preservedTreadmillSessions: number
+  customAvatar: number
+  preservedCustomAvatar: boolean
   restoredPreferences: boolean
 }> {
   const backup = parseBackup(raw)
   const restoreTreadmill = backupIncludesTreadmillSessions(raw)
+  const restoreCustomAvatar = backupIncludesCustomAvatar(raw)
   const preservedTreadmillSessions = restoreTreadmill
     ? 0
     : await db.treadmillSessions.count()
+  const preservedCustomAvatar = restoreCustomAvatar
+    ? false
+    : (await db.customAvatarGifs.get(CUSTOM_AVATAR_ID)) != null
 
   let images: Array<{
     id: string
@@ -484,6 +556,7 @@ export async function importFullBackup(raw: unknown): Promise<{
       db.bodyCheckInPhotos,
       db.constancyGoals,
       ...(restoreTreadmill ? [db.treadmillSessions] : []),
+      ...(restoreCustomAvatar ? [db.customAvatarGifs] : []),
     ]
 
     await db.transaction('rw', storeScope, async () => {
@@ -496,6 +569,9 @@ export async function importFullBackup(raw: unknown): Promise<{
         await db.constancyGoals.clear()
         if (restoreTreadmill) {
           await db.treadmillSessions.clear()
+        }
+        if (restoreCustomAvatar) {
+          await db.customAvatarGifs.clear()
         }
 
         if (backup.routines.length > 0) await db.routines.bulkAdd(backup.routines)
@@ -517,6 +593,17 @@ export async function importFullBackup(raw: unknown): Promise<{
         ) {
           await db.treadmillSessions.bulkAdd(backup.treadmillSessions!)
         }
+        if (restoreCustomAvatar && backup.customAvatar) {
+          const ca = backup.customAvatar
+          await db.customAvatarGifs.put({
+            id: CUSTOM_AVATAR_ID,
+            giphyId: ca.giphyId,
+            title: ca.title,
+            mimeType: ca.mimeType,
+            updatedAt: ca.updatedAt,
+            blob: base64ToBlob(ca.dataBase64, ca.mimeType),
+          })
+        }
       },
     )
   } catch (err) {
@@ -530,6 +617,15 @@ export async function importFullBackup(raw: unknown): Promise<{
   if (backup.preferences) {
     applyTheme(backup.preferences.themeId)
     setStoredBrandAvatarId(backup.preferences.brandAvatarId)
+    if (backup.preferences.avatarMode) {
+      setStoredAvatarMode(backup.preferences.avatarMode)
+    } else if (!restoreCustomAvatar) {
+      setStoredAvatarMode(getStoredAvatarMode())
+    } else if (backup.customAvatar) {
+      setStoredAvatarMode('custom')
+    } else {
+      setStoredAvatarMode('preset')
+    }
     restoredPreferences = true
   }
 
@@ -544,6 +640,8 @@ export async function importFullBackup(raw: unknown): Promise<{
     constancyGoals: backup.constancyGoals?.length ?? 0,
     treadmillSessions: restoreTreadmill ? (backup.treadmillSessions?.length ?? 0) : 0,
     preservedTreadmillSessions,
+    customAvatar: restoreCustomAvatar && backup.customAvatar ? 1 : 0,
+    preservedCustomAvatar,
     restoredPreferences,
   }
 }
