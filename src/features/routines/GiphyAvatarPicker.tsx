@@ -113,11 +113,16 @@ export function GiphyAvatarPicker({ selected, onSelect }: GiphyAvatarPickerProps
         }}
       >
         <input
-          type="search"
+          type="text"
+          inputMode="search"
+          enterKeyHint="search"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar GIF (gym, anime, boxing…)"
-          className="min-h-11 min-w-0 flex-1 rounded-xl border border-line bg-surface px-3 text-base text-fg outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
+          className="input-ios-safe min-h-11 min-w-0 flex-1 rounded-xl border border-line bg-surface px-3 text-fg outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
         />
         <Button type="submit" variant="secondary" disabled={loading}>
           Buscar

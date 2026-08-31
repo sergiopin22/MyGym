@@ -70,6 +70,8 @@
 
   html {
     color-scheme: light;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
   }
 
   html[data-theme='underground-red'],
@@ -99,7 +101,10 @@
   input,
   select,
   textarea {
-    font: inherit;
+    font-family: inherit;
+    font-weight: inherit;
+    font-style: inherit;
+    line-height: inherit;
   }
 
   input,
@@ -113,7 +118,7 @@
     input,
     select,
     textarea {
-      font-size: max(16px, 1em);
+      font-size: 16px !important;
     }
   }
 
@@ -121,6 +126,12 @@
   textarea::placeholder {
     color: var(--color-fg-muted);
     opacity: 1;
+  }
+
+  .input-ios-safe {
+    font-size: 16px !important;
+    -webkit-appearance: none;
+    appearance: none;
   }
 }
 
