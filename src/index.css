@@ -133,6 +133,12 @@
     -webkit-appearance: none;
     appearance: none;
   }
+
+  .input-ios-safe[type='search']::-webkit-search-decoration,
+  .input-ios-safe[type='search']::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    appearance: none;
+  }
 }
 
 @keyframes drawer-in {

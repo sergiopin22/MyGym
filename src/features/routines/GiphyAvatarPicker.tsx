@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
-import { Button } from '../../components/Button'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { getRecentGiphyGifs } from '../../brand/recentGiphyGifs'
 import {
   isGiphyConfigured,
@@ -55,6 +54,7 @@ function GiphyGifGrid({
 }
 
 export function GiphyAvatarPicker({ selected, onSelect }: GiphyAvatarPickerProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<GiphyGif[]>([])
   const [recentGifs, setRecentGifs] = useState<GiphyGif[]>([])
@@ -91,11 +91,10 @@ export function GiphyAvatarPicker({ selected, onSelect }: GiphyAvatarPickerProps
   }, [configured])
 
   const handleSearch = useCallback(() => {
-    void runSearch(query)
-    if (typeof document !== 'undefined') {
-      const active = document.activeElement
-      if (active instanceof HTMLElement) active.blur()
-    }
+    const term = (inputRef.current?.value ?? query).trim()
+    if (term !== query) setQuery(term)
+    void runSearch(term)
+    inputRef.current?.blur()
   }, [query, runSearch])
 
   if (!configured) {
@@ -114,39 +113,34 @@ export function GiphyAvatarPicker({ selected, onSelect }: GiphyAvatarPickerProps
   return (
     <div className="space-y-3">
       <form
-        className="space-y-2"
+        className="sticky top-0 z-10 space-y-2 bg-surface-elevated pb-2"
         onSubmit={(e) => {
           e.preventDefault()
           handleSearch()
         }}
       >
         <input
-          type="text"
+          ref={inputRef}
+          type="search"
           inputMode="search"
           enterKeyHint="search"
           autoComplete="off"
           autoCorrect="off"
+          autoCapitalize="off"
           spellCheck={false}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              handleSearch()
-            }
-          }}
+          onInput={(e) => setQuery(e.currentTarget.value)}
           placeholder="Buscar GIF (gym, anime, boxing…)"
           className="input-ios-safe min-h-11 w-full rounded-xl border border-line bg-surface px-3 text-fg outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
         />
-        <Button
-          type="button"
-          variant="secondary"
-          fullWidth
-          disabled={loading || !query.trim()}
-          onClick={handleSearch}
+        <button
+          type="submit"
+          disabled={loading}
+          className="inline-flex min-h-12 w-full touch-manipulation items-center justify-center rounded-2xl bg-chrome px-5 text-base font-semibold text-chrome-fg transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
           {loading ? 'Buscando…' : 'Buscar'}
-        </Button>
+        </button>
       </form>
 
       {selected ? (

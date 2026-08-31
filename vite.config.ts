@@ -49,6 +49,12 @@ export default defineConfig({
         skipWaiting: true,
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/api/],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/api\.giphy\.com\/.*/i,
+            handler: 'NetworkOnly',
+          },
+        ],
       },
       devOptions: {
         enabled: true,
