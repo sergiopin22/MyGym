@@ -233,16 +233,7 @@ export function HomePage() {
 
   return (
     <>
-      <div className="relative space-y-6">
-        <div
-          className="pointer-events-none absolute inset-y-16 -left-4 z-10 w-6 bg-gradient-to-r from-brand/15 to-transparent"
-          aria-hidden
-        />
-        <div
-          className="pointer-events-none absolute inset-y-16 -right-4 z-10 w-6 bg-gradient-to-l from-brand/15 to-transparent"
-          aria-hidden
-        />
-
+      <div className="space-y-6">
       <header className="mt-2 flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
           <p className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand">
