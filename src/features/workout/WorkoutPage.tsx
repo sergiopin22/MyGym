@@ -12,7 +12,9 @@ import {
 import type { SessionSummary, WorkoutSession } from '../../types'
 import { formatDuration } from '../../utils/id'
 import { getIncompleteWorkoutParts } from '../../utils/workout'
+import { getDailyMotivationQuote } from '../../utils/dailyMotivation'
 import { CopyCoachMessageButton } from '../history/CopyCoachMessageButton'
+import { DailyQuoteBar } from './DailyQuoteBar'
 import { PrTrophyPop } from './PrTrophyPop'
 import { WorkoutExerciseCard } from './WorkoutExerciseCard'
 
@@ -77,6 +79,11 @@ export function WorkoutPage() {
   )
 
   const completedCount = exercises.filter((e) => e.status === 'completed').length
+
+  const dailyQuote = useMemo(() => {
+    if (!session?.date) return null
+    return getDailyMotivationQuote(session.date)
+  }, [session?.date])
 
   async function handleFinish() {
     if (!session) return
@@ -254,30 +261,33 @@ export function WorkoutPage() {
 
   return (
     <div className="app-safe-top mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden px-4">
-      <header className="shrink-0 space-y-3 border-b border-line py-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <Link to="/" className="text-sm font-semibold text-muted hover:text-ink">
-              ← Inicio
-            </Link>
-            <h1 className="font-display text-2xl font-extrabold tracking-tight">
-              {session.dayLabel}
-            </h1>
-            {session.isRecovery ? (
-              <span className="mt-1 inline-flex rounded-full bg-progress-soft px-2.5 py-1 text-xs font-bold text-progress">
-                Recuperado
-                {session.recoveredDayLabel
-                  ? ` · ${session.recoveredDayLabel}`
-                  : ''}
-              </span>
-            ) : null}
-            <p className="text-sm text-muted">
-              {completedCount} de {exercises.length} ejercicios completados
-            </p>
+      <div className="sticky top-0 z-20 -mx-4 shrink-0 bg-surface-elevated px-4 shadow-sm shadow-black/5">
+        {dailyQuote ? <DailyQuoteBar quote={dailyQuote} /> : null}
+        <header className="space-y-3 border-b border-line py-3">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <Link to="/" className="text-sm font-semibold text-muted hover:text-ink">
+                ← Inicio
+              </Link>
+              <h1 className="font-display text-2xl font-extrabold tracking-tight">
+                {session.dayLabel}
+              </h1>
+              {session.isRecovery ? (
+                <span className="mt-1 inline-flex rounded-full bg-progress-soft px-2.5 py-1 text-xs font-bold text-progress">
+                  Recuperado
+                  {session.recoveredDayLabel
+                    ? ` · ${session.recoveredDayLabel}`
+                    : ''}
+                </span>
+              ) : null}
+              <p className="text-sm text-muted">
+                {completedCount} de {exercises.length} ejercicios completados
+              </p>
+            </div>
           </div>
-        </div>
-        <ProgressBar value={completedCount} max={Math.max(exercises.length, 1)} />
-      </header>
+          <ProgressBar value={completedCount} max={Math.max(exercises.length, 1)} />
+        </header>
+      </div>
 
       <div
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4"
