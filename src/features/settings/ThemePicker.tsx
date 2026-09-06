@@ -22,7 +22,7 @@ export function ThemePicker() {
     {
       id: 'focus',
       name: 'Focus',
-      tagline: 'Otra app: tipografía Syne, base tierra, FAB y layout gym',
+      tagline: 'Otra app: Space Grotesk + Jakarta, base tierra, FAB gym',
     },
   ]
 

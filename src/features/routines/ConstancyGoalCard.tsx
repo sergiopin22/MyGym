@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Button } from '../../components/Button'
 import { NumberStepper } from '../../components/NumberStepper'
 import { ProgressBar } from '../../components/ProgressBar'
+import { useTheme } from '../../context/ThemeProvider'
 import {
   acknowledgePenance,
   abandonConstancyGoal,
@@ -46,6 +47,8 @@ export function ConstancyGoalCard({
   onClearRecovery,
   refreshKey = 0,
 }: ConstancyGoalCardProps) {
+  const { uiLayout } = useTheme()
+  const isFocus = uiLayout === 'focus'
   const [goal, setGoal] = useState<ConstancyGoal | null>(null)
   const [loading, setLoading] = useState(true)
   const [mode, setMode] = useState<'view' | 'create' | 'rules'>('view')
@@ -146,7 +149,13 @@ export function ConstancyGoalCard({
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-line bg-surface-elevated px-4 py-4 text-sm text-muted">
+      <div
+        className={
+          isFocus
+            ? 'focus-meta-vault focus-meta-vault--loading'
+            : 'rounded-2xl border border-line bg-surface-elevated px-4 py-4 text-sm text-muted'
+        }
+      >
         Cargando meta de constancia…
       </div>
     )
@@ -156,6 +165,282 @@ export function ConstancyGoalCard({
   const justCompleted = goal?.status === 'completed' ? goal : null
   const showPenance =
     Boolean(active) && penance?.owed && !penance.acknowledged
+  const progressPct = active
+    ? Math.min(
+        100,
+        Math.round((active.currentCount / Math.max(active.targetCount, 1)) * 100),
+      )
+    : 0
+
+  if (isFocus) {
+    return (
+      <div className="focus-meta-vault">
+        <div className="focus-meta-vault__toolbar">
+          <button
+            type="button"
+            onClick={() => setMode((m) => (m === 'rules' ? 'view' : 'rules'))}
+            className="focus-meta-vault__ghost-btn"
+          >
+            {mode === 'rules' ? 'Cerrar reglas' : 'Reglas'}
+          </button>
+          {mode === 'view' && active ? (
+            <button
+              type="button"
+              className="focus-meta-vault__ghost-btn"
+              onClick={handleOpenCreate}
+            >
+              Nueva meta
+            </button>
+          ) : null}
+        </div>
+
+        {mode === 'rules' ? (
+          <div className="focus-meta-rules">
+            <h3 className="focus-meta-rules__title">Código de la racha</h3>
+            <ol className="focus-meta-rules__list">
+              {RULES.map((rule, i) => (
+                <li
+                  key={rule}
+                  style={{ animationDelay: `${80 + i * 55}ms` }}
+                >
+                  {rule}
+                </li>
+              ))}
+            </ol>
+            <Button fullWidth variant="secondary" onClick={() => setMode('view')}>
+              Entendido
+            </Button>
+          </div>
+        ) : null}
+
+        {mode !== 'rules' && mode !== 'create' && active ? (
+          <div className="focus-meta-orbit">
+            <div
+              className="focus-meta-orbit__dial"
+              style={{ ['--meta-pct' as string]: `${progressPct}%` }}
+            >
+              <div className="focus-meta-orbit__halo" aria-hidden />
+              <div className="focus-meta-orbit__core">
+                <span className="focus-meta-orbit__cur">{active.currentCount}</span>
+                <span className="focus-meta-orbit__slash">/</span>
+                <span className="focus-meta-orbit__max">{active.targetCount}</span>
+              </div>
+            </div>
+            <p className="focus-meta-orbit__pct">{progressPct}% de la meta</p>
+            <div className="focus-meta-prize">
+              <span className="focus-meta-prize__label">Premio en juego</span>
+              <span className="focus-meta-prize__value">{active.prizeLabel}</span>
+            </div>
+            <div className="focus-meta-misses" aria-label="Fallos netos de la semana">
+              {[0, 1, 2].map((slot) => (
+                <span
+                  key={slot}
+                  className={[
+                    'focus-meta-misses__dot',
+                    slot < active.consecutiveMisses
+                      ? 'focus-meta-misses__dot--lit'
+                      : '',
+                  ].join(' ')}
+                />
+              ))}
+              <span className="focus-meta-misses__text">
+                Fallos {active.consecutiveMisses}/3
+              </span>
+            </div>
+            <p className="focus-meta-orbit__hint">
+              Penitencia: {active.penanceLabel ?? 'Donar $30 USD a Helen'}
+            </p>
+          </div>
+        ) : null}
+
+        {mode !== 'rules' && showPenance ? (
+          <div className="focus-meta-alert">
+            <p className="focus-meta-alert__title">Penitencia activa</p>
+            <p className="text-sm text-fg">
+              Fallaste {penance!.netMisses} día(s) netos
+              {penance!.missedLabels.length
+                ? ` (${penance!.missedLabels.join(', ')})`
+                : ''}
+              . Tocó: <strong>{penance!.penanceLabel}</strong>
+            </p>
+            <Button fullWidth variant="danger" onClick={() => void handleAckPenance()}>
+              Ya cumplí la penitencia
+            </Button>
+          </div>
+        ) : null}
+
+        {mode === 'view' && active && canRecover && missedDays.length > 0 ? (
+          <div className="focus-meta-recover">
+            <p className="focus-meta-recover__title">Recuperar un fallo</p>
+            <p className="focus-meta-recover__sub">
+              Elige el día perdido. Si bajas de 2 a 1 fallo, te salvas de la
+              penitencia.
+            </p>
+            <div className="focus-meta-recover__chips">
+              {missedDays.map((day) => {
+                const selected = recoveryDayId === day.id
+                return (
+                  <button
+                    key={day.id}
+                    type="button"
+                    onClick={() =>
+                      selected
+                        ? onClearRecovery?.()
+                        : onSelectRecoveryDay?.(day)
+                    }
+                    className={[
+                      'focus-meta-recover__chip',
+                      selected ? 'focus-meta-recover__chip--on' : '',
+                    ].join(' ')}
+                  >
+                    {weekdayLabel(day.weekday)}
+                  </button>
+                )
+              })}
+            </div>
+            {recoveryDayId ? (
+              <button
+                type="button"
+                className="focus-meta-recover__cancel"
+                onClick={() => onClearRecovery?.()}
+              >
+                Cancelar recuperación
+              </button>
+            ) : null}
+          </div>
+        ) : null}
+
+        {mode === 'view' && !active && justCompleted ? (
+          <div className="focus-meta-win">
+            <p className="focus-meta-win__title">Meta cumplida</p>
+            <p className="text-sm text-fg">
+              Premio: {justCompleted.prizeLabel}. ¡A disfrutarlo!
+            </p>
+            <Button fullWidth onClick={() => setMode('create')}>
+              Crear nueva meta
+            </Button>
+          </div>
+        ) : null}
+
+        {mode === 'view' && !active && !justCompleted ? (
+          <div className="focus-meta-empty">
+            <p className="focus-meta-empty__title">Aún no hay racha</p>
+            <p className="focus-page-sub">
+              Crea una meta, suma entrenos y gánate el premio.
+            </p>
+            <Button fullWidth onClick={() => setMode('create')}>
+              Encender la meta
+            </Button>
+          </div>
+        ) : null}
+
+        {mode === 'view' && !active && canRecover && missedDays.length > 0 ? (
+          <div className="focus-meta-recover">
+            <p className="focus-meta-recover__title">Recuperar día perdido</p>
+            <div className="focus-meta-recover__chips">
+              {missedDays.map((day) => (
+                <button
+                  key={day.id}
+                  type="button"
+                  onClick={() => onSelectRecoveryDay?.(day)}
+                  className="focus-meta-recover__chip"
+                >
+                  {weekdayLabel(day.weekday)}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {mode === 'create' ? (
+          <div className="focus-meta-create space-y-4">
+            <NumberStepper
+              label="¿Cuántos entrenamientos?"
+              value={targetCount}
+              min={1}
+              max={365}
+              allowEmpty={false}
+              onChange={(v) => setTargetCount(v ?? 30)}
+            />
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-fg">¿Cuál es el premio?</p>
+              <div className="space-y-2">
+                {PRIZE_PRESETS.map((p) => (
+                  <label
+                    key={p.id}
+                    className={[
+                      'flex cursor-pointer items-start gap-3 rounded-2xl px-3 py-3 ring-1',
+                      prizePreset === p.id
+                        ? 'bg-brand-soft ring-brand'
+                        : 'bg-surface ring-line',
+                    ].join(' ')}
+                  >
+                    <input
+                      type="radio"
+                      name="prize-focus"
+                      className="mt-1"
+                      checked={prizePreset === p.id}
+                      onChange={() => setPrizePreset(p.id)}
+                    />
+                    <span className="text-sm text-fg">{p.label}</span>
+                  </label>
+                ))}
+                <label
+                  className={[
+                    'flex cursor-pointer flex-col gap-2 rounded-2xl px-3 py-3 ring-1',
+                    prizePreset === 'custom'
+                      ? 'bg-brand-soft ring-brand'
+                      : 'bg-surface ring-line',
+                  ].join(' ')}
+                >
+                  <span className="flex items-center gap-3">
+                    <input
+                      type="radio"
+                      name="prize-focus"
+                      checked={prizePreset === 'custom'}
+                      onChange={() => setPrizePreset('custom')}
+                    />
+                    <span className="text-sm font-semibold text-fg">
+                      Personalizado
+                    </span>
+                  </span>
+                  {prizePreset === 'custom' ? (
+                    <input
+                      type="text"
+                      value={customPrize}
+                      onChange={(e) => setCustomPrize(e.target.value)}
+                      placeholder="Escribe tu premio…"
+                      className="min-h-11 w-full rounded-xl border border-line bg-surface-elevated px-3 text-sm text-fg"
+                    />
+                  ) : null}
+                </label>
+              </div>
+            </div>
+            {error ? (
+              <p className="text-sm font-medium text-danger">{error}</p>
+            ) : null}
+            <div className="flex gap-2">
+              <Button
+                fullWidth
+                variant="secondary"
+                onClick={() => setMode('view')}
+                disabled={saving}
+              >
+                Cancelar
+              </Button>
+              <Button fullWidth onClick={() => void handleCreate()} disabled={saving}>
+                {saving ? 'Guardando…' : 'Guardar meta'}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
+        {error && mode !== 'create' ? (
+          <p className="px-1 text-sm font-medium text-danger">{error}</p>
+        ) : null}
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-3 rounded-2xl border border-line bg-surface-elevated p-4">

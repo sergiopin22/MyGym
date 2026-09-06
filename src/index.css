@@ -502,13 +502,19 @@ html[data-ui-layout='focus'] {
 /* ─── Focus V2: otra app (FAB sin cambios) ─── */
 html[data-ui-layout='focus'] body {
   font-family: var(--font-sans);
-  letter-spacing: 0.01em;
+  font-size: 15.5px;
+  line-height: 1.55;
+  letter-spacing: -0.011em;
+  font-optical-sizing: auto;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 html[data-ui-layout='focus'] .font-display,
 html[data-ui-layout='focus'] .focus-page-title,
 html[data-ui-layout='focus'] .focus-home-title {
   font-family: var(--font-display);
+  font-feature-settings: 'ss01' on, 'kern' on;
 }
 
 html[data-ui-layout='focus'] .focus-shell {
@@ -528,33 +534,34 @@ html[data-ui-layout='focus'] .focus-home-kicker {
   align-items: center;
   gap: 0.45rem;
   margin: 0;
-  padding: 0.35rem 0.75rem;
+  padding: 0.38rem 0.8rem;
   border-radius: 999px;
   background: color-mix(in srgb, var(--color-brand) 16%, transparent);
   color: var(--color-brand-strong);
   font-family: var(--font-sans);
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.18em;
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
 html[data-ui-layout='focus'] .focus-page-title,
 html[data-ui-layout='focus'] .focus-home-title {
   margin: 0;
-  font-size: clamp(2.6rem, 11vw, 3.4rem);
-  line-height: 0.95;
-  letter-spacing: -0.045em;
-  font-weight: 800;
+  font-size: clamp(2.35rem, 9.5vw, 3.15rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+  font-weight: 700;
 }
 
 html[data-ui-layout='focus'] .focus-page-sub {
   margin: 0;
-  max-width: 26ch;
+  max-width: 30ch;
   color: var(--color-fg-muted);
   font-size: 0.95rem;
-  line-height: 1.5;
+  line-height: 1.55;
   font-weight: 500;
+  letter-spacing: -0.01em;
 }
 
 html[data-ui-layout='focus'] .focus-page-header--active {
@@ -585,8 +592,10 @@ html[data-ui-layout='focus'] .ui-card::before {
 html[data-ui-layout='focus'] .ui-btn {
   min-height: 3.35rem;
   border-radius: 1.15rem;
-  font-weight: 800;
-  letter-spacing: 0.02em;
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
 html[data-ui-layout='focus'] .ui-btn--primary,
@@ -814,4 +823,817 @@ html[data-ui-layout='focus'] main .space-y-6 {
   html[data-ui-layout='focus'] .focus-home .today-chip-locate {
     animation: none;
   }
+}
+
+/* ─── Focus Arena (sorpresa local, FAB intacto) ─── */
+html[data-ui-layout='focus'] .focus-arena {
+  gap: 1.1rem;
+}
+
+html[data-ui-layout='focus'] .focus-deck {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin: 0 1.15rem;
+  padding: 0.3rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface-elevated) 90%, black);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 5%, transparent);
+}
+
+html[data-ui-layout='focus'] .focus-deck__tab {
+  min-height: 2.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-fg-muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+html[data-ui-layout='focus'] .focus-deck__tab--active {
+  background: var(--color-brand);
+  color: var(--color-chrome-fg);
+  box-shadow: 0 8px 18px -12px color-mix(in srgb, var(--color-brand) 70%, black);
+}
+
+html[data-ui-layout='focus'] .focus-poster {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 0.4rem 1.15rem 0.2rem;
+  gap: 0.55rem;
+}
+
+html[data-ui-layout='focus'] .focus-poster__orb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 7.5rem;
+  height: 7.5rem;
+  margin-bottom: 0.35rem;
+}
+
+html[data-ui-layout='focus'] .focus-poster__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: conic-gradient(
+    var(--color-brand) var(--focus-pct, 0%),
+    color-mix(in srgb, var(--color-line) 70%, transparent) 0
+  );
+  mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
+  pointer-events: none;
+  z-index: 0;
+}
+
+html[data-ui-layout='focus'] .focus-poster__orb > button {
+  position: relative;
+  z-index: 1;
+}
+
+html[data-ui-layout='focus'] .focus-poster .focus-home-title {
+  font-size: clamp(2.8rem, 12vw, 3.6rem);
+}
+
+html[data-ui-layout='focus'] .focus-poster__pct {
+  margin: 0;
+  color: var(--color-brand-strong);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+html[data-ui-layout='focus'] .focus-runway {
+  margin: 0 1.15rem;
+  padding: 1.1rem 1rem 1.2rem;
+  border-radius: 1.85rem;
+  background: var(--color-surface-elevated);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 6%, transparent),
+    0 28px 50px -36px rgba(0, 0, 0, 0.95);
+}
+
+html[data-ui-layout='focus'] .focus-runway__label {
+  margin: 0 0 0.85rem;
+  color: var(--color-fg-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+html[data-ui-layout='focus'] .focus-runway__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+html[data-ui-layout='focus'] .focus-runway__item {
+  display: grid;
+  grid-template-columns: 2.4rem 1fr auto;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.7rem 0.55rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--color-surface) 88%, black);
+}
+
+html[data-ui-layout='focus'] .focus-runway__num {
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--color-brand-strong);
+  letter-spacing: -0.03em;
+}
+
+html[data-ui-layout='focus'] .focus-runway__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+html[data-ui-layout='focus'] .focus-runway__mark {
+  color: var(--color-brand);
+  font-size: 0.95rem;
+}
+
+html[data-ui-layout='focus'] .focus-runway__empty {
+  display: grid;
+  gap: 0.35rem;
+  place-items: center;
+  padding: 1.4rem 0.5rem;
+  color: var(--color-fg-muted);
+  text-align: center;
+}
+
+html[data-ui-layout='focus'] .focus-runway__actions {
+  margin-top: 1rem;
+}
+
+html[data-ui-layout='focus'] .focus-week-board--solo {
+  margin-bottom: 0.5rem;
+}
+
+html[data-ui-layout='focus'] .focus-rail {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  padding: 0.25rem 1.15rem 0.75rem;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+html[data-ui-layout='focus'] .focus-rail__card {
+  flex: 0 0 78%;
+  scroll-snap-align: center;
+  margin-inline: 0 !important;
+  min-height: 10.5rem;
+}
+
+html[data-ui-layout='focus'] .focus-journal {
+  position: relative;
+  margin: 0 1.15rem;
+  padding-left: 1.1rem;
+  list-style: none;
+}
+
+html[data-ui-layout='focus'] .focus-journal::before {
+  content: '';
+  position: absolute;
+  left: 0.2rem;
+  top: 0.2rem;
+  bottom: 0.2rem;
+  width: 2px;
+  background: linear-gradient(
+    180deg,
+    var(--color-brand),
+    color-mix(in srgb, var(--color-brand) 10%, transparent)
+  );
+}
+
+html[data-ui-layout='focus'] .focus-journal__item {
+  position: relative;
+  margin-bottom: 0.85rem;
+}
+
+html[data-ui-layout='focus'] .focus-journal__item::before {
+  content: '';
+  position: absolute;
+  left: -1.05rem;
+  top: 1.15rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 999px;
+  background: var(--color-brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-brand) 25%, transparent);
+}
+
+html[data-ui-layout='focus'] .focus-journal .ui-card {
+  margin-inline: 0;
+}
+
+/* ─── Focus Semana: escalera / acordeón ─── */
+html[data-ui-layout='focus'] .focus-week-ladder {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding-bottom: 0.5rem;
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__head {
+  padding: 0.15rem 1.15rem 0;
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__title {
+  margin: 0.55rem 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: clamp(1.85rem, 7vw, 2.35rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__list {
+  list-style: none;
+  margin: 0;
+  padding: 0 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__row {
+  overflow: hidden;
+  border-radius: 1.35rem;
+  background: color-mix(in srgb, var(--color-surface-elevated) 94%, black);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 5%, transparent);
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__row--today {
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 5%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-brand) 45%, transparent);
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__row--open {
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--color-brand) 14%, var(--color-surface-elevated)) 0%,
+    var(--color-surface-elevated) 45%,
+    var(--color-surface) 100%
+  );
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__row--rest:not(.focus-week-ladder__row--open) {
+  opacity: 0.72;
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__hit {
+  display: grid;
+  grid-template-columns: 2.1rem 2.6rem 1fr auto;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
+  min-height: 4.1rem;
+  padding: 0.7rem 0.85rem;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__index {
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--color-brand-strong);
+  letter-spacing: -0.03em;
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__day {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: var(--color-fg-muted);
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__body {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__meta {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--color-fg-muted);
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__flags {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__pill {
+  border-radius: 999px;
+  padding: 0.22rem 0.5rem;
+  background: color-mix(in srgb, var(--color-brand) 22%, transparent);
+  color: var(--color-brand-strong);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__pill--alt {
+  background: var(--color-progress-soft);
+  color: var(--color-progress);
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__chev {
+  color: var(--color-fg-muted);
+  font-size: 0.85rem;
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__panel {
+  padding: 0 0.85rem 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--color-line) 55%, transparent);
+  animation: focus-ladder-in 0.28s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__panel .ui-card {
+  margin-inline: 0;
+}
+
+@keyframes focus-ladder-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-ui-layout='focus'] .focus-week-ladder__panel {
+    animation: none;
+  }
+}
+
+/* ─── Focus Meta Vault ─── */
+html[data-ui-layout='focus'] .focus-meta-deck {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+  padding-bottom: 0.5rem;
+}
+
+html[data-ui-layout='focus'] .focus-meta-deck__hero {
+  padding: 0.2rem 1.15rem 0;
+  text-align: center;
+}
+
+html[data-ui-layout='focus'] .focus-meta-deck__title {
+  margin: 0.55rem 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: clamp(2.2rem, 9vw, 2.9rem);
+  font-weight: 800;
+  letter-spacing: -0.045em;
+  line-height: 0.95;
+}
+
+html[data-ui-layout='focus'] .focus-meta-deck__hero .focus-page-sub {
+  margin-inline: auto;
+}
+
+html[data-ui-layout='focus'] .focus-meta-deck__backup .ui-card,
+html[data-ui-layout='focus'] .focus-meta-deck__backup > div {
+  margin-inline: 1.15rem;
+}
+
+html[data-ui-layout='focus'] .focus-meta-vault {
+  margin: 0 1.15rem;
+  padding: 1rem 1rem 1.25rem;
+  border-radius: 1.85rem;
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--color-brand) 12%, var(--color-surface-elevated)) 0%,
+    var(--color-surface-elevated) 42%,
+    var(--color-surface) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 7%, transparent),
+    0 30px 60px -40px rgba(0, 0, 0, 0.95);
+  animation: focus-meta-rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html[data-ui-layout='focus'] .focus-meta-vault--loading {
+  color: var(--color-fg-muted);
+  text-align: center;
+}
+
+html[data-ui-layout='focus'] .focus-meta-vault__toolbar {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+html[data-ui-layout='focus'] .focus-meta-vault__ghost-btn {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.4rem 0.8rem;
+  background: color-mix(in srgb, var(--color-surface) 80%, transparent);
+  color: var(--color-fg-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+html[data-ui-layout='focus'] .focus-meta-orbit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  text-align: center;
+}
+
+html[data-ui-layout='focus'] .focus-meta-orbit__dial {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 11.5rem;
+  height: 11.5rem;
+}
+
+html[data-ui-layout='focus'] .focus-meta-orbit__halo {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: conic-gradient(
+    from -90deg,
+    var(--color-brand) var(--meta-pct, 0%),
+    color-mix(in srgb, var(--color-line) 55%, transparent) 0
+  );
+  mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px));
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px));
+  animation: focus-meta-breathe 2.8s ease-in-out infinite;
+}
+
+html[data-ui-layout='focus'] .focus-meta-orbit__halo::after {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-brand) 28%, transparent);
+  animation: focus-meta-spin 12s linear infinite;
+  pointer-events: none;
+}
+
+html[data-ui-layout='focus'] .focus-meta-orbit__core {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+html[data-ui-layout='focus'] .focus-meta-orbit__cur {
+  font-size: 3.1rem;
+  color: var(--color-fg);
+}
+
+html[data-ui-layout='focus'] .focus-meta-orbit__slash {
+  font-size: 1.6rem;
+  color: var(--color-fg-muted);
+}
+
+html[data-ui-layout='focus'] .focus-meta-orbit__max {
+  font-size: 1.55rem;
+  color: var(--color-brand-strong);
+}
+
+html[data-ui-layout='focus'] .focus-meta-orbit__pct {
+  margin: 0;
+  color: var(--color-brand-strong);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+html[data-ui-layout='focus'] .focus-meta-prize {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.85rem 1rem;
+  border-radius: 1.2rem;
+  background: color-mix(in srgb, var(--color-surface) 88%, black);
+  animation: focus-meta-rise 0.55s 0.08s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html[data-ui-layout='focus'] .focus-meta-prize__label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-fg-muted);
+}
+
+html[data-ui-layout='focus'] .focus-meta-prize__value {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+html[data-ui-layout='focus'] .focus-meta-misses {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+html[data-ui-layout='focus'] .focus-meta-misses__dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-line) 80%, transparent);
+  transition: background 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+html[data-ui-layout='focus'] .focus-meta-misses__dot--lit {
+  background: var(--color-danger);
+  transform: scale(1.08);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-danger) 45%, transparent);
+}
+
+html[data-ui-layout='focus'] .focus-meta-misses__text {
+  margin-left: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--color-fg-muted);
+}
+
+html[data-ui-layout='focus'] .focus-meta-orbit__hint {
+  margin: 0;
+  max-width: 28ch;
+  font-size: 0.75rem;
+  color: var(--color-fg-muted);
+}
+
+html[data-ui-layout='focus'] .focus-meta-rules {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+html[data-ui-layout='focus'] .focus-meta-rules__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+html[data-ui-layout='focus'] .focus-meta-rules__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  counter-reset: meta-rule;
+}
+
+html[data-ui-layout='focus'] .focus-meta-rules__list li {
+  position: relative;
+  padding: 0.7rem 0.75rem 0.7rem 2.4rem;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--color-surface) 88%, black);
+  color: var(--color-fg-muted);
+  font-size: 0.82rem;
+  line-height: 1.4;
+  opacity: 0;
+  animation: focus-meta-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+html[data-ui-layout='focus'] .focus-meta-rules__list li::before {
+  counter-increment: meta-rule;
+  content: counter(meta-rule, decimal-leading-zero);
+  position: absolute;
+  left: 0.65rem;
+  top: 0.7rem;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--color-brand-strong);
+}
+
+html[data-ui-layout='focus'] .focus-meta-recover,
+html[data-ui-layout='focus'] .focus-meta-alert,
+html[data-ui-layout='focus'] .focus-meta-win,
+html[data-ui-layout='focus'] .focus-meta-empty,
+html[data-ui-layout='focus'] .focus-meta-create {
+  margin-top: 1rem;
+  padding: 0.95rem;
+  border-radius: 1.25rem;
+  background: color-mix(in srgb, var(--color-surface) 86%, black);
+  animation: focus-meta-rise 0.45s 0.12s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html[data-ui-layout='focus'] .focus-meta-alert {
+  background: color-mix(in srgb, var(--color-danger) 14%, var(--color-surface));
+}
+
+html[data-ui-layout='focus'] .focus-meta-alert__title,
+html[data-ui-layout='focus'] .focus-meta-recover__title,
+html[data-ui-layout='focus'] .focus-meta-win__title,
+html[data-ui-layout='focus'] .focus-meta-empty__title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+html[data-ui-layout='focus'] .focus-meta-recover__sub {
+  margin: 0 0 0.7rem;
+  font-size: 0.78rem;
+  color: var(--color-fg-muted);
+}
+
+html[data-ui-layout='focus'] .focus-meta-recover__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+html[data-ui-layout='focus'] .focus-meta-recover__chip {
+  min-height: 2.6rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.35rem 0.9rem;
+  background: var(--color-surface-elevated);
+  color: var(--color-fg);
+  font-size: 0.82rem;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-line) 70%, transparent);
+}
+
+html[data-ui-layout='focus'] .focus-meta-recover__chip--on {
+  background: var(--color-brand);
+  color: var(--color-chrome-fg);
+  box-shadow: none;
+}
+
+html[data-ui-layout='focus'] .focus-meta-recover__cancel {
+  margin-top: 0.65rem;
+  border: 0;
+  background: transparent;
+  color: var(--color-brand-strong);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+@keyframes focus-meta-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes focus-meta-breathe {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 0 transparent);
+  }
+  50% {
+    filter: drop-shadow(0 0 14px color-mix(in srgb, var(--color-brand) 35%, transparent));
+  }
+}
+
+@keyframes focus-meta-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-ui-layout='focus'] .focus-meta-vault,
+  html[data-ui-layout='focus'] .focus-meta-prize,
+  html[data-ui-layout='focus'] .focus-meta-rules__list li,
+  html[data-ui-layout='focus'] .focus-meta-recover,
+  html[data-ui-layout='focus'] .focus-meta-alert,
+  html[data-ui-layout='focus'] .focus-meta-win,
+  html[data-ui-layout='focus'] .focus-meta-empty,
+  html[data-ui-layout='focus'] .focus-meta-create,
+  html[data-ui-layout='focus'] .focus-meta-orbit__halo,
+  html[data-ui-layout='focus'] .focus-meta-orbit__halo::after {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+/* ─── Focus typography polish ─── */
+html[data-ui-layout='focus'] h1,
+html[data-ui-layout='focus'] h2,
+html[data-ui-layout='focus'] h3,
+html[data-ui-layout='focus'] .font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.04em;
+  line-height: 1.05;
+}
+
+html[data-ui-layout='focus'] p,
+html[data-ui-layout='focus'] li,
+html[data-ui-layout='focus'] label,
+html[data-ui-layout='focus'] span {
+  font-family: inherit;
+}
+
+html[data-ui-layout='focus'] .focus-poster .focus-home-title {
+  font-size: clamp(2.55rem, 10.5vw, 3.25rem);
+  letter-spacing: -0.06em;
+  font-weight: 700;
+}
+
+html[data-ui-layout='focus'] .focus-week-ladder__title,
+html[data-ui-layout='focus'] .focus-meta-deck__title {
+  letter-spacing: -0.05em;
+  font-weight: 700;
+}
+
+html[data-ui-layout='focus'] .focus-runway__name,
+html[data-ui-layout='focus'] .focus-week-ladder__name,
+html[data-ui-layout='focus'] .focus-meta-prize__value {
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
+  font-weight: 600;
+}
+
+html[data-ui-layout='focus'] .focus-runway__num,
+html[data-ui-layout='focus'] .focus-week-ladder__index,
+html[data-ui-layout='focus'] .focus-meta-orbit__cur {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.06em;
+}
+
+html[data-ui-layout='focus'] .focus-deck__tab {
+  font-family: var(--font-sans);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+html[data-ui-layout='focus'] .text-muted,
+html[data-ui-layout='focus'] .focus-page-sub,
+html[data-ui-layout='focus'] .focus-week-ladder__meta,
+html[data-ui-layout='focus'] .focus-meta-orbit__hint {
+  letter-spacing: -0.005em;
+}
+
+html[data-ui-layout='focus'] .ui-field,
+html[data-ui-layout='focus'] input,
+html[data-ui-layout='focus'] textarea {
+  font-family: var(--font-sans);
+  letter-spacing: -0.01em;
 }

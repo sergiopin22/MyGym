@@ -39,6 +39,8 @@ export function HomePage() {
   const [recoveryDay, setRecoveryDay] = useState<RoutineDay | null>(null)
   const [goalRefresh, setGoalRefresh] = useState(0)
   const [locateToday, setLocateToday] = useState(false)
+  const [focusDeck, setFocusDeck] = useState<'hoy' | 'semana' | 'meta'>('hoy')
+  const [weekExpanded, setWeekExpanded] = useState<Weekday | null>(todayWeekday)
   const todayChipRef = useRef<HTMLButtonElement | null>(null)
   const todayLocatePlayedRef = useRef(false)
 
@@ -458,63 +460,262 @@ export function HomePage() {
   )
 
   if (isFocus) {
+    const progressPct =
+      totalCount <= 0
+        ? 0
+        : Math.round(
+            ((completedTodayForSelected ? totalCount : completedCount) /
+              Math.max(totalCount, 1)) *
+              100,
+          )
+
     return (
-      <div className="focus-home">
-        <section className="focus-hero-bleed">
-          <div className="focus-hero-top">
-            <p className="focus-home-kicker">Hoy · Focus</p>
-            <BrandAvatarButton size="focus" />
-          </div>
-          <h1 className="focus-home-title text-fg">
-            {weekdayLabel(todayWeekday)}
-          </h1>
-          <p className="focus-page-sub mt-2">
-            {today.toLocaleDateString('es-ES', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}
-          </p>
-        </section>
+      <div className="focus-home focus-arena">
+        <nav className="focus-deck" aria-label="Secciones Focus">
+          {(
+            [
+              { id: 'hoy', label: 'Hoy' },
+              { id: 'semana', label: 'Semana' },
+              { id: 'meta', label: 'Meta' },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              className={[
+                'focus-deck__tab',
+                focusDeck === tab.id ? 'focus-deck__tab--active' : '',
+              ].join(' ')}
+              aria-pressed={focusDeck === tab.id}
+              onClick={() => setFocusDeck(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </nav>
 
-        <BackupReminderCard />
+        {focusDeck === 'hoy' ? (
+          <>
+            <section className="focus-poster">
+              <div className="focus-poster__orb">
+                <BrandAvatarButton size="poster" />
+                <div
+                  className="focus-poster__ring"
+                  style={{ ['--focus-pct' as string]: `${progressPct}%` }}
+                  aria-hidden
+                />
+              </div>
+              <p className="focus-home-kicker">Arena · Hoy</p>
+              <h1 className="focus-home-title text-fg">
+                {weekdayLabel(todayWeekday)}
+              </h1>
+              <p className="focus-page-sub">
+                {selectedDay?.label ?? 'Sin día'}
+                {selectedDay?.muscleGroups.length
+                  ? ` · ${selectedDay.muscleGroups.join(' · ')}`
+                  : ''}
+              </p>
+              <p className="focus-poster__pct" aria-live="polite">
+                {progressPct}% del día
+              </p>
+            </section>
 
-        <ConstancyGoalCard
-          recoveryDayId={recoveryDay?.id ?? null}
-          onSelectRecoveryDay={handleSelectRecoveryDay}
-          onClearRecovery={handleClearRecovery}
-          refreshKey={goalRefresh}
-        />
+            {selectedDay && routine && isTodaySelected ? (
+              <div className="focus-section-pad">
+                <RestDayToggle
+                  day={selectedDay}
+                  routineId={routine.id}
+                  compact
+                  disabled={todayDone}
+                  disabledReason={
+                    todayDone
+                      ? 'Ya entrenaste hoy: no puedes marcarlo como descanso.'
+                      : undefined
+                  }
+                  onChange={handleDayUpdated}
+                />
+              </div>
+            ) : null}
 
-        <section className="focus-week-board">
-          <p className="focus-week-board__label">
-            {isRecoveryMode
-              ? `Recuperando ${weekdayLabel(recoveryDay!.weekday)}`
-              : 'Tu semana'}
-          </p>
-          {dayStrip}
-        </section>
+            <section className="focus-runway">
+              <p className="focus-runway__label">Pista de ejercicios</p>
+              {isRestDay && !sessionForSelected && !completedTodayForSelected ? (
+                <div className="focus-runway__empty">
+                  <span aria-hidden>😴</span>
+                  <p>Día de descanso</p>
+                </div>
+              ) : displayExercises.length > 0 ? (
+                <ol className="focus-runway__list">
+                  {[...displayExercises]
+                    .sort((a, b) => a.order - b.order)
+                    .map((ex, index) => {
+                      const status =
+                        'status' in ex ? ex.status : ('pending' as const)
+                      return (
+                        <li key={ex.id} className="focus-runway__item">
+                          <span className="focus-runway__num">
+                            {String(index + 1).padStart(2, '0')}
+                          </span>
+                          <span className="focus-runway__name">{ex.name}</span>
+                          <span className="focus-runway__mark" aria-hidden>
+                            {status === 'completed'
+                              ? '●'
+                              : status === 'in_progress'
+                                ? '◐'
+                                : '○'}
+                          </span>
+                        </li>
+                      )
+                    })}
+                </ol>
+              ) : (
+                <p className="focus-runway__empty">
+                  Sin ejercicios.{' '}
+                  {selectedDay ? (
+                    <Link to={`/rutinas/${selectedDay.id}`}>Agregar</Link>
+                  ) : null}
+                </p>
+              )}
 
-        {selectedDay && routine && isTodaySelected ? (
-          <div className="focus-section-pad">
-            <RestDayToggle
-              day={selectedDay}
-              routineId={routine.id}
-              compact
-              disabled={todayDone}
-              disabledReason={
-                todayDone
-                  ? 'Ya entrenaste hoy: no puedes marcarlo como descanso.'
-                  : undefined
-              }
-              onChange={handleDayUpdated}
-            />
-          </div>
+              <div className="focus-runway__actions space-y-3">
+                {activeSession && !sessionForSelected ? (
+                  <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-ink">
+                    Tienes un entrenamiento en curso ({activeSession.dayLabel}).
+                  </p>
+                ) : null}
+                {sessionActions}
+              </div>
+            </section>
+          </>
         ) : null}
 
-        <section className="focus-session-stage space-y-4">
-          {sessionBody}
-        </section>
+        {focusDeck === 'semana' ? (
+          <section className="focus-week-ladder">
+            <header className="focus-week-ladder__head">
+              <p className="focus-home-kicker">Mapa semanal</p>
+              <h2 className="focus-week-ladder__title">
+                {isRecoveryMode
+                  ? `Recuperando ${weekdayLabel(recoveryDay!.weekday)}`
+                  : 'Tu semana en escalera'}
+              </h2>
+              <p className="focus-page-sub">
+                Toca un día para abrirlo. Hoy es el único que puedes entrenar.
+              </p>
+            </header>
+
+            <ul className="focus-week-ladder__list">
+              {days.map((day, index) => {
+                const open = weekExpanded === day.weekday
+                const isToday = day.weekday === todayWeekday
+                const rest = Boolean(day.isRestDay)
+                const recovering = recoveryDay?.id === day.id
+                const short = weekdayLabel(day.weekday).slice(0, 3).toUpperCase()
+                return (
+                  <li
+                    key={day.id}
+                    className={[
+                      'focus-week-ladder__row',
+                      open ? 'focus-week-ladder__row--open' : '',
+                      isToday ? 'focus-week-ladder__row--today' : '',
+                      rest ? 'focus-week-ladder__row--rest' : '',
+                    ].join(' ')}
+                  >
+                    <button
+                      type="button"
+                      className="focus-week-ladder__hit"
+                      ref={isToday ? todayChipRef : undefined}
+                      aria-expanded={open}
+                      onClick={() => {
+                        if (open) {
+                          setWeekExpanded(null)
+                          return
+                        }
+                        if (recoveryDay && day.id !== recoveryDay.id) {
+                          handleClearRecovery()
+                        }
+                        setSelectedWeekday(day.weekday)
+                        setWeekExpanded(day.weekday)
+                      }}
+                    >
+                      <span className="focus-week-ladder__index" aria-hidden>
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <span className="focus-week-ladder__day">{short}</span>
+                      <span className="focus-week-ladder__body">
+                        <span className="focus-week-ladder__name">
+                          {rest ? 'Descanso' : day.label}
+                        </span>
+                        <span className="focus-week-ladder__meta">
+                          {rest
+                            ? 'Sin gym'
+                            : day.muscleGroups.length
+                              ? day.muscleGroups.join(' · ')
+                              : `${day.exercises.length} ejercicios`}
+                        </span>
+                      </span>
+                      <span className="focus-week-ladder__flags">
+                        {isToday ? <span className="focus-week-ladder__pill">Hoy</span> : null}
+                        {recovering ? (
+                          <span className="focus-week-ladder__pill focus-week-ladder__pill--alt">
+                            Recup.
+                          </span>
+                        ) : null}
+                        <span className="focus-week-ladder__chev" aria-hidden>
+                          {open ? '▾' : '▸'}
+                        </span>
+                      </span>
+                    </button>
+
+                    {open ? (
+                      <div className="focus-week-ladder__panel space-y-3">
+                        {selectedDay && routine && isTodaySelected ? (
+                          <RestDayToggle
+                            day={selectedDay}
+                            routineId={routine.id}
+                            compact
+                            disabled={todayDone}
+                            disabledReason={
+                              todayDone
+                                ? 'Ya entrenaste hoy: no puedes marcarlo como descanso.'
+                                : undefined
+                            }
+                            onChange={handleDayUpdated}
+                          />
+                        ) : null}
+                        {sessionBody}
+                      </div>
+                    ) : null}
+                  </li>
+                )
+              })}
+            </ul>
+          </section>
+        ) : null}
+
+        {focusDeck === 'meta' ? (
+          <section className="focus-meta-deck">
+            <header className="focus-meta-deck__hero">
+              <p className="focus-home-kicker">Vault</p>
+              <h2 className="focus-meta-deck__title">La racha</h2>
+              <p className="focus-page-sub">
+                Un solo número. Un premio. Sin ruido.
+              </p>
+            </header>
+            <ConstancyGoalCard
+              recoveryDayId={recoveryDay?.id ?? null}
+              onSelectRecoveryDay={(day) => {
+                handleSelectRecoveryDay(day)
+                setWeekExpanded(day.weekday)
+                setFocusDeck('semana')
+              }}
+              onClearRecovery={handleClearRecovery}
+              refreshKey={goalRefresh}
+            />
+            <div className="focus-meta-deck__backup">
+              <BackupReminderCard />
+            </div>
+          </section>
+        ) : null}
       </div>
     )
   }

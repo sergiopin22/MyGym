@@ -54,8 +54,8 @@ export const FOCUS_ACCENTS: Record<
     metaColor: '#100e0c',
     swatch: ['#100e0c', '#1f1b17', '#a3e635', '#f4efe6'],
     vars: {
-      '--font-sans': '"Manrope", ui-sans-serif, system-ui, sans-serif',
-      '--font-display': '"Syne", ui-sans-serif, system-ui, sans-serif',
+      '--font-sans': '"Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif',
+      '--font-display': '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
       '--color-fg': '#f4efe6',
       '--color-fg-muted': '#9a9186',
       '--color-chrome': '#a3e635',
@@ -93,8 +93,8 @@ export const FOCUS_ACCENTS: Record<
     metaColor: '#120e0a',
     swatch: ['#120e0a', '#241c14', '#fb923c', '#f6f0e8'],
     vars: {
-      '--font-sans': '"Manrope", ui-sans-serif, system-ui, sans-serif',
-      '--font-display': '"Syne", ui-sans-serif, system-ui, sans-serif',
+      '--font-sans': '"Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif',
+      '--font-display': '"Space Grotesk", ui-sans-serif, system-ui, sans-serif',
       '--color-fg': '#f6f0e8',
       '--color-fg-muted': '#a3988c',
       '--color-chrome': '#fb923c',
