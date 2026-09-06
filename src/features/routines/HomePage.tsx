@@ -13,6 +13,7 @@ import type { Routine, RoutineDay, Weekday, WorkoutSession } from '../../types'
 import { isWeekend, weekdayLabel } from '../../utils/id'
 import { ConstancyGoalCard } from './ConstancyGoalCard'
 import { BrandAvatarButton } from './BrandAvatarButton'
+import { FocusGymHeatmap } from './FocusGymHeatmap'
 import { RestDayToggle } from './RestDayToggle'
 import { BackupReminderCard } from '../backup/BackupReminderCard'
 import { useTheme } from '../../context/ThemeProvider'
@@ -577,6 +578,17 @@ export function HomePage() {
               dayLabel={selectedDay?.label ?? 'Sin día'}
               muscles={selectedDay?.muscleGroups ?? []}
             />
+
+            <div className="focus-section-pad">
+              <FocusGymHeatmap
+                refreshKey={
+                  goalRefresh * 10 +
+                  posterEnterKey +
+                  (completedTodayForSelected ? 1000 : 0) +
+                  (completedToday ? 1 : 0)
+                }
+              />
+            </div>
 
             <div className="focus-section-pad">
               <BackupReminderCard />

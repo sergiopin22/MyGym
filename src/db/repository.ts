@@ -24,6 +24,7 @@ import {
   createId,
   isoWeekKey,
   isWeekend,
+  parseISODate,
   startOfWeekMonday,
   todayISODate,
   weekdayFromISO,
@@ -1037,6 +1038,155 @@ export async function getCompletedSessionToday(
     return sessions.find((s) => s.routineDayId === routineDayId)
   }
   return sessions.sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0))[0]
+}
+
+export interface GymHeatmapCell {
+  date: string
+  done: boolean
+  isToday: boolean
+  isFuture: boolean
+}
+
+export interface GymHeatmapData {
+  weeks: GymHeatmapCell[][]
+  monthLabels: Array<{ label: string; weekIndex: number }>
+  streak: number
+  weekCount: number
+  weekTarget: number
+  doneToday: boolean
+  totalGymDays: number
+  totalSessions: number
+}
+
+const MONTH_SHORT_ES = [
+  'Ene',
+  'Feb',
+  'Mar',
+  'Abr',
+  'May',
+  'Jun',
+  'Jul',
+  'Ago',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dic',
+]
+
+/** Heatmap estilo HabitKit: se llena con el historial de sesiones completadas */
+export async function getGymHeatmapData(options?: {
+  weekCount?: number
+  weekTarget?: number
+}): Promise<GymHeatmapData> {
+  const today = todayISODate()
+  const todayDate = parseISODate(today)
+
+  let completed = await db.sessions.where('status').equals('completed').toArray()
+  if (completed.length === 0) {
+    completed = (await db.sessions.toArray()).filter(
+      (s) => s.status === 'completed',
+    )
+  }
+
+  const doneDates = new Set<string>()
+  for (const session of completed) {
+    const iso = normalizeSessionDate(session.date, session.finishedAt, session.startedAt)
+    if (iso) doneDates.add(iso)
+  }
+
+  let weekTarget = options?.weekTarget
+  if (weekTarget == null) {
+    const routine = await getActiveRoutine()
+    const trainingDays =
+      routine?.days.filter((d) => !d.isRestDay).length ?? 0
+    weekTarget = trainingDays > 0 ? Math.min(6, Math.max(3, trainingDays)) : 5
+  }
+
+  const thisMonday = startOfWeekMonday(todayDate)
+  const sortedDates = [...doneDates].sort()
+  const oldestIso = sortedDates[0] ?? today
+  const oldestMonday = startOfWeekMonday(parseISODate(oldestIso))
+
+  const diffMs = thisMonday.getTime() - oldestMonday.getTime()
+  const spanWeeks = Math.floor(diffMs / (7 * 24 * 60 * 60 * 1000)) + 1
+  const autoWeeks = Math.max(12, Math.min(52, spanWeeks))
+  const weekCount = options?.weekCount
+    ? Math.max(8, Math.min(52, options.weekCount))
+    : autoWeeks
+
+  const startMonday = new Date(thisMonday)
+  startMonday.setDate(thisMonday.getDate() - (weekCount - 1) * 7)
+
+  const weeks: GymHeatmapCell[][] = []
+  const monthLabels: Array<{ label: string; weekIndex: number }> = []
+  let lastMonth = -1
+
+  for (let w = 0; w < weekCount; w++) {
+    const monday = new Date(startMonday)
+    monday.setDate(startMonday.getDate() + w * 7)
+    const week: GymHeatmapCell[] = []
+    for (let d = 0; d < 7; d++) {
+      const day = new Date(monday)
+      day.setDate(monday.getDate() + d)
+      const iso = todayISODate(day)
+      week.push({
+        date: iso,
+        done: doneDates.has(iso),
+        isToday: iso === today,
+        isFuture: iso > today,
+      })
+    }
+    weeks.push(week)
+
+    const month = monday.getMonth()
+    if (month !== lastMonth) {
+      monthLabels.push({ label: MONTH_SHORT_ES[month] ?? '', weekIndex: w })
+      lastMonth = month
+    }
+  }
+
+  let streakCursor = today
+  if (!doneDates.has(today)) {
+    streakCursor = addDaysISO(today, -1)
+  }
+  let streak = 0
+  while (doneDates.has(streakCursor)) {
+    streak += 1
+    streakCursor = addDaysISO(streakCursor, -1)
+  }
+
+  const weekStart = todayISODate(thisMonday)
+  const weekEnd = addDaysISO(weekStart, 6)
+  let weekDone = 0
+  for (const iso of doneDates) {
+    if (iso >= weekStart && iso <= weekEnd) weekDone += 1
+  }
+
+  return {
+    weeks,
+    monthLabels,
+    streak,
+    weekCount: weekDone,
+    weekTarget,
+    doneToday: doneDates.has(today),
+    totalGymDays: doneDates.size,
+    totalSessions: completed.length,
+  }
+}
+
+function normalizeSessionDate(
+  date: string | undefined,
+  finishedAt?: number,
+  startedAt?: number,
+): string | null {
+  if (typeof date === 'string') {
+    const trimmed = date.trim()
+    if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return trimmed
+    if (/^\d{4}-\d{2}-\d{2}T/.test(trimmed)) return trimmed.slice(0, 10)
+  }
+  const ts = finishedAt ?? startedAt
+  if (ts && Number.isFinite(ts)) return todayISODate(new Date(ts))
+  return null
 }
 
 /** Cancela y borra un entrenamiento en progreso (p. ej. iniciado por error) */
