@@ -101,16 +101,18 @@ function IconGear() {
 const ARC_ITEMS: Array<
   ArcAction & { icon: ReactNode; phiDeg: number }
 > = [
-  { id: 'home', label: 'Inicio', kind: 'path', path: '/', icon: <IconHome />, phiDeg: -70 },
-  { id: 'routines', label: 'Rutinas', kind: 'path', path: '/rutinas', icon: <IconList />, phiDeg: -42 },
-  { id: 'history', label: 'Historial', kind: 'path', path: '/historial', icon: <IconClock />, phiDeg: -14 },
-  { id: 'cardio', label: 'Caminadora', kind: 'path', path: '/caminadora', icon: <IconRun />, phiDeg: 14 },
-  { id: 'prs', label: 'PRs', kind: 'prs', icon: <IconTrophy />, phiDeg: 42 },
-  { id: 'settings', label: 'Ajustes', kind: 'path', path: '/progreso', icon: <IconGear />, phiDeg: 70 },
+  /* Semicírculo hacia arriba (FAB abajo-centro). 0° = arriba. */
+  { id: 'home', label: 'Inicio', kind: 'path', path: '/', icon: <IconHome />, phiDeg: -86 },
+  { id: 'routines', label: 'Rutinas', kind: 'path', path: '/rutinas', icon: <IconList />, phiDeg: -56 },
+  { id: 'history', label: 'Historial', kind: 'path', path: '/historial', icon: <IconClock />, phiDeg: -30 },
+  { id: 'cardio', label: 'Caminadora', kind: 'path', path: '/caminadora', icon: <IconRun />, phiDeg: 30 },
+  { id: 'prs', label: 'PRs', kind: 'prs', icon: <IconTrophy />, phiDeg: 56 },
+  { id: 'settings', label: 'Ajustes', kind: 'path', path: '/progreso', icon: <IconGear />, phiDeg: 86 },
 ]
 
-const RADIUS = 112
-const LABEL_RADIUS = 168
+const RADIUS = 150
+/** Labels horizontales justo encima de cada ícono */
+const LABEL_LIFT = 40
 
 export function FocusFabMenu({ showBackupBadge = false }: FocusFabMenuProps) {
   const [open, setOpen] = useState(false)
@@ -151,10 +153,11 @@ export function FocusFabMenu({ showBackupBadge = false }: FocusFabMenuProps) {
 
         {ARC_ITEMS.map((item, index) => {
           const rad = (item.phiDeg * Math.PI) / 180
-          const x = -Math.cos(rad) * RADIUS
-          const y = Math.sin(rad) * RADIUS
-          const lx = -Math.cos(rad) * LABEL_RADIUS
-          const ly = Math.sin(rad) * LABEL_RADIUS
+          // 0° = arriba, negativo = izquierda, positivo = derecha
+          const x = Math.sin(rad) * RADIUS
+          const y = -Math.cos(rad) * RADIUS
+          const lx = x
+          const ly = y - LABEL_LIFT
           const delay = `${40 + index * 35}ms`
 
           return (
@@ -192,7 +195,6 @@ export function FocusFabMenu({ showBackupBadge = false }: FocusFabMenuProps) {
                   {
                     '--fab-x': `${lx}px`,
                     '--fab-y': `${ly}px`,
-                    '--fab-rot': `${item.phiDeg}deg`,
                     '--fab-delay': delay,
                   } as CSSProperties
                 }
