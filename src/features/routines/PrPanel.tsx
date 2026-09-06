@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Button } from '../../components/Button'
+import { useTheme } from '../../context/ThemeProvider'
 import {
   getFeaturedExercisePRs,
   getRoutineExercisePRs,
@@ -18,6 +19,16 @@ function formatPrDate(iso: string): string {
 function formatPrLine(pr: ExercisePR): string {
   const rir = pr.rir != null ? ` · RIR ${pr.rir}` : ' · RIR —'
   return `${pr.weight} lb × ${pr.reps}${rir}`
+}
+
+function pickBestPr(
+  pr: ExercisePR | null,
+  prWithStraps: ExercisePR | null,
+): ExercisePR | null {
+  if (pr && prWithStraps) {
+    return pr.weight >= prWithStraps.weight ? pr : prWithStraps
+  }
+  return pr ?? prWithStraps
 }
 
 function GoldenTrophy() {
@@ -108,6 +119,104 @@ function PrRow({
   )
 }
 
+type FeaturedRow = {
+  label: string
+  pr: ExercisePR | null
+  prWithStraps: ExercisePR | null
+  supportsStraps: boolean
+}
+
+function signalPct(weight: number, ceiling: number): number {
+  if (!ceiling || weight <= 0) return 8
+  return Math.max(10, Math.min(100, Math.round((weight / ceiling) * 100)))
+}
+
+function FocusBillboard({
+  row,
+  index,
+  ceiling,
+}: {
+  row: FeaturedRow
+  index: number
+  ceiling: number
+}) {
+  const best = pickBestPr(row.pr, row.prWithStraps)
+  const pct = best ? signalPct(best.weight, ceiling) : 8
+
+  return (
+    <section
+      className={[
+        'focus-pr-bill',
+        best ? 'focus-pr-bill--lit' : 'focus-pr-bill--void',
+      ].join(' ')}
+      style={{ animationDelay: `${index * 60}ms` }}
+    >
+      <div className="focus-pr-bill__frame" aria-hidden>
+        <span />
+        <span />
+        <span />
+        <span />
+      </div>
+
+      <p className="focus-pr-bill__cut">
+        Corte {String(index + 1).padStart(2, '0')}
+      </p>
+
+      {best ? (
+        <span className="focus-pr-bill__ghost" aria-hidden>
+          {best.weight}
+        </span>
+      ) : (
+        <span className="focus-pr-bill__ghost focus-pr-bill__ghost--dash" aria-hidden>
+          —
+        </span>
+      )}
+
+      <div className="focus-pr-bill__signal" aria-hidden>
+        <i style={{ width: `${pct}%` }} />
+      </div>
+
+      <div className="focus-pr-bill__copy">
+        <h3 className="focus-pr-bill__name">{row.label}</h3>
+
+        {row.supportsStraps ? (
+          <div className="focus-pr-bill__split">
+            <div>
+              <span>{formatStrapsLabel(false)}</span>
+              <strong>
+                {row.pr ? `${row.pr.weight} lb × ${row.pr.reps}` : 'Sin marca'}
+              </strong>
+              {row.pr ? <em>{formatPrDate(row.pr.date)}</em> : null}
+            </div>
+            <div>
+              <span>{formatStrapsLabel(true)}</span>
+              <strong>
+                {row.prWithStraps
+                  ? `${row.prWithStraps.weight} lb × ${row.prWithStraps.reps}`
+                  : 'Sin marca'}
+              </strong>
+              {row.prWithStraps ? (
+                <em>{formatPrDate(row.prWithStraps.date)}</em>
+              ) : null}
+            </div>
+          </div>
+        ) : best ? (
+          <p className="focus-pr-bill__meta">
+            <strong>{best.weight} lb</strong>
+            <span>
+              × {best.reps}
+              {best.rir != null ? ` · RIR ${best.rir}` : ''}
+            </span>
+            <span>{formatPrDate(best.date)}</span>
+          </p>
+        ) : (
+          <p className="focus-pr-bill__meta">Aún sin exposición</p>
+        )}
+      </div>
+    </section>
+  )
+}
+
 interface PrPanelProps {
   active?: boolean
   onClose?: () => void
@@ -119,15 +228,10 @@ export function PrPanel({
   onClose,
   showCloseButton = true,
 }: PrPanelProps) {
+  const { uiLayout } = useTheme()
+  const isFocus = uiLayout === 'focus'
   const [tab, setTab] = useState<'featured' | 'all'>('featured')
-  const [featured, setFeatured] = useState<
-    Array<{
-      label: string
-      pr: ExercisePR | null
-      prWithStraps: ExercisePR | null
-      supportsStraps: boolean
-    }>
-  >([])
+  const [featured, setFeatured] = useState<FeaturedRow[]>([])
   const [routineRows, setRoutineRows] = useState<
     Array<{
       exerciseName: string
@@ -165,6 +269,175 @@ export function PrPanel({
       row.exerciseName.toLowerCase().includes(q),
     )
   }, [routineRows, query])
+
+  const billCeiling = useMemo(() => {
+    let peak = 0
+    for (const row of featured) {
+      const pr = pickBestPr(row.pr, row.prWithStraps)
+      if (pr && pr.weight > peak) peak = pr.weight
+    }
+    return peak || 1
+  }, [featured])
+
+  if (isFocus) {
+    return (
+      <div className="focus-pr-reel">
+        <aside className="focus-pr-reel__spine" aria-hidden>
+          <span>MARCAS</span>
+        </aside>
+
+        <div className="focus-pr-reel__main">
+          <header className="focus-pr-reel__chrome">
+            <div className="focus-pr-reel__modes" role="tablist">
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === 'featured'}
+                className={[
+                  'focus-pr-reel__mode',
+                  tab === 'featured' ? 'focus-pr-reel__mode--on' : '',
+                ].join(' ')}
+                onClick={() => setTab('featured')}
+              >
+                Cartelera
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={tab === 'all'}
+                className={[
+                  'focus-pr-reel__mode',
+                  tab === 'all' ? 'focus-pr-reel__mode--on' : '',
+                ].join(' ')}
+                onClick={() => setTab('all')}
+              >
+                Guion
+              </button>
+            </div>
+            {showCloseButton && onClose ? (
+              <button
+                type="button"
+                onClick={onClose}
+                className="focus-pr-reel__close"
+              >
+                Cerrar
+              </button>
+            ) : null}
+          </header>
+
+          <p className="focus-pr-reel__lede">
+            {tab === 'featured'
+              ? 'Un corte por ejercicio. Desliza el rollo.'
+              : 'Todas las máquinas, línea a línea.'}
+          </p>
+
+          <div className="focus-pr-reel__body">
+            {loading ? (
+              <p className="focus-pr-reel__loading">Revelando el rollo…</p>
+            ) : tab === 'featured' ? (
+              <div className="focus-pr-reel__track" aria-label="Cartelera de PRs">
+                {featured.map((row, index) => (
+                  <FocusBillboard
+                    key={row.label}
+                    row={row}
+                    index={index}
+                    ceiling={billCeiling}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="focus-pr-script">
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Buscar escena…"
+                  className="focus-pr-script__search input-ios-safe"
+                />
+
+                {filteredAll.length === 0 ? (
+                  <p className="focus-pr-reel__loading">
+                    {routineRows.length === 0
+                      ? 'No hay ejercicios en tu rutina. Agrégalos en Rutinas.'
+                      : 'Ninguna escena con ese nombre.'}
+                  </p>
+                ) : (
+                  <ol className="focus-pr-script__list">
+                    {filteredAll.map((row, index) => {
+                      const best = pickBestPr(row.pr, row.prWithStraps)
+                      return (
+                        <li
+                          key={row.exerciseName}
+                          className="focus-pr-script__shot"
+                          style={{ animationDelay: `${28 + index * 24}ms` }}
+                        >
+                          <span className="focus-pr-script__num">
+                            {String(index + 1).padStart(2, '0')}
+                          </span>
+                          <div className="focus-pr-script__block">
+                            <p className="focus-pr-script__title">
+                              {row.exerciseName}
+                            </p>
+                            {row.dayLabels.length ? (
+                              <p className="focus-pr-script__days">
+                                {row.dayLabels.join(' · ')}
+                              </p>
+                            ) : null}
+                            {row.supportsStraps ? (
+                              <div className="focus-pr-script__dual">
+                                <span>
+                                  {formatStrapsLabel(false)} ·{' '}
+                                  {row.pr ? formatPrLine(row.pr) : '—'}
+                                </span>
+                                <span>
+                                  {formatStrapsLabel(true)} ·{' '}
+                                  {row.prWithStraps
+                                    ? formatPrLine(row.prWithStraps)
+                                    : '—'}
+                                </span>
+                              </div>
+                            ) : (
+                              <p className="focus-pr-script__line">
+                                {best
+                                  ? `${formatPrLine(best)} · ${formatPrDate(best.date)}`
+                                  : 'Sin marca'}
+                              </p>
+                            )}
+                          </div>
+                          <span className="focus-pr-script__weight">
+                            {best ? (
+                              <>
+                                {best.weight}
+                                <small>lb</small>
+                              </>
+                            ) : (
+                              '—'
+                            )}
+                          </span>
+                        </li>
+                      )
+                    })}
+                  </ol>
+                )}
+              </div>
+            )}
+          </div>
+
+          {onClose ? (
+            <div className="focus-pr-reel__footer">
+              <Button
+                fullWidth
+                className="focus-pr-reel__done"
+                onClick={onClose}
+              >
+                Listo
+              </Button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">

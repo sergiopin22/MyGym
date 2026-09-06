@@ -244,8 +244,14 @@ export function FocusFabMenu({ showBackupBadge = false }: FocusFabMenuProps) {
       </div>
 
       {prsOpen ? (
-        <div className="focus-prs-sheet" role="dialog" aria-modal="true">
-          <div className="focus-prs-sheet__panel">
+        <div className="focus-prs-sheet focus-prs-sheet--reel" role="dialog" aria-modal="true">
+          <button
+            type="button"
+            className="focus-prs-sheet__scrim"
+            aria-label="Cerrar PRs"
+            onClick={() => setPrsOpen(false)}
+          />
+          <div className="focus-prs-sheet__panel focus-prs-sheet__panel--reel">
             <PrPanel
               active
               onClose={() => setPrsOpen(false)}

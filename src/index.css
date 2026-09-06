@@ -1655,3 +1655,486 @@ html[data-ui-layout='focus'] .focus-meta-orbit__dial {
     transition: none;
   }
 }
+
+/* --- Focus PR Cinema Reel --- */
+html[data-ui-layout='focus'] .focus-prs-sheet--reel {
+  align-items: stretch;
+  justify-content: stretch;
+  background: transparent;
+  animation: focus-pr-scrim-in 0.28s ease both;
+}
+
+html[data-ui-layout='focus'] .focus-prs-sheet__scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: color-mix(in srgb, var(--color-overlay) 95%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+html[data-ui-layout='focus'] .focus-prs-sheet__panel--reel {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 100%;
+  max-width: none;
+  max-height: none;
+  height: 100%;
+  flex-direction: column;
+  overflow: hidden;
+  margin: 0;
+  border-radius: 0;
+  background:
+    radial-gradient(120% 70% at 100% 0%, color-mix(in srgb, var(--color-brand) 18%, transparent), transparent 55%),
+    linear-gradient(180deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-surface-elevated) 86%, black) 100%);
+  padding: max(0.7rem, env(safe-area-inset-top)) 0 max(0.7rem, env(safe-area-inset-bottom));
+  animation: focus-pr-panel-in 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+html[data-ui-layout='focus'] .focus-prs-sheet__panel--reel > .focus-pr-reel {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel {
+  display: grid;
+  grid-template-columns: 2.1rem 1fr;
+  min-height: 0;
+  height: 100%;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__spine {
+  position: relative;
+  overflow: hidden;
+  border-right: 1px solid color-mix(in srgb, var(--color-line) 70%, transparent);
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__spine span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) rotate(-90deg);
+  white-space: nowrap;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.42em;
+  color: color-mix(in srgb, var(--color-brand-strong) 85%, var(--color-fg-muted));
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__main {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 1rem 0 0.85rem;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__modes {
+  display: flex;
+  gap: 0.15rem;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__mode {
+  border: 0;
+  background: transparent;
+  padding: 0.35rem 0.55rem;
+  color: var(--color-fg-muted);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  position: relative;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__mode--on {
+  color: var(--color-fg);
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__mode--on::after {
+  content: '';
+  position: absolute;
+  left: 0.55rem;
+  right: 0.55rem;
+  bottom: 0.1rem;
+  height: 2px;
+  background: var(--color-brand);
+  border-radius: 999px;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__close {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  background: color-mix(in srgb, var(--color-surface-elevated) 88%, black);
+  color: var(--color-fg-muted);
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__lede {
+  margin: 0;
+  padding: 0 1rem 0 0.85rem;
+  color: var(--color-fg-muted);
+  font-size: 0.84rem;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__body {
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__loading {
+  padding: 2.5rem 1rem;
+  text-align: center;
+  color: var(--color-fg-muted);
+  font-size: 0.9rem;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__footer {
+  padding: 0 1rem 0 0.85rem;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__track {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scroll-snap-type: y mandatory;
+  padding: 0.15rem 1rem 0.5rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  -webkit-overflow-scrolling: touch;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill {
+  position: relative;
+  flex: 0 0 auto;
+  min-height: min(68dvh, 28rem);
+  scroll-snap-align: start;
+  overflow: hidden;
+  border-radius: 1.6rem;
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--color-brand) 16%, var(--color-surface-elevated)) 0%, var(--color-surface-elevated) 42%, color-mix(in srgb, var(--color-surface) 78%, black) 100%);
+  padding: 1.1rem 1rem 1.2rem;
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 8%, transparent),
+    0 28px 48px -32px rgba(0, 0, 0, 0.95);
+  opacity: 0;
+  animation: focus-pr-rise 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill--void {
+  background: color-mix(in srgb, var(--color-surface-elevated) 92%, black);
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__frame {
+  position: absolute;
+  inset: 0.7rem;
+  pointer-events: none;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__frame span {
+  position: absolute;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-color: color-mix(in srgb, var(--color-brand) 55%, transparent);
+  border-style: solid;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__frame span:nth-child(1) {
+  top: 0;
+  left: 0;
+  border-width: 2px 0 0 2px;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__frame span:nth-child(2) {
+  top: 0;
+  right: 0;
+  border-width: 2px 2px 0 0;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__frame span:nth-child(3) {
+  bottom: 0;
+  left: 0;
+  border-width: 0 0 2px 2px;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__frame span:nth-child(4) {
+  bottom: 0;
+  right: 0;
+  border-width: 0 2px 2px 0;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__cut {
+  position: relative;
+  z-index: 2;
+  margin: 0;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-brand-strong);
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__ghost {
+  position: absolute;
+  right: -0.15rem;
+  top: 42%;
+  transform: translateY(-50%);
+  z-index: 1;
+  font-family: var(--font-display);
+  font-size: clamp(7rem, 34vw, 10.5rem);
+  font-weight: 700;
+  letter-spacing: -0.1em;
+  line-height: 0.8;
+  color: color-mix(in srgb, var(--color-fg) 10%, transparent);
+  pointer-events: none;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__ghost--dash {
+  font-size: clamp(5rem, 24vw, 7rem);
+  color: color-mix(in srgb, var(--color-fg) 8%, transparent);
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__signal {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  top: 48%;
+  z-index: 1;
+  height: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-line) 55%, transparent);
+  overflow: hidden;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__signal i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--color-brand), color-mix(in srgb, var(--color-brand-strong) 70%, white));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--color-brand) 55%, transparent);
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__copy {
+  position: absolute;
+  left: 1rem;
+  right: 1rem;
+  bottom: 1.1rem;
+  z-index: 2;
+  display: grid;
+  gap: 0.55rem;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__name {
+  margin: 0;
+  max-width: 16ch;
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 6.5vw, 2.05rem);
+  font-weight: 700;
+  letter-spacing: -0.045em;
+  line-height: 0.98;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.7rem;
+  margin: 0;
+  color: var(--color-fg-muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__meta strong {
+  color: var(--color-fg);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  letter-spacing: -0.03em;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__split {
+  display: grid;
+  gap: 0.45rem;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__split > div {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--color-surface) 82%, black);
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__split span {
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-fg-muted);
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__split strong {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__split em {
+  font-style: normal;
+  color: var(--color-fg-muted);
+  font-size: 0.75rem;
+}
+
+html[data-ui-layout='focus'] .focus-pr-script {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0.1rem 1rem 0.5rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+
+html[data-ui-layout='focus'] .focus-pr-script__search {
+  width: 100%;
+  min-height: 2.85rem;
+  border: 0;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--color-surface-elevated) 92%, black);
+  padding: 0 0.95rem;
+  color: var(--color-fg);
+  font-size: 0.95rem;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-line) 65%, transparent);
+}
+
+html[data-ui-layout='focus'] .focus-pr-script__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+html[data-ui-layout='focus'] .focus-pr-script__shot {
+  display: grid;
+  grid-template-columns: 2.1rem 1fr auto;
+  gap: 0.65rem;
+  align-items: start;
+  padding: 0.95rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-line) 55%, transparent);
+  opacity: 0;
+  animation: focus-pr-rise 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+html[data-ui-layout='focus'] .focus-pr-script__shot:last-child {
+  border-bottom: 1px solid color-mix(in srgb, var(--color-line) 55%, transparent);
+}
+
+html[data-ui-layout='focus'] .focus-pr-script__num {
+  font-family: var(--font-display);
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  color: var(--color-brand-strong);
+  padding-top: 0.15rem;
+}
+
+html[data-ui-layout='focus'] .focus-pr-script__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+
+html[data-ui-layout='focus'] .focus-pr-script__days,
+html[data-ui-layout='focus'] .focus-pr-script__line {
+  margin: 0.28rem 0 0;
+  color: var(--color-fg-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+html[data-ui-layout='focus'] .focus-pr-script__dual {
+  display: grid;
+  gap: 0.2rem;
+  margin-top: 0.35rem;
+  color: var(--color-fg-muted);
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
+html[data-ui-layout='focus'] .focus-pr-script__weight {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  padding-top: 0.1rem;
+}
+
+html[data-ui-layout='focus'] .focus-pr-script__weight small {
+  margin-left: 0.12rem;
+  font-size: 0.65rem;
+  color: var(--color-fg-muted);
+}
+
+@keyframes focus-pr-scrim-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes focus-pr-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes focus-pr-rise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-ui-layout='focus'] .focus-prs-sheet--reel,
+  html[data-ui-layout='focus'] .focus-prs-sheet__panel--reel,
+  html[data-ui-layout='focus'] .focus-pr-bill,
+  html[data-ui-layout='focus'] .focus-pr-script__shot {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}
+
