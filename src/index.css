@@ -877,6 +877,15 @@ html[data-ui-layout='focus'] .focus-poster__orb {
   margin-bottom: 0.35rem;
 }
 
+html[data-ui-layout='focus'] .focus-poster__orb-motion {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  animation: focus-poster-drop 0.9s cubic-bezier(0.22, 1.35, 0.36, 1) both;
+}
+
 html[data-ui-layout='focus'] .focus-poster__ring {
   position: absolute;
   inset: 0;
@@ -889,11 +898,61 @@ html[data-ui-layout='focus'] .focus-poster__ring {
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 calc(100% - 5px));
   pointer-events: none;
   z-index: 0;
+  transition: --focus-pct 1.05s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-html[data-ui-layout='focus'] .focus-poster__orb > button {
+html[data-ui-layout='focus'] .focus-poster__spark-track {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  animation: focus-poster-spark-run 2.6s linear infinite;
+}
+
+html[data-ui-layout='focus'] .focus-poster__spark {
+  position: absolute;
+  top: -1px;
+  left: 50%;
+  width: 9px;
+  height: 9px;
+  margin-left: -4.5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, white 88%, var(--color-brand));
+  box-shadow:
+    0 0 10px color-mix(in srgb, var(--color-brand) 80%, transparent),
+    0 0 2px white;
+}
+
+html[data-ui-layout='focus'] .focus-poster__orb-motion > button {
   position: relative;
   z-index: 1;
+}
+
+@keyframes focus-poster-drop {
+  0% {
+    opacity: 0;
+    transform: translateY(-52px) scale(0.84);
+  }
+  58% {
+    opacity: 1;
+    transform: translateY(7px) scale(1.05);
+  }
+  78% {
+    transform: translateY(-4px) scale(0.985);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes focus-poster-spark-run {
+  from {
+    transform: rotate(0turn);
+  }
+  to {
+    transform: rotate(calc(var(--focus-turn, 0) * 1turn));
+  }
 }
 
 html[data-ui-layout='focus'] .focus-poster .focus-home-title {
@@ -1646,12 +1705,31 @@ html[data-ui-layout='focus'] textarea {
   initial-value: 0%;
 }
 
+@property --focus-pct {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 0%;
+}
+
 html[data-ui-layout='focus'] .focus-meta-orbit__dial {
   --meta-pct: 0%;
 }
 
+html[data-ui-layout='focus'] .focus-poster__ring {
+  --focus-pct: 0%;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html[data-ui-layout='focus'] .focus-meta-orbit__halo {
+    transition: none;
+  }
+
+  html[data-ui-layout='focus'] .focus-poster__orb-motion,
+  html[data-ui-layout='focus'] .focus-poster__spark-track {
+    animation: none;
+  }
+
+  html[data-ui-layout='focus'] .focus-poster__ring {
     transition: none;
   }
 }

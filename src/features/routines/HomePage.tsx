@@ -24,6 +24,76 @@ function sortDays(days: RoutineDay[]): RoutineDay[] {
   )
 }
 
+function FocusPosterHero({
+  progressPct,
+  weekday,
+  dayLabel,
+  muscles,
+}: {
+  progressPct: number
+  weekday: Weekday
+  dayLabel: string
+  muscles: string[]
+}) {
+  const [ringPct, setRingPct] = useState(0)
+
+  useEffect(() => {
+    setRingPct(0)
+    const reduced =
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reduced) {
+      setRingPct(progressPct)
+      return
+    }
+    let inner = 0
+    const outer = window.requestAnimationFrame(() => {
+      inner = window.requestAnimationFrame(() => {
+        setRingPct(progressPct)
+      })
+    })
+    return () => {
+      window.cancelAnimationFrame(outer)
+      window.cancelAnimationFrame(inner)
+    }
+  }, [progressPct])
+
+  const turn = Math.max(0, Math.min(1, ringPct / 100))
+
+  return (
+    <section className="focus-poster">
+      <div className="focus-poster__orb">
+        <div className="focus-poster__orb-motion">
+          <BrandAvatarButton size="poster" />
+          <div
+            className="focus-poster__ring"
+            style={{ ['--focus-pct' as string]: `${ringPct}%` }}
+            aria-hidden
+          />
+          {ringPct > 0 ? (
+            <div
+              className="focus-poster__spark-track"
+              style={{ ['--focus-turn' as string]: String(turn) }}
+              aria-hidden
+            >
+              <span className="focus-poster__spark" />
+            </div>
+          ) : null}
+        </div>
+      </div>
+      <p className="focus-home-kicker">Arena · Hoy</p>
+      <h1 className="focus-home-title text-fg">{weekdayLabel(weekday)}</h1>
+      <p className="focus-page-sub">
+        {dayLabel}
+        {muscles.length ? ` · ${muscles.join(' · ')}` : ''}
+      </p>
+      <p className="focus-poster__pct" aria-live="polite">
+        {progressPct}% del día
+      </p>
+    </section>
+  )
+}
+
 export function HomePage() {
   const navigate = useNavigate()
   const { uiLayout } = useTheme()
@@ -41,6 +111,7 @@ export function HomePage() {
   const [locateToday, setLocateToday] = useState(false)
   const [focusDeck, setFocusDeck] = useState<'hoy' | 'semana' | 'meta'>('hoy')
   const [weekExpanded, setWeekExpanded] = useState<Weekday | null>(todayWeekday)
+  const [posterEnterKey, setPosterEnterKey] = useState(0)
   const todayChipRef = useRef<HTMLButtonElement | null>(null)
   const todayLocatePlayedRef = useRef(false)
 
@@ -487,7 +558,10 @@ export function HomePage() {
                 focusDeck === tab.id ? 'focus-deck__tab--active' : '',
               ].join(' ')}
               aria-pressed={focusDeck === tab.id}
-              onClick={() => setFocusDeck(tab.id)}
+              onClick={() => {
+                setFocusDeck(tab.id)
+                if (tab.id === 'hoy') setPosterEnterKey((k) => k + 1)
+              }}
             >
               {tab.label}
             </button>
@@ -496,29 +570,13 @@ export function HomePage() {
 
         {focusDeck === 'hoy' ? (
           <>
-            <section className="focus-poster">
-              <div className="focus-poster__orb">
-                <BrandAvatarButton size="poster" />
-                <div
-                  className="focus-poster__ring"
-                  style={{ ['--focus-pct' as string]: `${progressPct}%` }}
-                  aria-hidden
-                />
-              </div>
-              <p className="focus-home-kicker">Arena · Hoy</p>
-              <h1 className="focus-home-title text-fg">
-                {weekdayLabel(todayWeekday)}
-              </h1>
-              <p className="focus-page-sub">
-                {selectedDay?.label ?? 'Sin día'}
-                {selectedDay?.muscleGroups.length
-                  ? ` · ${selectedDay.muscleGroups.join(' · ')}`
-                  : ''}
-              </p>
-              <p className="focus-poster__pct" aria-live="polite">
-                {progressPct}% del día
-              </p>
-            </section>
+            <FocusPosterHero
+              key={posterEnterKey}
+              progressPct={progressPct}
+              weekday={todayWeekday}
+              dayLabel={selectedDay?.label ?? 'Sin día'}
+              muscles={selectedDay?.muscleGroups ?? []}
+            />
 
             <div className="focus-section-pad">
               <BackupReminderCard />
