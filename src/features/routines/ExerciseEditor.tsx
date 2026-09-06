@@ -7,8 +7,10 @@ import {
   addExerciseAlternative,
   addExerciseToDay,
   clearExerciseImage,
+  listSessionsTaggedAsOfficialMachine,
   removeExerciseAlternative,
   renameExerciseAlternative,
+  reassignRecentSessionsToAlternative,
   saveExerciseImage,
   setExerciseUnderMaintenance,
   updateExercise,
@@ -195,6 +197,70 @@ export function ExerciseEditor({
       onSaved()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo renombrar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleReassignHistory(alt: ExerciseAlternative) {
+    if (!exerciseId) return
+    const official = name.trim() || exercise?.name || ''
+    if (!official) {
+      setError('Guarda primero el nombre oficial del ejercicio')
+      return
+    }
+
+    const raw = window.prompt(
+      `¿Cuántas sesiones recientes de "${official}" quieres mover a "${alt.name}"?\n\n(Esas sesiones pasarán a contar como la alternativa: última vez y PR propios.)`,
+      '3',
+    )
+    if (raw == null) return
+    const sessionCount = Number.parseInt(raw, 10)
+    if (!Number.isFinite(sessionCount) || sessionCount < 1) {
+      setError('Indica un número válido (ej. 3)')
+      return
+    }
+
+    setSaving(true)
+    setError(null)
+    try {
+      const preview = await listSessionsTaggedAsOfficialMachine({
+        routineExerciseId: exerciseId,
+        officialName: official,
+        limit: sessionCount,
+      })
+      if (preview.length === 0) {
+        throw new Error(
+          `No hay sesiones guardadas como "${official}" para mover.`,
+        )
+      }
+      const dates = preview
+        .map((p) =>
+          new Date(p.date + 'T12:00:00').toLocaleDateString('es-ES', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+          }),
+        )
+        .join('\n')
+      const ok = window.confirm(
+        `Se moverán ${preview.length} sesión(es) de "${official}" → "${alt.name}":\n\n${dates}\n\n¿Continuar?`,
+      )
+      if (!ok) return
+
+      const result = await reassignRecentSessionsToAlternative({
+        routineExerciseId: exerciseId,
+        officialName: official,
+        alternativeId: alt.id,
+        alternativeName: alt.name,
+        sessionCount,
+      })
+      window.alert(
+        `Listo: ${result.updatedSessions} sesión(es) ahora cuentan como "${alt.name}".\n"${official}" recupera su historial anterior.`,
+      )
+      onSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo reclasificar')
     } finally {
       setSaving(false)
     }
@@ -413,26 +479,39 @@ export function ExerciseEditor({
                 {alternatives.map((alt) => (
                   <li
                     key={alt.id}
-                    className="flex items-center gap-2 rounded-xl bg-surface-elevated px-3 py-2 ring-1 ring-line"
+                    className="space-y-2 rounded-xl bg-surface-elevated px-3 py-2 ring-1 ring-line"
                   >
-                    <span className="min-w-0 flex-1 truncate font-semibold text-fg">
-                      {alt.name}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="min-w-0 flex-1 truncate font-semibold text-fg">
+                        {alt.name}
+                      </span>
+                      <button
+                        type="button"
+                        className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-brand"
+                        disabled={saving}
+                        onClick={() => void handleRenameAlternative(alt.id, alt.name)}
+                      >
+                        Renombrar
+                      </button>
+                      <button
+                        type="button"
+                        className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-danger"
+                        disabled={saving}
+                        onClick={() => void handleRemoveAlternative(alt.id)}
+                      >
+                        Quitar
+                      </button>
+                    </div>
                     <button
                       type="button"
-                      className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-brand"
-                      disabled={saving}
-                      onClick={() => void handleRenameAlternative(alt.id, alt.name)}
+                      disabled={saving || !exerciseId}
+                      onClick={() => void handleReassignHistory(alt)}
+                      className="w-full rounded-xl bg-brand-soft px-3 py-2 text-left text-xs font-semibold text-fg ring-1 ring-brand/30 transition active:scale-[0.99] disabled:opacity-50"
                     >
-                      Renombrar
-                    </button>
-                    <button
-                      type="button"
-                      className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-danger"
-                      disabled={saving}
-                      onClick={() => void handleRemoveAlternative(alt.id)}
-                    >
-                      Quitar
+                      Mover últimas sesiones aquí
+                      <span className="mt-0.5 block font-normal text-muted">
+                        Corrige historial: pesos que guardaste como la oficial pasan a esta alternativa
+                      </span>
                     </button>
                   </li>
                 ))}

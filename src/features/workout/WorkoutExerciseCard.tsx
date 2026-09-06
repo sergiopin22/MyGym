@@ -5,8 +5,10 @@ import { NumberStepper } from '../../components/NumberStepper'
 import { StatusBadge } from '../../components/StatusBadge'
 import { StrapsToggle } from '../../components/StrapsToggle'
 import {
+  addExerciseAlternative,
   applyPreviousWeights,
   getLastExercisePerformance,
+  getRoutineExerciseById,
   setExerciseStraps,
   setSessionExerciseMachine,
   updateExerciseNote,
@@ -272,13 +274,66 @@ export function WorkoutExerciseCard({
       | { type: 'alternative'; alternativeId: string }
       | { type: 'new'; name: string },
   ) {
-    if (editMode) {
-      setError('Cambia la máquina en un entrenamiento en curso.')
-      return
-    }
     setBusy(true)
     setError(null)
     try {
+      if (editMode) {
+        const planned = getPlannedExerciseName(exercise)
+        let nextName = planned
+        let activeAlternativeId: string | undefined
+
+        if (choice.type === 'original') {
+          nextName = planned
+          activeAlternativeId = undefined
+        } else {
+          const routineEx = await getRoutineExerciseById(
+            exercise.routineExerciseId,
+            session.routineDayId,
+            session.routineId,
+          )
+          if (!routineEx) throw new Error('Ejercicio de rutina no encontrado')
+
+          if (choice.type === 'alternative') {
+            const alt = (routineEx.alternatives ?? []).find(
+              (a) => a.id === choice.alternativeId,
+            )
+            if (!alt) throw new Error('Alternativa no encontrada')
+            nextName = alt.name
+            activeAlternativeId = alt.id
+          } else {
+            const updated = await addExerciseAlternative(
+              session.routineDayId,
+              exercise.routineExerciseId,
+              choice.name,
+              session.routineId,
+            )
+            const created = (updated.alternatives ?? []).find(
+              (a) =>
+                a.name.trim().toLowerCase() === choice.name.trim().toLowerCase(),
+            )
+            if (!created) throw new Error('No se pudo crear la alternativa')
+            nextName = created.name
+            activeAlternativeId = created.id
+          }
+        }
+
+        onSessionChange({
+          ...session,
+          exercises: session.exercises.map((ex) =>
+            ex.id === exercise.id
+              ? {
+                  ...ex,
+                  plannedName: planned,
+                  name: nextName,
+                  activeAlternativeId,
+                }
+              : ex,
+          ),
+        })
+        setMachinePickerOpen(false)
+        return
+      }
+
       const updated = await setSessionExerciseMachine(
         session.id,
         exercise.id,
@@ -329,7 +384,7 @@ export function WorkoutExerciseCard({
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {canEdit && !editMode ? (
+        {canEdit ? (
           <Button
             variant="secondary"
             className="min-h-11 px-3 text-sm"

@@ -535,6 +535,110 @@ export async function getRoutineExerciseById(
   return found?.day.exercises.find((e) => e.id === routineExerciseId)
 }
 
+function namesMatch(a: string, b: string): boolean {
+  return a.trim().toLowerCase() === b.trim().toLowerCase()
+}
+
+/**
+ * Sesiones completadas donde el ejercicio sigue etiquetado con el nombre oficial
+ * (candidatas a mover a una alternativa).
+ */
+export async function listSessionsTaggedAsOfficialMachine(input: {
+  routineExerciseId: string
+  officialName: string
+  limit?: number
+}): Promise<
+  Array<{
+    sessionId: string
+    date: string
+    dayLabel: string
+    exerciseLogId: string
+    exerciseName: string
+  }>
+> {
+  const limit = Math.max(1, Math.min(30, input.limit ?? 10))
+  const sessions = await db.sessions
+    .where('status')
+    .equals('completed')
+    .sortBy('startedAt')
+
+  const rows: Array<{
+    sessionId: string
+    date: string
+    dayLabel: string
+    exerciseLogId: string
+    exerciseName: string
+  }> = []
+
+  for (const session of sessions.reverse()) {
+    const match = session.exercises.find((ex) => {
+      const isSameExercise =
+        ex.routineExerciseId === input.routineExerciseId ||
+        namesMatch(ex.name, input.officialName) ||
+        namesMatch(ex.plannedName ?? '', input.officialName)
+      if (!isSameExercise) return false
+      // Solo las que aún están como la oficial (contaminadas)
+      return namesMatch(ex.name, input.officialName)
+    })
+    if (!match) continue
+    rows.push({
+      sessionId: session.id,
+      date: session.date,
+      dayLabel: session.dayLabel,
+      exerciseLogId: match.id,
+      exerciseName: match.name,
+    })
+    if (rows.length >= limit) break
+  }
+
+  return rows
+}
+
+/**
+ * Mueve las últimas N sesiones etiquetadas como la máquina oficial
+ * hacia una alternativa (corrige historial/PR sin reescribir pesos).
+ */
+export async function reassignRecentSessionsToAlternative(input: {
+  routineExerciseId: string
+  officialName: string
+  alternativeId: string
+  alternativeName: string
+  sessionCount: number
+}): Promise<{ updatedSessions: number; dates: string[] }> {
+  const count = Math.max(1, Math.min(20, Math.round(input.sessionCount)))
+  const candidates = await listSessionsTaggedAsOfficialMachine({
+    routineExerciseId: input.routineExerciseId,
+    officialName: input.officialName,
+    limit: count,
+  })
+
+  if (candidates.length === 0) {
+    throw new Error(
+      `No hay sesiones recientes guardadas como "${input.officialName}" para mover.`,
+    )
+  }
+
+  const dates: string[] = []
+  for (const row of candidates) {
+    const session = await getSessionById(row.sessionId)
+    if (!session) continue
+    const exercises = session.exercises.map((ex) =>
+      ex.id === row.exerciseLogId
+        ? {
+            ...ex,
+            plannedName: input.officialName,
+            name: input.alternativeName,
+            activeAlternativeId: input.alternativeId,
+          }
+        : ex,
+    )
+    await saveSession({ ...session, exercises })
+    dates.push(row.date)
+  }
+
+  return { updatedSessions: dates.length, dates }
+}
+
 export async function removeExerciseFromDay(
   dayId: string,
   exerciseId: string,
@@ -1074,8 +1178,15 @@ export async function saveCompletedSessionEdits(
     })
 
     const status = computeExerciseStatus(sets)
+    const plannedName =
+      draft.plannedName?.trim() ||
+      original.plannedName?.trim() ||
+      original.name
     normalized.push({
       ...original,
+      name: draft.name.trim() || original.name,
+      plannedName,
+      activeAlternativeId: draft.activeAlternativeId,
       note: draft.note,
       sets,
       status,

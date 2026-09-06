@@ -175,8 +175,8 @@ export function EditCompletedSessionPage() {
           max={Math.max(exercises.length, 1)}
         />
         <p className="rounded-2xl bg-brand-soft px-3 py-2 text-xs text-fg">
-          Corrige peso, reps, RIR y straps. No cambia el día ni la meta. Los PR
-          se actualizan al guardar.
+          Corrige peso, reps, RIR, straps y también la máquina (oficial o
+          alternativa). Los PR se actualizan al guardar.
         </p>
         {hasBackStrapsExercises ? (
           <div className="flex flex-wrap gap-2">
