@@ -5,6 +5,7 @@ import type {
   BodyPhotoAngle,
   ConstancyGoal,
   ExerciseAlternative,
+  ExerciseGrip,
   ExerciseImage,
   ExerciseLog,
   LastExercisePerformance,
@@ -294,6 +295,7 @@ export async function updateExercise(
       | 'order'
       | 'alternatives'
       | 'underMaintenance'
+      | 'grips'
     >
   >,
   routineId?: string,
@@ -446,6 +448,99 @@ export async function setExerciseUnderMaintenance(
   )
 }
 
+export async function addExerciseGrip(
+  dayId: string,
+  exerciseId: string,
+  name: string,
+  routineId?: string,
+): Promise<RoutineExercise> {
+  const routine = await requireRoutine(routineId)
+  const day = findDay(routine, dayId)
+  if (!day) throw new Error('Día de rutina no encontrado')
+  const current = day.exercises.find((e) => e.id === exerciseId)
+  if (!current) throw new Error('Ejercicio no encontrado')
+
+  const trimmed = normalizeAltName(name)
+  if (!trimmed) throw new Error('Ponle un nombre al agarre')
+
+  const existing = current.grips ?? []
+  if (existing.some((g) => g.name.trim().toLowerCase() === trimmed.toLowerCase())) {
+    throw new Error('Ese agarre ya está en la lista')
+  }
+
+  const grip: ExerciseGrip = {
+    id: createId('grip'),
+    name: trimmed,
+    createdAt: Date.now(),
+  }
+
+  return updateExercise(
+    dayId,
+    exerciseId,
+    { grips: [...existing, grip] },
+    routine.id,
+  )
+}
+
+export async function removeExerciseGrip(
+  dayId: string,
+  exerciseId: string,
+  gripId: string,
+  routineId?: string,
+): Promise<RoutineExercise> {
+  const routine = await requireRoutine(routineId)
+  const day = findDay(routine, dayId)
+  if (!day) throw new Error('Día de rutina no encontrado')
+  const current = day.exercises.find((e) => e.id === exerciseId)
+  if (!current) throw new Error('Ejercicio no encontrado')
+
+  return updateExercise(
+    dayId,
+    exerciseId,
+    { grips: (current.grips ?? []).filter((g) => g.id !== gripId) },
+    routine.id,
+  )
+}
+
+export async function renameExerciseGrip(
+  dayId: string,
+  exerciseId: string,
+  gripId: string,
+  name: string,
+  routineId?: string,
+): Promise<RoutineExercise> {
+  const routine = await requireRoutine(routineId)
+  const day = findDay(routine, dayId)
+  if (!day) throw new Error('Día de rutina no encontrado')
+  const current = day.exercises.find((e) => e.id === exerciseId)
+  if (!current) throw new Error('Ejercicio no encontrado')
+
+  const trimmed = normalizeAltName(name)
+  if (!trimmed) throw new Error('Ponle un nombre al agarre')
+
+  const grips = current.grips ?? []
+  if (!grips.some((g) => g.id === gripId)) {
+    throw new Error('Agarre no encontrado')
+  }
+  if (
+    grips.some(
+      (g) =>
+        g.id !== gripId && g.name.trim().toLowerCase() === trimmed.toLowerCase(),
+    )
+  ) {
+    throw new Error('Ese agarre ya está en la lista')
+  }
+
+  return updateExercise(
+    dayId,
+    exerciseId,
+    {
+      grips: grips.map((g) => (g.id === gripId ? { ...g, name: trimmed } : g)),
+    },
+    routine.id,
+  )
+}
+
 export type SessionMachineChoice =
   | { type: 'original' }
   | { type: 'alternative'; alternativeId: string }
@@ -519,6 +614,31 @@ export async function setSessionExerciseMachine(
           plannedName,
           name: nextName,
           activeAlternativeId,
+        }
+      : ex,
+  )
+
+  return saveSession({ ...session, exercises })
+}
+
+/** Elige el agarre del día (o null = sin variante / sin especificar). */
+export async function setSessionExerciseGrip(
+  sessionId: string,
+  exerciseLogId: string,
+  grip: { id: string; name: string } | null,
+): Promise<WorkoutSession> {
+  const session = await getSessionById(sessionId)
+  if (!session) throw new Error('Sesión no encontrada')
+  if (session.status !== 'in_progress') {
+    throw new Error('La sesión ya está finalizada')
+  }
+
+  const exercises = session.exercises.map((ex) =>
+    ex.id === exerciseLogId
+      ? {
+          ...ex,
+          activeGripId: grip?.id,
+          activeGripName: grip?.name,
         }
       : ex,
   )
@@ -731,6 +851,11 @@ export async function copyExercisesFromDay(
       id: createId('alt'),
       name: alt.name,
       createdAt: alt.createdAt,
+    })),
+    grips: (ex.grips ?? []).map((g) => ({
+      id: createId('grip'),
+      name: g.name,
+      createdAt: g.createdAt,
     })),
     underMaintenance: ex.underMaintenance,
   }))
@@ -1060,7 +1185,11 @@ export async function applyPreviousWeights(
   const exercise = session.exercises.find((e) => e.id === exerciseLogId)
   if (!exercise) throw new Error('Ejercicio no encontrado en la sesión')
 
-  const last = await getLastExercisePerformance(exercise.name, session.id)
+  const last = await getLastExercisePerformance(
+    exercise.name,
+    session.id,
+    exercise.activeGripName,
+  )
   if (!last) throw new Error('No hay historial previo para este ejercicio')
 
   const weights = last.sets.map((s) => s.weight)
@@ -1187,6 +1316,8 @@ export async function saveCompletedSessionEdits(
       name: draft.name.trim() || original.name,
       plannedName,
       activeAlternativeId: draft.activeAlternativeId,
+      activeGripId: draft.activeGripId,
+      activeGripName: draft.activeGripName,
       note: draft.note,
       sets,
       status,
@@ -1261,24 +1392,27 @@ export async function getSessionDetail(
 
 /**
  * Busca la última ocasión REAL en que se hizo este ejercicio
- * (por nombre, en sesiones completadas), ignorando la sesión actual.
+ * (por nombre + agarre, en sesiones completadas), ignorando la sesión actual.
  */
 export async function getLastExercisePerformance(
   exerciseName: string,
   excludeSessionId?: string,
+  gripName?: string | null,
 ): Promise<LastExercisePerformance | undefined> {
   const name = exerciseName.trim().toLowerCase()
+  const grip = gripName?.trim().toLowerCase() || ''
   const sessions = await db.sessions
     .where('status')
     .equals('completed')
     .sortBy('startedAt')
 
-  // Recorremos de más reciente a más antigua
   for (const session of sessions.reverse()) {
     if (excludeSessionId && session.id === excludeSessionId) continue
-    const match = session.exercises.find(
-      (e) => e.name.trim().toLowerCase() === name,
-    )
+    const match = session.exercises.find((e) => {
+      if (e.name.trim().toLowerCase() !== name) return false
+      const eg = e.activeGripName?.trim().toLowerCase() || ''
+      return eg === grip
+    })
     if (!match) continue
     if (!match.sets.some((s) => s.completed)) continue
 
@@ -1868,6 +2002,8 @@ export async function canUseRecoveryThisWeek(): Promise<boolean> {
 
 export interface ExercisePR {
   exerciseName: string
+  /** Agarre si aplica (para listados) */
+  gripName?: string
   weight: number
   reps: number
   /** RIR de la serie del PR (puede ser null si no se registró) */
@@ -1938,8 +2074,21 @@ function isBetterPR(
   return false
 }
 
-function prStorageKey(exerciseName: string, withStraps: boolean): string {
-  return `${normalizeExerciseName(exerciseName)}::${withStraps ? 'straps' : 'free'}`
+function prStorageKey(
+  exerciseName: string,
+  withStraps: boolean,
+  gripName?: string | null,
+): string {
+  const grip = gripName?.trim().toLowerCase() || ''
+  return `${normalizeExerciseName(exerciseName)}::${grip}::${withStraps ? 'straps' : 'free'}`
+}
+
+function exerciseLogPrLabel(ex: {
+  name: string
+  activeGripName?: string
+}): string {
+  const grip = ex.activeGripName?.trim()
+  return grip ? `${ex.name} · ${grip}` : ex.name
 }
 
 function findExercisePR(
@@ -1951,6 +2100,7 @@ function findExercisePR(
     all.find(
       (p) =>
         exerciseNameMatches(p.exerciseName, fragments) &&
+        !p.gripName &&
         Boolean(p.withStraps) === withStraps,
     ) ?? null
   )
@@ -1972,16 +2122,18 @@ export async function getAllExercisePRs(
     for (const ex of session.exercises) {
       const keyBase = normalizeExerciseName(ex.name)
       if (!keyBase) continue
+      const gripName = ex.activeGripName?.trim() || undefined
       for (const set of ex.sets) {
         if (!set.completed || set.weight == null || set.reps == null) continue
         if (set.weight <= 0 || set.reps <= 0) continue
         const withStraps = Boolean(set.withStraps)
-        const key = prStorageKey(ex.name, withStraps)
+        const key = prStorageKey(ex.name, withStraps, gripName)
         const prev = best.get(key) ?? null
         const cand = { weight: set.weight, reps: set.reps }
         if (!isBetterPR(cand, prev)) continue
         best.set(key, {
-          exerciseName: ex.name,
+          exerciseName: exerciseLogPrLabel(ex),
+          gripName,
           weight: set.weight,
           reps: set.reps,
           rir: set.rir,
@@ -2013,15 +2165,22 @@ export async function detectNewPRsInSession(
   session: WorkoutSession,
 ): Promise<SessionNewPR[]> {
   const prior = await getAllExercisePRs(session.id)
-  const priorByKey = new Map(
-    prior.map((p) => [prStorageKey(p.exerciseName, Boolean(p.withStraps)), p]),
-  )
+  const priorMap = new Map<string, ExercisePR>()
+  for (const p of prior) {
+    const baseName = p.gripName
+      ? p.exerciseName
+          .slice(0, Math.max(0, p.exerciseName.length - ` · ${p.gripName}`.length))
+          .trim()
+      : p.exerciseName
+    priorMap.set(prStorageKey(baseName, Boolean(p.withStraps), p.gripName), p)
+  }
 
   const found: SessionNewPR[] = []
 
   for (const ex of session.exercises) {
     const keyBase = normalizeExerciseName(ex.name)
     if (!keyBase) continue
+    const gripName = ex.activeGripName?.trim() || undefined
 
     const strapModes = new Set<boolean>()
     for (const set of ex.sets) {
@@ -2048,11 +2207,12 @@ export async function detectNewPRsInSession(
 
       if (!bestInSession) continue
 
-      const prev = priorByKey.get(prStorageKey(ex.name, withStraps)) ?? null
+      const prev =
+        priorMap.get(prStorageKey(ex.name, withStraps, gripName)) ?? null
       if (!isBetterPR(bestInSession, prev)) continue
 
       found.push({
-        exerciseName: ex.name,
+        exerciseName: exerciseLogPrLabel(ex),
         weight: bestInSession.weight,
         reps: bestInSession.reps,
         rir: bestInSession.rir,
@@ -2084,9 +2244,18 @@ export async function getRoutineExercisePRs(): Promise<
 > {
   const routine = await getActiveRoutine()
   const prs = await getAllExercisePRs()
-  const prByKey = new Map(
-    prs.map((p) => [prStorageKey(p.exerciseName, Boolean(p.withStraps)), p]),
-  )
+  const prByKey = new Map<string, ExercisePR>()
+  for (const p of prs) {
+    const baseName = p.gripName
+      ? p.exerciseName
+          .slice(
+            0,
+            Math.max(0, p.exerciseName.length - ` · ${p.gripName}`.length),
+          )
+          .trim()
+      : p.exerciseName
+    prByKey.set(prStorageKey(baseName, Boolean(p.withStraps), p.gripName), p)
+  }
 
   const byKey = new Map<
     string,
@@ -2099,29 +2268,42 @@ export async function getRoutineExercisePRs(): Promise<
     }
   >()
 
+  function upsertEntry(
+    exerciseName: string,
+    dayLabel: string | null,
+    supportsStraps: boolean,
+    gripName?: string,
+  ) {
+    const listKey = `${normalizeExerciseName(exerciseName)}::${(gripName ?? '').toLowerCase()}`
+    if (!normalizeExerciseName(exerciseName)) return
+    const label = gripName ? `${exerciseName} · ${gripName}` : exerciseName
+    const existing = byKey.get(listKey)
+    if (existing) {
+      if (dayLabel && !existing.dayLabels.includes(dayLabel)) {
+        existing.dayLabels.push(dayLabel)
+      }
+      if (supportsStraps) existing.supportsStraps = true
+      return
+    }
+    byKey.set(listKey, {
+      exerciseName: label,
+      dayLabels: dayLabel ? [dayLabel] : [],
+      pr: prByKey.get(prStorageKey(exerciseName, false, gripName)) ?? null,
+      prWithStraps: supportsStraps
+        ? prByKey.get(prStorageKey(exerciseName, true, gripName)) ?? null
+        : null,
+      supportsStraps,
+    })
+  }
+
   if (routine) {
     for (const day of routine.days) {
       if (day.isRestDay) continue
       for (const ex of day.exercises) {
-        const key = normalizeExerciseName(ex.name)
-        if (!key) continue
         const supportsStraps = supportsStrapsTracking(ex.name, day.muscleGroups)
-        const existing = byKey.get(key)
-        if (existing) {
-          if (!existing.dayLabels.includes(day.label)) {
-            existing.dayLabels.push(day.label)
-          }
-          if (supportsStraps) existing.supportsStraps = true
-        } else {
-          byKey.set(key, {
-            exerciseName: ex.name,
-            dayLabels: [day.label],
-            pr: prByKey.get(prStorageKey(ex.name, false)) ?? null,
-            prWithStraps: supportsStraps
-              ? prByKey.get(prStorageKey(ex.name, true)) ?? null
-              : null,
-            supportsStraps,
-          })
+        upsertEntry(ex.name, day.label, supportsStraps)
+        for (const grip of ex.grips ?? []) {
+          upsertEntry(ex.name, day.label, supportsStraps, grip.name)
         }
       }
     }
@@ -2129,9 +2311,17 @@ export async function getRoutineExercisePRs(): Promise<
 
   /** Incluye PRs de nombres que ya no están en rutina (historial viejo) */
   for (const pr of prs) {
-    const key = normalizeExerciseName(pr.exerciseName)
-    if (!byKey.has(key)) {
-      byKey.set(key, {
+    const baseName = pr.gripName
+      ? pr.exerciseName
+          .slice(
+            0,
+            Math.max(0, pr.exerciseName.length - ` · ${pr.gripName}`.length),
+          )
+          .trim()
+      : pr.exerciseName
+    const listKey = `${normalizeExerciseName(baseName)}::${(pr.gripName ?? '').toLowerCase()}`
+    if (!byKey.has(listKey)) {
+      byKey.set(listKey, {
         exerciseName: pr.exerciseName,
         dayLabels: [],
         pr: pr.withStraps ? null : pr,

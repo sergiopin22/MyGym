@@ -225,6 +225,12 @@ export function RoutineDayPage() {
                           {ex.alternatives!.length === 1 ? '' : 's'}
                         </p>
                       ) : null}
+                      {(ex.grips?.length ?? 0) > 0 ? (
+                        <p className="mt-1 text-xs font-medium text-brand">
+                          {ex.grips!.length} agarre
+                          {ex.grips!.length === 1 ? '' : 's'}
+                        </p>
+                      ) : null}
                       {ex.videoUrl ? (
                         <p className="mt-1 text-xs font-medium text-brand">Tutorial configurado</p>
                       ) : null}

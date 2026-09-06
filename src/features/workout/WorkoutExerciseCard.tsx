@@ -10,11 +10,13 @@ import {
   getLastExercisePerformance,
   getRoutineExerciseById,
   setExerciseStraps,
+  setSessionExerciseGrip,
   setSessionExerciseMachine,
   updateExerciseNote,
   updateSet,
 } from '../../db/repository'
 import type {
+  ExerciseGrip,
   ExerciseLog,
   LastExercisePerformance,
   SetLog,
@@ -141,6 +143,7 @@ export function WorkoutExerciseCard({
   const [noteDraft, setNoteDraft] = useState(exercise.note ?? '')
   const [noteOpen, setNoteOpen] = useState(Boolean(exercise.note))
   const [machinePickerOpen, setMachinePickerOpen] = useState(false)
+  const [grips, setGrips] = useState<ExerciseGrip[]>([])
 
   useEffect(() => {
     setNoteDraft(exercise.note ?? '')
@@ -150,12 +153,39 @@ export function WorkoutExerciseCard({
   useEffect(() => {
     setLast(undefined)
     setExpandedLast(false)
-  }, [exercise.name])
+  }, [exercise.name, exercise.activeGripId, exercise.activeGripName])
+
+  useEffect(() => {
+    let alive = true
+    getRoutineExerciseById(
+      exercise.routineExerciseId,
+      session.routineDayId,
+      session.routineId,
+    )
+      .then((ex) => {
+        if (!alive) return
+        setGrips([...(ex?.grips ?? [])])
+      })
+      .catch(() => {
+        if (alive) setGrips([])
+      })
+    return () => {
+      alive = false
+    }
+  }, [
+    exercise.routineExerciseId,
+    session.routineDayId,
+    session.routineId,
+  ])
 
   async function loadLast() {
     setLoadingLast(true)
     try {
-      const perf = await getLastExercisePerformance(exercise.name, session.id)
+      const perf = await getLastExercisePerformance(
+        exercise.name,
+        session.id,
+        exercise.activeGripName,
+      )
       setLast(perf ?? null)
     } finally {
       setLoadingLast(false)
@@ -195,7 +225,11 @@ export function WorkoutExerciseCard({
       if (editMode) {
         const perf =
           last === undefined
-            ? await getLastExercisePerformance(exercise.name, session.id)
+            ? await getLastExercisePerformance(
+                exercise.name,
+                session.id,
+                exercise.activeGripName,
+              )
             : last
         if (last === undefined) setLast(perf ?? null)
         if (!perf) throw new Error('No hay historial previo para este ejercicio')
@@ -348,6 +382,39 @@ export function WorkoutExerciseCard({
     }
   }
 
+  async function chooseGrip(grip: ExerciseGrip | null) {
+    if (!canEdit) return
+    setBusy(true)
+    setError(null)
+    try {
+      if (editMode) {
+        onSessionChange({
+          ...session,
+          exercises: session.exercises.map((ex) =>
+            ex.id === exercise.id
+              ? {
+                  ...ex,
+                  activeGripId: grip?.id,
+                  activeGripName: grip?.name,
+                }
+              : ex,
+          ),
+        })
+        return
+      }
+      const updated = await setSessionExerciseGrip(
+        session.id,
+        exercise.id,
+        grip ? { id: grip.id, name: grip.name } : null,
+      )
+      onSessionChange(updated)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo cambiar el agarre')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const plannedName = getPlannedExerciseName(exercise)
   const usingAlt = isUsingAlternative(exercise)
   const showStraps = supportsStrapsTracking(
@@ -376,12 +443,48 @@ export function WorkoutExerciseCard({
               Sustituye a {plannedName} · PR propio
             </p>
           ) : null}
+          {exercise.activeGripName ? (
+            <p className="text-sm font-semibold text-brand">
+              Agarre: {exercise.activeGripName} · PR propio
+            </p>
+          ) : null}
           <p className="text-sm text-muted">
             Meta: {exercise.targetSets}×{exercise.targetReps.min}–
             {exercise.targetReps.max} · RIR {exercise.targetRir}
           </p>
         </div>
       </div>
+
+      {grips.length > 0 && canEdit ? (
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-muted">
+            Agarre
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {grips.map((grip) => {
+              const active = exercise.activeGripId === grip.id
+              return (
+                <button
+                  key={grip.id}
+                  type="button"
+                  disabled={busy}
+                  onClick={() =>
+                    void chooseGrip(active ? null : grip)
+                  }
+                  className={[
+                    'min-h-10 rounded-xl px-3 text-sm font-semibold ring-1 transition active:scale-[0.98]',
+                    active
+                      ? 'bg-chrome text-chrome-fg ring-chrome'
+                      : 'bg-surface text-muted ring-line',
+                  ].join(' ')}
+                >
+                  {grip.name}
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      ) : null}
 
       <div className="flex flex-wrap gap-2">
         {canEdit ? (

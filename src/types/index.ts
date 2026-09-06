@@ -21,6 +21,13 @@ export interface ExerciseAlternative {
   createdAt: number
 }
 
+/** Variante de agarre (ej. barra multi / barra recta en jalón al pecho) */
+export interface ExerciseGrip {
+  id: string
+  name: string
+  createdAt: number
+}
+
 /** Ejercicio dentro de un día de rutina (plantilla) */
 export interface RoutineExercise {
   id: string
@@ -39,6 +46,8 @@ export interface RoutineExercise {
   alternatives?: ExerciseAlternative[]
   /** Marca visual: la máquina oficial no está disponible */
   underMaintenance?: boolean
+  /** Agarres / variantes del mismo movimiento (PR separados por agarre) */
+  grips?: ExerciseGrip[]
 }
 
 export interface RoutineDay {
@@ -86,6 +95,9 @@ export interface ExerciseLog {
   plannedName?: string
   /** Id de la alternativa activa; ausente = máquina oficial */
   activeAlternativeId?: string
+  /** Agarre activo del día (si el ejercicio tiene variantes) */
+  activeGripId?: string
+  activeGripName?: string
   targetSets: number
   targetReps: RepRange
   targetRir: number

@@ -95,4 +95,11 @@ export function isUsingAlternative(exercise: {
   return planned !== exercise.name
 }
 
+export function getActiveGripName(exercise: {
+  activeGripName?: string
+}): string | undefined {
+  const g = exercise.activeGripName?.trim()
+  return g || undefined
+}
+
 export type { LastExercisePerformance, Routine, RoutineDay, RoutineExercise, SessionSummary, Weekday, WorkoutSession }

@@ -5,17 +5,20 @@ import { NumberStepper } from '../../components/NumberStepper'
 import { ExerciseThumb } from '../../components/ExerciseThumb'
 import {
   addExerciseAlternative,
+  addExerciseGrip,
   addExerciseToDay,
   clearExerciseImage,
   listSessionsTaggedAsOfficialMachine,
   removeExerciseAlternative,
+  removeExerciseGrip,
   renameExerciseAlternative,
+  renameExerciseGrip,
   reassignRecentSessionsToAlternative,
   saveExerciseImage,
   setExerciseUnderMaintenance,
   updateExercise,
 } from '../../db/repository'
-import type { ExerciseAlternative, RoutineExercise } from '../../types'
+import type { ExerciseAlternative, ExerciseGrip, RoutineExercise } from '../../types'
 import { openTutorial } from '../exercises/media'
 
 function clampInt(n: number, min: number, max: number) {
@@ -53,10 +56,14 @@ export function ExerciseEditor({
   const [alternatives, setAlternatives] = useState<ExerciseAlternative[]>(
     () => [...(exercise?.alternatives ?? [])],
   )
+  const [grips, setGrips] = useState<ExerciseGrip[]>(
+    () => [...(exercise?.grips ?? [])],
+  )
   const [underMaintenance, setUnderMaintenance] = useState(
     Boolean(exercise?.underMaintenance),
   )
   const [newAltName, setNewAltName] = useState('')
+  const [newGripName, setNewGripName] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -261,6 +268,67 @@ export function ExerciseEditor({
       onSaved()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo reclasificar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleAddGrip() {
+    setSaving(true)
+    setError(null)
+    try {
+      const id = await ensureExerciseSaved()
+      const updated = await addExerciseGrip(dayId, id, newGripName, routineId)
+      setGrips([...(updated.grips ?? [])])
+      setNewGripName('')
+      onSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo agregar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleRemoveGrip(gripId: string) {
+    if (!exerciseId) return
+    const ok = window.confirm('¿Quitar este agarre?')
+    if (!ok) return
+    setSaving(true)
+    setError(null)
+    try {
+      const updated = await removeExerciseGrip(
+        dayId,
+        exerciseId,
+        gripId,
+        routineId,
+      )
+      setGrips([...(updated.grips ?? [])])
+      onSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo quitar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleRenameGrip(gripId: string, current: string) {
+    if (!exerciseId) return
+    const next = window.prompt('Nuevo nombre del agarre', current)
+    if (next == null) return
+    setSaving(true)
+    setError(null)
+    try {
+      const updated = await renameExerciseGrip(
+        dayId,
+        exerciseId,
+        gripId,
+        next,
+        routineId,
+      )
+      setGrips([...(updated.grips ?? [])])
+      onSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo renombrar')
     } finally {
       setSaving(false)
     }
@@ -535,6 +603,69 @@ export function ExerciseEditor({
                 variant="secondary"
                 disabled={saving || !newAltName.trim()}
                 onClick={() => void handleAddAlternative()}
+              >
+                Agregar
+              </Button>
+            </div>
+          </section>
+
+          <section className="space-y-3 rounded-2xl border border-line bg-surface px-3 py-3">
+            <div>
+              <p className="font-display text-sm font-bold text-fg">Agarres</p>
+              <p className="mt-1 text-xs text-muted">
+                Variantes del mismo movimiento (ej. barra multi / barra recta).
+                En el gym eliges con un toque; cada agarre tiene su PR.
+              </p>
+            </div>
+
+            {grips.length > 0 ? (
+              <ul className="space-y-2">
+                {grips.map((grip) => (
+                  <li
+                    key={grip.id}
+                    className="flex items-center gap-2 rounded-xl bg-surface-elevated px-3 py-2 ring-1 ring-line"
+                  >
+                    <span className="min-w-0 flex-1 truncate font-semibold text-fg">
+                      {grip.name}
+                    </span>
+                    <button
+                      type="button"
+                      className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-brand"
+                      disabled={saving}
+                      onClick={() => void handleRenameGrip(grip.id, grip.name)}
+                    >
+                      Renombrar
+                    </button>
+                    <button
+                      type="button"
+                      className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-danger"
+                      disabled={saving}
+                      onClick={() => void handleRemoveGrip(grip.id)}
+                    >
+                      Quitar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted">
+                Opcional. Ej: Barra multi agarre, Barra recta…
+              </p>
+            )}
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newGripName}
+                onChange={(e) => setNewGripName(e.target.value)}
+                placeholder="Nombre del agarre"
+                className="input-ios-safe min-h-11 min-w-0 flex-1 rounded-xl border border-line bg-surface-elevated px-3 text-fg outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={saving || !newGripName.trim()}
+                onClick={() => void handleAddGrip()}
               >
                 Agregar
               </Button>
