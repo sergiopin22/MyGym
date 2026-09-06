@@ -15,6 +15,7 @@ import { ConstancyGoalCard } from './ConstancyGoalCard'
 import { BrandAvatarButton } from './BrandAvatarButton'
 import { RestDayToggle } from './RestDayToggle'
 import { BackupReminderCard } from '../backup/BackupReminderCard'
+import { useTheme } from '../../context/ThemeProvider'
 
 function sortDays(days: RoutineDay[]): RoutineDay[] {
   const order = [1, 2, 3, 4, 5, 6, 0]
@@ -25,6 +26,8 @@ function sortDays(days: RoutineDay[]): RoutineDay[] {
 
 export function HomePage() {
   const navigate = useNavigate()
+  const { uiLayout } = useTheme()
+  const isFocus = uiLayout === 'focus'
   const todayWeekday = new Date().getDay() as Weekday
   const [routine, setRoutine] = useState<Routine | null>(null)
   const [activeSession, setActiveSession] = useState<WorkoutSession | undefined>()
@@ -233,13 +236,13 @@ export function HomePage() {
 
   return (
     <>
-      <div className="space-y-6">
-      <header className="mt-2 flex items-start justify-between gap-3">
+      <div className={['space-y-6', isFocus ? 'focus-home' : ''].join(' ')}>
+      <header className="focus-home-hero mt-2 flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <p className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand">
-            Mi Gym
+          <p className="focus-home-kicker font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand">
+            {isFocus ? 'Focus · Mi Gym' : 'Mi Gym'}
           </p>
-          <h1 className="font-display text-3xl font-extrabold tracking-tight text-fg">
+          <h1 className="focus-home-title font-display text-3xl font-extrabold tracking-tight text-fg">
             {weekdayLabel(todayWeekday)}
           </h1>
           <p className="text-muted">

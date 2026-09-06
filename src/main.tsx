@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { initTheme } from './themes/applyTheme'
+import { initUiLayout } from './ui/applyUiLayout'
 import { initSafeAreaInsets } from './utils/safeArea'
 import './index.css'
 import App from './App.tsx'
@@ -9,9 +10,10 @@ import App from './App.tsx'
 function boot() {
   try {
     initTheme()
+    initUiLayout()
     initSafeAreaInsets()
   } catch (err) {
-    console.warn('initTheme falló:', err)
+    console.warn('init falló:', err)
   }
 
   const rootEl = document.getElementById('root')
