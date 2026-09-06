@@ -520,6 +520,10 @@ export function HomePage() {
               </p>
             </section>
 
+            <div className="focus-section-pad">
+              <BackupReminderCard />
+            </div>
+
             {selectedDay && routine && isTodaySelected ? (
               <div className="focus-section-pad">
                 <RestDayToggle
@@ -711,9 +715,6 @@ export function HomePage() {
               onClearRecovery={handleClearRecovery}
               refreshKey={goalRefresh}
             />
-            <div className="focus-meta-deck__backup">
-              <BackupReminderCard />
-            </div>
           </section>
         ) : null}
       </div>

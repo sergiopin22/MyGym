@@ -67,7 +67,7 @@ export function ThemePicker() {
           <div>
             <h2 className="font-display text-lg font-bold">Acento Focus</h2>
             <p className="mt-1 text-sm text-muted">
-              Paleta propia de Focus. Cambia verde ↔ naranja cuando quieras.
+              Lima, Ámbar, Dark, Blue, Red, Violet o Teal. Cambia cuando quieras.
             </p>
           </div>
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">

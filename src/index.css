@@ -1307,6 +1307,7 @@ html[data-ui-layout='focus'] .focus-meta-orbit__halo {
   mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px));
   -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 10px), #000 calc(100% - 9px));
   animation: focus-meta-breathe 2.8s ease-in-out infinite;
+  transition: --meta-pct 1.15s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 html[data-ui-layout='focus'] .focus-meta-orbit__halo::after {
@@ -1636,4 +1637,21 @@ html[data-ui-layout='focus'] input,
 html[data-ui-layout='focus'] textarea {
   font-family: var(--font-sans);
   letter-spacing: -0.01em;
+}
+
+/* Animación del dial Meta (--meta-pct) */
+@property --meta-pct {
+  syntax: '<percentage>';
+  inherits: true;
+  initial-value: 0%;
+}
+
+html[data-ui-layout='focus'] .focus-meta-orbit__dial {
+  --meta-pct: 0%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-ui-layout='focus'] .focus-meta-orbit__halo {
+    transition: none;
+  }
 }

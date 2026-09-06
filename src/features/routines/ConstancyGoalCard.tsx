@@ -68,6 +68,8 @@ export function ConstancyGoalCard({
     penanceLabel: string
     acknowledged: boolean
   } | null>(null)
+  const [dialPct, setDialPct] = useState(0)
+  const [dialCount, setDialCount] = useState(0)
 
   async function reload() {
     setLoading(true)
@@ -147,6 +149,67 @@ export function ConstancyGoalCard({
     await reload()
   }
 
+  const active = goal?.status === 'active' ? goal : null
+  const justCompleted = goal?.status === 'completed' ? goal : null
+  const showPenance =
+    Boolean(active) && penance?.owed && !penance.acknowledged
+  const progressPct = active
+    ? Math.min(
+        100,
+        Math.round((active.currentCount / Math.max(active.targetCount, 1)) * 100),
+      )
+    : 0
+
+  useEffect(() => {
+    if (loading || !active || mode === 'rules' || mode === 'create') {
+      setDialPct(0)
+      setDialCount(0)
+      return
+    }
+
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+      .matches
+    if (reduceMotion) {
+      setDialPct(progressPct)
+      setDialCount(active.currentCount)
+      return
+    }
+
+    setDialPct(0)
+    setDialCount(0)
+    let rafCount = 0
+    let rafStart = 0
+    const duration = 1180
+    const targetCount = active.currentCount
+    const targetPct = progressPct
+
+    const kick = window.requestAnimationFrame(() => {
+      setDialPct(targetPct)
+    })
+
+    const tick = (now: number) => {
+      if (!rafStart) rafStart = now
+      const t = Math.min(1, (now - rafStart) / duration)
+      const eased = 1 - (1 - t) ** 3
+      setDialCount(Math.round(eased * targetCount))
+      if (t < 1) rafCount = window.requestAnimationFrame(tick)
+      else setDialCount(targetCount)
+    }
+    rafCount = window.requestAnimationFrame(tick)
+
+    return () => {
+      window.cancelAnimationFrame(kick)
+      window.cancelAnimationFrame(rafCount)
+    }
+  }, [
+    loading,
+    active?.id,
+    active?.currentCount,
+    active?.targetCount,
+    mode,
+    progressPct,
+  ])
+
   if (loading) {
     return (
       <div
@@ -160,17 +223,6 @@ export function ConstancyGoalCard({
       </div>
     )
   }
-
-  const active = goal?.status === 'active' ? goal : null
-  const justCompleted = goal?.status === 'completed' ? goal : null
-  const showPenance =
-    Boolean(active) && penance?.owed && !penance.acknowledged
-  const progressPct = active
-    ? Math.min(
-        100,
-        Math.round((active.currentCount / Math.max(active.targetCount, 1)) * 100),
-      )
-    : 0
 
   if (isFocus) {
     return (
@@ -215,13 +267,14 @@ export function ConstancyGoalCard({
 
         {mode !== 'rules' && mode !== 'create' && active ? (
           <div className="focus-meta-orbit">
-            <div
-              className="focus-meta-orbit__dial"
-              style={{ ['--meta-pct' as string]: `${progressPct}%` }}
-            >
-              <div className="focus-meta-orbit__halo" aria-hidden />
+            <div className="focus-meta-orbit__dial">
+              <div
+                className="focus-meta-orbit__halo"
+                style={{ ['--meta-pct' as string]: `${dialPct}%` }}
+                aria-hidden
+              />
               <div className="focus-meta-orbit__core">
-                <span className="focus-meta-orbit__cur">{active.currentCount}</span>
+                <span className="focus-meta-orbit__cur">{dialCount}</span>
                 <span className="focus-meta-orbit__slash">/</span>
                 <span className="focus-meta-orbit__max">{active.targetCount}</span>
               </div>
