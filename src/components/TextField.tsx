@@ -1,7 +1,7 @@
 import type { InputHTMLAttributes, TextareaHTMLAttributes } from 'react'
 
 const fieldClass =
-  'w-full min-h-12 rounded-2xl border border-line bg-surface-elevated px-4 text-base text-ink outline-none transition placeholder:text-muted/70 focus:border-brand focus:ring-2 focus:ring-brand/25'
+  'ui-field w-full min-h-12 rounded-2xl border border-line bg-surface-elevated px-4 text-base text-ink outline-none transition placeholder:text-muted/70 focus:border-brand focus:ring-2 focus:ring-brand/25'
 
 interface TextFieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label: string

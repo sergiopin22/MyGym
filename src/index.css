@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 
 @theme {
   --font-sans: "Sora", ui-sans-serif, system-ui, sans-serif;
@@ -270,7 +270,7 @@
   }
 }
 
-/* ─── Tema Temach (modo guerra) ─── */
+/* â”€â”€â”€ Tema Temach (modo guerra) â”€â”€â”€ */
 html[data-theme='temach'] .daily-quote-bar {
   border-bottom-width: 3px;
   border-bottom-color: var(--color-brand);
@@ -300,7 +300,7 @@ html[data-theme='temach'] .pr-pop-glow {
   }
 }
 
-/* ─── Layout Focus ─── */
+/* â”€â”€â”€ Layout Focus â”€â”€â”€ */
 html[data-ui-layout='focus'] {
   color-scheme: dark;
 }
@@ -499,17 +499,309 @@ html[data-ui-layout='focus'] {
   padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
-html[data-ui-layout='focus'] .focus-home-hero {
-  margin-top: 0.25rem;
+/* ─── Focus V2: otra app (FAB sin cambios) ─── */
+html[data-ui-layout='focus'] body {
+  font-family: var(--font-sans);
+  letter-spacing: 0.01em;
 }
 
-html[data-ui-layout='focus'] .focus-home-kicker {
-  letter-spacing: 0.28em;
-}
-
+html[data-ui-layout='focus'] .font-display,
+html[data-ui-layout='focus'] .focus-page-title,
 html[data-ui-layout='focus'] .focus-home-title {
-  font-size: clamp(2.1rem, 8vw, 2.75rem);
+  font-family: var(--font-display);
+}
+
+html[data-ui-layout='focus'] .focus-shell {
+  max-width: 28rem;
+}
+
+html[data-ui-layout='focus'] .focus-shell > main.focus-main {
+  padding-left: 0;
+  padding-right: 0;
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--color-brand) 40%, transparent) transparent;
+}
+
+html[data-ui-layout='focus'] .focus-page-kicker,
+html[data-ui-layout='focus'] .focus-home-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-brand) 16%, transparent);
+  color: var(--color-brand-strong);
+  font-family: var(--font-sans);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+html[data-ui-layout='focus'] .focus-page-title,
+html[data-ui-layout='focus'] .focus-home-title {
+  margin: 0;
+  font-size: clamp(2.6rem, 11vw, 3.4rem);
+  line-height: 0.95;
+  letter-spacing: -0.045em;
+  font-weight: 800;
+}
+
+html[data-ui-layout='focus'] .focus-page-sub {
+  margin: 0;
+  max-width: 26ch;
+  color: var(--color-fg-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  font-weight: 500;
+}
+
+html[data-ui-layout='focus'] .focus-page-header--active {
+  padding: 0 1.15rem 1rem;
+}
+
+html[data-ui-layout='focus'] .focus-page-header--active::after {
+  display: none;
+}
+
+html[data-ui-layout='focus'] .ui-card {
+  position: relative;
+  overflow: hidden;
+  margin-inline: 1.15rem;
+  border: 0 !important;
+  border-radius: 1.75rem;
+  background: var(--color-surface-elevated);
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 6%, transparent),
+    0 28px 50px -36px rgba(0, 0, 0, 0.95);
+  padding: 1.25rem 1.2rem;
+}
+
+html[data-ui-layout='focus'] .ui-card::before {
+  display: none !important;
+}
+
+html[data-ui-layout='focus'] .ui-btn {
+  min-height: 3.35rem;
+  border-radius: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+html[data-ui-layout='focus'] .ui-btn--primary,
+html[data-ui-layout='focus'] .ui-btn--secondary {
+  box-shadow:
+    0 14px 28px -14px color-mix(in srgb, var(--color-brand) 65%, black),
+    inset 0 1px 0 color-mix(in srgb, white 25%, transparent);
+}
+
+html[data-ui-layout='focus'] .ui-btn--ghost {
+  border: 1px solid color-mix(in srgb, var(--color-line) 80%, transparent);
+  background: color-mix(in srgb, var(--color-surface) 70%, transparent);
+}
+
+html[data-ui-layout='focus'] .ui-field {
+  border-radius: 1.15rem;
+  border-width: 0;
+  background: color-mix(in srgb, var(--color-surface) 92%, black);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-line) 70%, transparent);
+}
+
+html[data-ui-layout='focus'] .ui-field:focus {
+  box-shadow:
+    inset 0 0 0 1px var(--color-brand),
+    0 0 0 4px color-mix(in srgb, var(--color-brand) 18%, transparent);
+}
+
+html[data-ui-layout='focus'] .ui-progress__track {
+  height: 0.7rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-surface) 80%, black);
+}
+
+html[data-ui-layout='focus'] .ui-progress__fill {
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--color-brand), var(--color-brand-strong));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--color-brand) 40%, transparent);
+}
+
+html[data-ui-layout='focus'] .focus-home {
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+  padding-bottom: 1rem;
+}
+
+html[data-ui-layout='focus'] .focus-hero-bleed {
+  position: relative;
+  padding: 0.5rem 1.15rem 1.5rem;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--color-brand) 14%, transparent) 0%,
+    transparent 70%
+  );
+}
+
+html[data-ui-layout='focus'] .focus-hero-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+html[data-ui-layout='focus'] .focus-hero-bleed .focus-home-title {
+  max-width: 100%;
+}
+
+html[data-ui-layout='focus'] .focus-hero-bleed::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--color-brand) 45%, transparent),
+    transparent
+  );
+}
+
+html[data-ui-layout='focus'] .focus-week-board {
+  margin: 0 1.15rem;
+  padding: 0.85rem;
+  border-radius: 1.6rem;
+  background: color-mix(in srgb, var(--color-surface-elevated) 92%, black);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, white 5%, transparent);
+}
+
+html[data-ui-layout='focus'] .focus-week-board__label {
+  margin: 0 0 0.75rem;
+  padding: 0 0.2rem;
+  color: var(--color-fg-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+html[data-ui-layout='focus'] .focus-day-strip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.35rem;
+  overflow: visible;
+  margin: 0;
+  padding: 0;
+}
+
+html[data-ui-layout='focus'] .focus-day-strip button {
+  display: flex;
+  min-height: 4.1rem;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  border-radius: 1.1rem;
+  padding: 0.4rem 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+  text-align: center;
+}
+
+html[data-ui-layout='focus'] .focus-session-stage {
+  margin: 0 1.15rem;
+  padding: 1.35rem 1.2rem 1.25rem;
+  border-radius: 1.85rem;
+  background: linear-gradient(
+    165deg,
+    color-mix(in srgb, var(--color-brand) 12%, var(--color-surface-elevated)) 0%,
+    var(--color-surface-elevated) 38%,
+    var(--color-surface) 100%
+  );
+  box-shadow:
+    inset 0 1px 0 color-mix(in srgb, white 7%, transparent),
+    0 30px 60px -40px rgba(0, 0, 0, 0.95);
+}
+
+html[data-ui-layout='focus'] .focus-session-stage h2 {
+  font-family: var(--font-display);
+  font-size: clamp(1.55rem, 6vw, 1.9rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
   line-height: 1.05;
+}
+
+html[data-ui-layout='focus'] .focus-list-row {
+  border: 0;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--color-surface) 88%, black);
+  padding: 0.85rem 1rem;
+}
+
+html[data-ui-layout='focus'] .focus-home .today-chip-locate {
+  animation: focus-pulse 1.4s ease-in-out 2;
+}
+
+@keyframes focus-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-brand) 35%, transparent); }
+}
+
+html[data-ui-layout='focus'] .focus-section-pad {
+  padding-inline: 1.15rem;
+}
+
+html[data-ui-layout='focus'] .focus-sticky-bar {
+  background: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 12px 40px -28px rgba(0, 0, 0, 0.95);
+}
+
+html[data-ui-layout='focus'] .focus-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+html[data-ui-layout='focus'] .focus-stat {
+  border: 0;
+  border-radius: 1.25rem;
+  padding: 1rem 0.95rem;
+  background: color-mix(in srgb, var(--color-surface) 90%, black);
+}
+
+html[data-ui-layout='focus'] .focus-stat__label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-fg-muted);
+}
+
+html[data-ui-layout='focus'] .focus-stat__value {
+  display: block;
+  margin-top: 0.35rem;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+html[data-ui-layout='focus'] textarea:not(.ui-field) {
+  border: 0;
+  border-radius: 1.15rem;
+  background: color-mix(in srgb, var(--color-surface) 92%, black);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-line) 70%, transparent);
+}
+
+html[data-ui-layout='focus'] main .space-y-5,
+html[data-ui-layout='focus'] main .space-y-6 {
+  row-gap: 1.25rem;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -518,5 +810,8 @@ html[data-ui-layout='focus'] .focus-home-title {
   .focus-fab-arc-label,
   .focus-fab-glow {
     transition: none;
+  }
+  html[data-ui-layout='focus'] .focus-home .today-chip-locate {
+    animation: none;
   }
 }

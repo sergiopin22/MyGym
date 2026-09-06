@@ -6,6 +6,7 @@ import { updateRoutineName } from '../../db/repository'
 import { useBootstrapRoutine } from '../../hooks/useBootstrapRoutine'
 import { weekdayLabel } from '../../utils/id'
 import { BackupPanel } from '../backup/BackupPanel'
+import { PageHeader } from '../../ui/PageHeader'
 
 export function RoutinesPage() {
   const { routine, loading, error, setRoutine } = useBootstrapRoutine()
@@ -31,10 +32,11 @@ export function RoutinesPage() {
 
   return (
     <div className="space-y-5">
-      <header className="space-y-1 pt-2">
-        <h1 className="font-display text-3xl font-extrabold tracking-tight">Rutinas</h1>
-        <p className="text-muted">Arma tu semana: días, músculos y ejercicios.</p>
-      </header>
+      <PageHeader
+        kicker="Focus · Plan"
+        title="Rutinas"
+        subtitle="Arma tu semana: días, músculos y ejercicios."
+      />
 
       <Card>
         <TextField
@@ -69,15 +71,15 @@ export function RoutinesPage() {
                           : 'Sin grupos musculares'}
                     </p>
                     {!day.isRestDay ? (
-                    <p className="mt-1 text-sm font-medium text-ink">
-                      {day.exercises.length} ejercicio
-                      {day.exercises.length === 1 ? '' : 's'}
-                    </p>
+                      <p className="mt-1 text-sm font-medium text-ink">
+                        {day.exercises.length} ejercicio
+                        {day.exercises.length === 1 ? '' : 's'}
+                      </p>
                     ) : (
                       <p className="mt-1 text-sm font-medium text-muted">😴 Día libre</p>
                     )}
                   </div>
-                  <span className="text-2xl text-muted" aria-hidden>
+                  <span className="text-2xl text-brand-strong" aria-hidden>
                     ›
                   </span>
                 </div>

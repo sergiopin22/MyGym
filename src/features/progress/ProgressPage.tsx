@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { BackupPanel } from '../backup/BackupPanel'
 import { ThemePicker } from '../settings/ThemePicker'
+import { PageHeader } from '../../ui/PageHeader'
 
 export function ProgressPage() {
   const location = useLocation()
@@ -18,12 +19,11 @@ export function ProgressPage() {
 
   return (
     <div className="space-y-5">
-      <header className="pt-2">
-        <h1 className="font-display text-3xl font-extrabold tracking-tight">
-          Ajustes
-        </h1>
-        <p className="mt-1 text-muted">Temas, respaldo y preferencias.</p>
-      </header>
+      <PageHeader
+        kicker="Focus · Sistema"
+        title="Ajustes"
+        subtitle="Temas, respaldo y preferencias."
+      />
 
       <div id="temas">
         <ThemePicker />

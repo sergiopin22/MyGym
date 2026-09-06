@@ -22,7 +22,7 @@ export function ThemePicker() {
     {
       id: 'focus',
       name: 'Focus',
-      tagline: 'Diseño nuevo: FAB flotante, paleta propia verde/naranja',
+      tagline: 'Otra app: tipografía Syne, base tierra, FAB y layout gym',
     },
   ]
 

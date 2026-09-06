@@ -22,9 +22,14 @@ type AvatarTab = 'classic' | 'giphy'
 
 interface BrandAvatarButtonProps {
   className?: string
+  /** `focus` = avatar circular compacto para el hero Focus */
+  size?: 'lg' | 'focus'
 }
 
-export function BrandAvatarButton({ className = '' }: BrandAvatarButtonProps) {
+export function BrandAvatarButton({
+  className = '',
+  size = 'lg',
+}: BrandAvatarButtonProps) {
   const [avatarMode, setAvatarMode] = useState<AvatarMode>(() =>
     typeof window !== 'undefined' ? getStoredAvatarMode() : 'preset',
   )
@@ -165,8 +170,10 @@ export function BrandAvatarButton({ className = '' }: BrandAvatarButtonProps) {
         type="button"
         onClick={handleOpen}
         className={[
-          'relative shrink-0 overflow-hidden rounded-2xl bg-black ring-1 ring-line transition active:scale-[0.97]',
-          'h-28 w-28',
+          'relative shrink-0 overflow-hidden bg-black transition active:scale-[0.97]',
+          size === 'focus'
+            ? 'h-[4.75rem] w-[4.75rem] rounded-full ring-2 ring-brand/35'
+            : 'h-28 w-28 rounded-2xl ring-1 ring-line',
           className,
         ].join(' ')}
         aria-label={`Avatar: ${displayLabel}. Toca para cambiar`}

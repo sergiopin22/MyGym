@@ -16,6 +16,7 @@ import { ExerciseEditor } from './ExerciseEditor'
 import { MuscleGroupPicker } from './MuscleGroupPicker'
 import { CopyDayExercises } from './CopyDayExercises'
 import { RestDayToggle } from './RestDayToggle'
+import { PageHeader } from '../../ui/PageHeader'
 
 export function RoutineDayPage() {
   const { dayId } = useParams<{ dayId: string }>()
@@ -125,18 +126,19 @@ export function RoutineDayPage() {
 
   return (
     <div className="space-y-5">
-      <header className="space-y-2 pt-2">
-        <Link
-          to="/rutinas"
-          className="inline-flex min-h-11 items-center text-sm font-semibold text-muted hover:text-ink"
-        >
-          ← Rutinas
-        </Link>
-        <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted">
-          {weekdayLabel(day.weekday)}
-        </p>
-        <h1 className="font-display text-3xl font-extrabold tracking-tight">Editar día</h1>
-      </header>
+      <PageHeader
+        kicker="Focus · Día"
+        title="Editar día"
+        subtitle={weekdayLabel(day.weekday)}
+        back={
+          <Link
+            to="/rutinas"
+            className="inline-flex min-h-11 items-center text-sm font-semibold text-muted hover:text-ink"
+          >
+            ← Rutinas
+          </Link>
+        }
+      />
 
       <RestDayToggle
         day={day}

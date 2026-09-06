@@ -17,10 +17,14 @@ import { CopyCoachMessageButton } from '../history/CopyCoachMessageButton'
 import { DailyQuoteBar } from './DailyQuoteBar'
 import { PrTrophyPop } from './PrTrophyPop'
 import { WorkoutExerciseCard } from './WorkoutExerciseCard'
+import { PageHeader } from '../../ui/PageHeader'
+import { useTheme } from '../../context/ThemeProvider'
 
 export function WorkoutPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
+  const { uiLayout } = useTheme()
+  const isFocus = uiLayout === 'focus'
   const [session, setSession] = useState<WorkoutSession | null>(null)
   const [summary, setSummary] = useState<SessionSummary | null>(null)
   const [loading, setLoading] = useState(true)
@@ -174,21 +178,20 @@ export function WorkoutPage() {
           <PrTrophyPop prs={newPRs} onClose={() => setShowPrPop(false)} />
         ) : null}
 
-        <header className="shrink-0 space-y-1 border-b border-line py-3 pt-2">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-brand">
-            Entrenamiento guardado
-          </p>
-          <h1 className="font-display text-3xl font-extrabold tracking-tight">Resumen</h1>
-          <p className="text-muted">{summary.dayLabel}</p>
-          {summary.isRecovery ? (
-            <span className="inline-flex rounded-full bg-progress-soft px-3 py-1 text-xs font-bold text-progress">
-              Recuperado
-              {summary.recoveredDayLabel
-                ? ` · ${summary.recoveredDayLabel}`
-                : ''}
-            </span>
-          ) : null}
-        </header>
+        <PageHeader
+          kicker="Focus · Listo"
+          title="Resumen"
+          subtitle={summary.dayLabel}
+          className="shrink-0 border-b border-line pb-3"
+        />
+        {summary.isRecovery ? (
+          <span className="mt-2 inline-flex rounded-full bg-progress-soft px-3 py-1 text-xs font-bold text-progress">
+            Recuperado
+            {summary.recoveredDayLabel
+              ? ` · ${summary.recoveredDayLabel}`
+              : ''}
+          </span>
+        ) : null}
 
         <div
           className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4"
@@ -215,12 +218,42 @@ export function WorkoutPage() {
           ) : null}
 
           <Card className="space-y-4">
-            <Stat label="Duración" value={formatDuration(summary.durationMs)} />
-            <Stat
-              label="Ejercicios"
-              value={`${summary.completedExercises} de ${summary.totalExercises}`}
-            />
-            <Stat label="Series completadas" value={String(summary.totalSetsCompleted)} />
+            <div className={isFocus ? 'focus-stat-grid' : 'space-y-4'}>
+              {isFocus ? (
+                <>
+                  <div className="focus-stat">
+                    <span className="focus-stat__label">Duración</span>
+                    <span className="focus-stat__value">
+                      {formatDuration(summary.durationMs)}
+                    </span>
+                  </div>
+                  <div className="focus-stat">
+                    <span className="focus-stat__label">Ejercicios</span>
+                    <span className="focus-stat__value">
+                      {summary.completedExercises}/{summary.totalExercises}
+                    </span>
+                  </div>
+                  <div className="focus-stat">
+                    <span className="focus-stat__label">Series</span>
+                    <span className="focus-stat__value">
+                      {summary.totalSetsCompleted}
+                    </span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Stat label="Duración" value={formatDuration(summary.durationMs)} />
+                  <Stat
+                    label="Ejercicios"
+                    value={`${summary.completedExercises} de ${summary.totalExercises}`}
+                  />
+                  <Stat
+                    label="Series completadas"
+                    value={String(summary.totalSetsCompleted)}
+                  />
+                </>
+              )}
+            </div>
             {summary.muscleGroups.length ? (
               <p className="text-sm text-muted">{summary.muscleGroups.join(' · ')}</p>
             ) : null}
@@ -261,7 +294,12 @@ export function WorkoutPage() {
 
   return (
     <div className="app-safe-top mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden px-4">
-      <div className="sticky top-0 z-20 -mx-4 shrink-0 bg-surface-elevated px-4 shadow-sm shadow-black/5">
+      <div
+        className={[
+          'sticky top-0 z-20 -mx-4 shrink-0 bg-surface-elevated px-4 shadow-sm shadow-black/5',
+          isFocus ? 'focus-sticky-bar' : '',
+        ].join(' ')}
+      >
         {dailyQuote ? <DailyQuoteBar quote={dailyQuote} /> : null}
         <header className="space-y-3 border-b border-line py-3">
           <div className="flex items-start justify-between gap-3">
@@ -269,7 +307,13 @@ export function WorkoutPage() {
               <Link to="/" className="text-sm font-semibold text-muted hover:text-ink">
                 ← Inicio
               </Link>
-              <h1 className="font-display text-2xl font-extrabold tracking-tight">
+              {isFocus ? <p className="focus-page-kicker mt-1">Focus · Gym</p> : null}
+              <h1
+                className={[
+                  'font-display font-extrabold tracking-tight',
+                  isFocus ? 'focus-page-title text-[1.85rem]' : 'text-2xl',
+                ].join(' ')}
+              >
                 {session.dayLabel}
               </h1>
               {session.isRecovery ? (

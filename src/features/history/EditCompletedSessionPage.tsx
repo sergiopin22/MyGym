@@ -10,6 +10,7 @@ import type { WorkoutSession } from '../../types'
 import { getIncompleteWorkoutParts } from '../../utils/workout'
 import { supportsStrapsTracking } from '../../utils/straps'
 import { WorkoutExerciseCard } from '../workout/WorkoutExerciseCard'
+import { PageHeader } from '../../ui/PageHeader'
 
 function cloneSession(session: WorkoutSession): WorkoutSession {
   return {
@@ -144,32 +145,28 @@ export function EditCompletedSessionPage() {
 
   return (
     <div className="app-safe-top mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden px-4">
-      <header className="shrink-0 space-y-3 border-b border-line py-3">
-        <div className="flex items-start justify-between gap-3">
-          <div>
+      <header className="focus-sticky-bar shrink-0 space-y-3 border-b border-line py-3">
+        <PageHeader
+          kicker="Focus · Corregir"
+          title={`Editar · ${draft.dayLabel}`}
+          subtitle={`${completedCount} de ${exercises.length} ejercicios · misma vista que el entrenamiento`}
+          back={
             <Link
               to={`/historial/${draft.id}`}
               className="text-sm font-semibold text-muted hover:text-ink"
             >
               ← Cancelar
             </Link>
-            <h1 className="font-display text-2xl font-extrabold tracking-tight">
-              Editar · {draft.dayLabel}
-            </h1>
-            {draft.isRecovery ? (
-              <span className="mt-1 inline-flex rounded-full bg-progress-soft px-2.5 py-1 text-xs font-bold text-progress">
-                Recuperado
-                {draft.recoveredDayLabel
-                  ? ` · ${draft.recoveredDayLabel}`
-                  : ''}
-              </span>
-            ) : null}
-            <p className="text-sm text-muted">
-              {completedCount} de {exercises.length} ejercicios · misma vista
-              que el entrenamiento
-            </p>
-          </div>
-        </div>
+          }
+        />
+        {draft.isRecovery ? (
+          <span className="inline-flex rounded-full bg-progress-soft px-2.5 py-1 text-xs font-bold text-progress">
+            Recuperado
+            {draft.recoveredDayLabel
+              ? ` · ${draft.recoveredDayLabel}`
+              : ''}
+          </span>
+        ) : null}
         <ProgressBar
           value={completedCount}
           max={Math.max(exercises.length, 1)}

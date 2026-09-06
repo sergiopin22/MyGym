@@ -232,17 +232,302 @@ export function HomePage() {
     }
   }
 
-  if (loading) return <p className="pt-8 text-muted">Cargando tu gimnasio…</p>
+  if (loading) return <p className="pt-8 text-muted focus-section-pad">Cargando tu gimnasio…</p>
+
+  const dayStrip = (
+    <div
+      className={[
+        isFocus
+          ? 'focus-day-strip'
+          : '-mx-1 flex gap-2 overflow-x-auto px-1 pb-1',
+      ].join(' ')}
+    >
+      {days.map((day) => {
+        const active = day.weekday === (recoveryDay?.weekday ?? selectedWeekday)
+        const isToday = day.weekday === todayWeekday
+        const rest = Boolean(day.isRestDay)
+        const recovering = recoveryDay?.id === day.id
+        const short = weekdayLabel(day.weekday).slice(0, 3)
+        return (
+          <button
+            key={day.id}
+            ref={isToday ? todayChipRef : undefined}
+            type="button"
+            onClick={() => {
+              if (recoveryDay && day.id !== recoveryDay.id) {
+                handleClearRecovery()
+              }
+              setSelectedWeekday(day.weekday)
+            }}
+            className={[
+              isFocus
+                ? 'transition active:scale-[0.97]'
+                : 'min-h-12 shrink-0 rounded-2xl px-4 text-sm font-semibold transition active:scale-[0.98]',
+              active
+                ? 'bg-chrome text-chrome-fg'
+                : rest
+                  ? 'bg-brand-soft/80 text-muted ring-1 ring-line'
+                  : 'bg-surface-elevated text-muted ring-1 ring-line',
+              isToday && locateToday ? 'today-chip-locate' : '',
+            ].join(' ')}
+          >
+            {isFocus ? (
+              <>
+                <span>{short}</span>
+                {isToday ? <span className="text-[0.58rem] opacity-90">Hoy</span> : null}
+                {rest ? <span className="text-[0.58rem] opacity-80">Desc</span> : null}
+                {recovering ? <span className="text-[0.58rem] opacity-80">Rec</span> : null}
+              </>
+            ) : (
+              <>
+                {short}
+                {rest ? ' · 😴' : ''}
+                {isToday ? ' · Hoy' : ''}
+                {recovering ? ' · Recup.' : ''}
+              </>
+            )}
+          </button>
+        )
+      })}
+    </div>
+  )
+
+  const sessionActions = (
+    <>
+      {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
+
+      {activeSession ? (
+        <Button fullWidth onClick={() => void handleStartOrContinue()} disabled={starting}>
+          {starting ? 'Abriendo…' : 'Continuar entrenamiento'}
+        </Button>
+      ) : completedTodayForSelected || (todayDone && isTodaySelected) ? (
+        <div className="space-y-2">
+          <Button
+            fullWidth
+            variant="secondary"
+            onClick={() =>
+              navigate(
+                `/historial/${(completedTodayForSelected ?? completedToday)?.id}`,
+              )
+            }
+          >
+            Ver entrenamiento de hoy
+          </Button>
+        </div>
+      ) : isRecoveryMode && !isRestDay ? (
+        <Button
+          fullWidth
+          onClick={() => void handleStartOrContinue()}
+          disabled={starting || (selectedDay?.exercises.length ?? 0) === 0}
+        >
+          {starting
+            ? 'Abriendo…'
+            : `Empezar entrenamiento · ${weekdayLabel(recoveryDay!.weekday)}`}
+        </Button>
+      ) : isTodaySelected && !isRestDay ? (
+        <Button
+          fullWidth
+          onClick={() => void handleStartOrContinue()}
+          disabled={starting || (selectedDay?.exercises.length ?? 0) === 0}
+        >
+          {starting ? 'Abriendo…' : 'Comenzar entrenamiento'}
+        </Button>
+      ) : null}
+    </>
+  )
+
+  const sessionBody = (
+    <>
+      {isRestDay && !sessionForSelected && !completedTodayForSelected ? (
+        <div className="space-y-2 text-center py-2">
+          <span className="text-4xl" aria-hidden>
+            😴
+          </span>
+          <h2 className="font-display text-xl font-bold">Día de descanso</h2>
+          <p className="text-sm text-muted">
+            {isTodaySelected
+              ? 'Hoy no toca gym. Descansa y vuelve fuerte el próximo entreno.'
+              : `${weekdayLabel(selectedWeekday)} está marcado como descanso.`}
+          </p>
+        </div>
+      ) : (
+        <>
+          <div>
+            {isRecoveryMode ? (
+              <p className="mb-2 inline-flex rounded-full bg-progress-soft px-3 py-1 text-xs font-bold text-progress">
+                Recuperado · {weekdayLabel(recoveryDay!.weekday)}
+              </p>
+            ) : null}
+            <h2 className="font-display text-xl font-bold">
+              {selectedDay?.label ?? 'Sin día'}
+            </h2>
+            <p className="mt-1 text-sm text-muted">
+              {selectedDay?.muscleGroups.length
+                ? selectedDay.muscleGroups.join(' · ')
+                : 'Sin grupos musculares — configúralos en Rutinas'}
+            </p>
+          </div>
+
+          {completedTodayForSelected ? (
+            <p className="rounded-2xl bg-success-soft px-3 py-3 text-sm font-semibold text-accent-strong">
+              ✅ Entrenamiento de hoy completado
+            </p>
+          ) : null}
+
+          {isRecoveryMode ? (
+            <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-fg">
+              Vas a recuperar el{' '}
+              <strong>{weekdayLabel(recoveryDay!.weekday)}</strong>. Al
+              comenzar verás todas las máquinas de ese día con peso, reps y RIR.
+              En el historial quedará etiquetado como recuperado.
+            </p>
+          ) : !isTodaySelected ? (
+            <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-fg">
+              Estás viendo la rutina del {weekdayLabel(selectedWeekday)}. Solo puedes
+              comenzar el entrenamiento del día de hoy (
+              {weekdayLabel(todayWeekday)}).
+            </p>
+          ) : null}
+
+          <ProgressBar
+            value={
+              completedTodayForSelected
+                ? totalCount
+                : completedCount
+            }
+            max={Math.max(totalCount, 1)}
+            label={
+              completedTodayForSelected
+                ? `${totalCount} de ${totalCount} ejercicios`
+                : `${completedCount} de ${totalCount} ejercicios`
+            }
+          />
+
+          {selectedDay && displayExercises.length > 0 ? (
+            <ul className="space-y-2">
+              {[...displayExercises]
+                .sort((a, b) => a.order - b.order)
+                .map((ex) => {
+                  const status =
+                    'status' in ex ? ex.status : ('pending' as const)
+                  const mark =
+                    status === 'completed'
+                      ? '✅'
+                      : status === 'in_progress'
+                        ? '🟡'
+                        : '⏳'
+                  return (
+                    <li
+                      key={ex.id}
+                      className={[
+                        'flex items-center justify-between gap-2 rounded-2xl bg-surface px-3 py-2.5 text-sm',
+                        isFocus ? 'focus-list-row' : '',
+                      ].join(' ')}
+                    >
+                      <span className="truncate font-medium">{ex.name}</span>
+                      <span aria-hidden>{mark}</span>
+                    </li>
+                  )
+                })}
+            </ul>
+          ) : (
+            <p className="rounded-2xl bg-surface px-3 py-3 text-sm text-muted">
+              Este día está vacío.{' '}
+              {selectedDay ? (
+                <Link
+                  to={`/rutinas/${selectedDay.id}`}
+                  className="font-semibold text-brand underline"
+                >
+                  Agregar ejercicios
+                </Link>
+              ) : null}
+            </p>
+          )}
+        </>
+      )}
+
+      {activeSession && !sessionForSelected ? (
+        <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-ink">
+          Tienes un entrenamiento en curso ({activeSession.dayLabel}). Continúalo o
+          cancélalo desde ahí.
+        </p>
+      ) : null}
+
+      {sessionActions}
+    </>
+  )
+
+  if (isFocus) {
+    return (
+      <div className="focus-home">
+        <section className="focus-hero-bleed">
+          <div className="focus-hero-top">
+            <p className="focus-home-kicker">Hoy · Focus</p>
+            <BrandAvatarButton size="focus" />
+          </div>
+          <h1 className="focus-home-title text-fg">
+            {weekdayLabel(todayWeekday)}
+          </h1>
+          <p className="focus-page-sub mt-2">
+            {today.toLocaleDateString('es-ES', {
+              day: 'numeric',
+              month: 'long',
+              year: 'numeric',
+            })}
+          </p>
+        </section>
+
+        <BackupReminderCard />
+
+        <ConstancyGoalCard
+          recoveryDayId={recoveryDay?.id ?? null}
+          onSelectRecoveryDay={handleSelectRecoveryDay}
+          onClearRecovery={handleClearRecovery}
+          refreshKey={goalRefresh}
+        />
+
+        <section className="focus-week-board">
+          <p className="focus-week-board__label">
+            {isRecoveryMode
+              ? `Recuperando ${weekdayLabel(recoveryDay!.weekday)}`
+              : 'Tu semana'}
+          </p>
+          {dayStrip}
+        </section>
+
+        {selectedDay && routine && isTodaySelected ? (
+          <div className="focus-section-pad">
+            <RestDayToggle
+              day={selectedDay}
+              routineId={routine.id}
+              compact
+              disabled={todayDone}
+              disabledReason={
+                todayDone
+                  ? 'Ya entrenaste hoy: no puedes marcarlo como descanso.'
+                  : undefined
+              }
+              onChange={handleDayUpdated}
+            />
+          </div>
+        ) : null}
+
+        <section className="focus-session-stage space-y-4">
+          {sessionBody}
+        </section>
+      </div>
+    )
+  }
 
   return (
     <>
-      <div className={['space-y-6', isFocus ? 'focus-home' : ''].join(' ')}>
-      <header className="focus-home-hero mt-2 flex items-start justify-between gap-3">
+      <div className="space-y-6">
+      <header className="mt-2 flex items-start justify-between gap-3">
         <div className="min-w-0 space-y-1">
-          <p className="focus-home-kicker font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand">
-            {isFocus ? 'Focus · Mi Gym' : 'Mi Gym'}
+          <p className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand">
+            Mi Gym
           </p>
-          <h1 className="focus-home-title font-display text-3xl font-extrabold tracking-tight text-fg">
+          <h1 className="font-display text-3xl font-extrabold tracking-tight text-fg">
             {weekdayLabel(todayWeekday)}
           </h1>
           <p className="text-muted">
@@ -271,43 +556,7 @@ export function HomePage() {
             ? `Recuperando ${weekdayLabel(recoveryDay!.weekday)} — verás su rutina abajo`
             : 'Ver rutina de la semana (solo puedes entrenar hoy)'}
         </p>
-        <div
-          className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1"
-        >
-          {days.map((day) => {
-            const active = day.weekday === (recoveryDay?.weekday ?? selectedWeekday)
-            const isToday = day.weekday === todayWeekday
-            const rest = Boolean(day.isRestDay)
-            const recovering = recoveryDay?.id === day.id
-            return (
-              <button
-                key={day.id}
-                ref={isToday ? todayChipRef : undefined}
-                type="button"
-                onClick={() => {
-                  if (recoveryDay && day.id !== recoveryDay.id) {
-                    handleClearRecovery()
-                  }
-                  setSelectedWeekday(day.weekday)
-                }}
-                className={[
-                  'min-h-12 shrink-0 rounded-2xl px-4 text-sm font-semibold transition active:scale-[0.98]',
-                  active
-                    ? 'bg-chrome text-chrome-fg'
-                    : rest
-                      ? 'bg-brand-soft/80 text-muted ring-1 ring-line'
-                      : 'bg-surface-elevated text-muted ring-1 ring-line',
-                  isToday && locateToday ? 'today-chip-locate' : '',
-                ].join(' ')}
-              >
-                {weekdayLabel(day.weekday).slice(0, 3)}
-                {rest ? ' · 😴' : ''}
-                {isToday ? ' · Hoy' : ''}
-                {recovering ? ' · Recup.' : ''}
-              </button>
-            )
-          })}
-        </div>
+        {dayStrip}
       </div>
 
       {selectedDay && routine && isTodaySelected ? (
@@ -325,159 +574,7 @@ export function HomePage() {
         />
       ) : null}
 
-      <Card className="space-y-4">
-        {isRestDay && !sessionForSelected && !completedTodayForSelected ? (
-          <div className="space-y-2 text-center py-2">
-            <span className="text-4xl" aria-hidden>
-              😴
-            </span>
-            <h2 className="font-display text-xl font-bold">Día de descanso</h2>
-            <p className="text-sm text-muted">
-              {isTodaySelected
-                ? 'Hoy no toca gym. Descansa y vuelve fuerte el próximo entreno.'
-                : `${weekdayLabel(selectedWeekday)} está marcado como descanso.`}
-            </p>
-          </div>
-        ) : (
-          <>
-            <div>
-              {isRecoveryMode ? (
-                <p className="mb-2 inline-flex rounded-full bg-progress-soft px-3 py-1 text-xs font-bold text-progress">
-                  Recuperado · {weekdayLabel(recoveryDay!.weekday)}
-                </p>
-              ) : null}
-              <h2 className="font-display text-xl font-bold">
-                {selectedDay?.label ?? 'Sin día'}
-              </h2>
-              <p className="mt-1 text-sm text-muted">
-                {selectedDay?.muscleGroups.length
-                  ? selectedDay.muscleGroups.join(' · ')
-                  : 'Sin grupos musculares — configúralos en Rutinas'}
-              </p>
-            </div>
-
-            {completedTodayForSelected ? (
-              <p className="rounded-2xl bg-success-soft px-3 py-3 text-sm font-semibold text-accent-strong">
-                ✅ Entrenamiento de hoy completado
-              </p>
-            ) : null}
-
-            {isRecoveryMode ? (
-              <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-fg">
-                Vas a recuperar el{' '}
-                <strong>{weekdayLabel(recoveryDay!.weekday)}</strong>. Al
-                comenzar verás todas las máquinas de ese día con peso, reps y RIR.
-                En el historial quedará etiquetado como recuperado.
-              </p>
-            ) : !isTodaySelected ? (
-              <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-fg">
-                Estás viendo la rutina del {weekdayLabel(selectedWeekday)}. Solo puedes
-                comenzar el entrenamiento del día de hoy (
-                {weekdayLabel(todayWeekday)}).
-              </p>
-            ) : null}
-
-            <ProgressBar
-              value={
-                completedTodayForSelected
-                  ? totalCount
-                  : completedCount
-              }
-              max={Math.max(totalCount, 1)}
-              label={
-                completedTodayForSelected
-                  ? `${totalCount} de ${totalCount} ejercicios`
-                  : `${completedCount} de ${totalCount} ejercicios`
-              }
-            />
-
-            {selectedDay && displayExercises.length > 0 ? (
-              <ul className="space-y-2">
-                {[...displayExercises]
-                  .sort((a, b) => a.order - b.order)
-                  .map((ex) => {
-                    const status =
-                      'status' in ex ? ex.status : ('pending' as const)
-                    const mark =
-                      status === 'completed'
-                        ? '✅'
-                        : status === 'in_progress'
-                          ? '🟡'
-                          : '⏳'
-                    return (
-                      <li
-                        key={ex.id}
-                        className="flex items-center justify-between gap-2 rounded-2xl bg-surface px-3 py-2.5 text-sm"
-                      >
-                        <span className="truncate font-medium">{ex.name}</span>
-                        <span aria-hidden>{mark}</span>
-                      </li>
-                    )
-                  })}
-              </ul>
-            ) : (
-              <p className="rounded-2xl bg-surface px-3 py-3 text-sm text-muted">
-                Este día está vacío.{' '}
-                {selectedDay ? (
-                  <Link
-                    to={`/rutinas/${selectedDay.id}`}
-                    className="font-semibold text-brand underline"
-                  >
-                    Agregar ejercicios
-                  </Link>
-                ) : null}
-              </p>
-            )}
-          </>
-        )}
-
-        {activeSession && !sessionForSelected ? (
-          <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-ink">
-            Tienes un entrenamiento en curso ({activeSession.dayLabel}). Continúalo o
-            cancélalo desde ahí.
-          </p>
-        ) : null}
-
-        {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
-
-        {activeSession ? (
-          <Button fullWidth onClick={() => void handleStartOrContinue()} disabled={starting}>
-            {starting ? 'Abriendo…' : 'Continuar entrenamiento'}
-          </Button>
-        ) : completedTodayForSelected || (todayDone && isTodaySelected) ? (
-          <div className="space-y-2">
-            <Button
-              fullWidth
-              variant="secondary"
-              onClick={() =>
-                navigate(
-                  `/historial/${(completedTodayForSelected ?? completedToday)?.id}`,
-                )
-              }
-            >
-              Ver entrenamiento de hoy
-            </Button>
-          </div>
-        ) : isRecoveryMode && !isRestDay ? (
-          <Button
-            fullWidth
-            onClick={() => void handleStartOrContinue()}
-            disabled={starting || (selectedDay?.exercises.length ?? 0) === 0}
-          >
-            {starting
-              ? 'Abriendo…'
-              : `Empezar entrenamiento · ${weekdayLabel(recoveryDay!.weekday)}`}
-          </Button>
-        ) : isTodaySelected && !isRestDay ? (
-          <Button
-            fullWidth
-            onClick={() => void handleStartOrContinue()}
-            disabled={starting || (selectedDay?.exercises.length ?? 0) === 0}
-          >
-            {starting ? 'Abriendo…' : 'Comenzar entrenamiento'}
-          </Button>
-        ) : null}
-      </Card>
+      <Card className="space-y-4">{sessionBody}</Card>
       </div>
     </>
   )

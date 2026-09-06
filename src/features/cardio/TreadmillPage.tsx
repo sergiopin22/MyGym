@@ -10,6 +10,7 @@ import {
 } from '../../db/repository'
 import type { TreadmillSession } from '../../types'
 import { formatTreadmillSummary } from '../../utils/treadmill'
+import { PageHeader } from '../../ui/PageHeader'
 
 export function TreadmillPage() {
   const navigate = useNavigate()
@@ -93,16 +94,18 @@ export function TreadmillPage() {
 
   return (
     <div className="app-safe-top mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden px-4">
-      <header className="shrink-0 space-y-2 border-b border-line py-3">
-        <Link to="/" className="text-sm font-semibold text-muted hover:text-ink">
-          ← Inicio
-        </Link>
-        <h1 className="font-display text-2xl font-extrabold tracking-tight">
-          Caminadora
-        </h1>
-        <p className="text-sm text-muted">
-          Cardio aparte — no cuenta para la meta de constancia.
-        </p>
+      <PageHeader
+        kicker="Focus · Cardio"
+        title="Caminadora"
+        subtitle="Cardio aparte — no cuenta para la meta de constancia."
+        className="shrink-0 border-b border-line pb-3"
+        back={
+          <Link to="/" className="text-sm font-semibold text-muted hover:text-ink">
+            ← Inicio
+          </Link>
+        }
+      />
+      <div className="mt-3 shrink-0">
         <Button
           variant="secondary"
           className="min-h-11 w-full text-sm"
@@ -110,7 +113,7 @@ export function TreadmillPage() {
         >
           Usar última sesión
         </Button>
-      </header>
+      </div>
 
       <div
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4"
@@ -203,7 +206,7 @@ export function TreadmillPage() {
               {history.map((row) => (
                 <li
                   key={row.id}
-                  className="rounded-2xl bg-surface-elevated px-3 py-3 ring-1 ring-line"
+                  className="focus-list-row rounded-2xl bg-surface-elevated px-3 py-3 ring-1 ring-line"
                 >
                   <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                     {new Date(row.date + 'T12:00:00').toLocaleDateString('es-ES', {

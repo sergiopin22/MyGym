@@ -36,8 +36,8 @@ export function AppLayout() {
     >
       <main
         className={[
-          'min-h-0 flex-1 overflow-y-auto overscroll-contain px-4',
-          isFocus ? 'pb-28' : 'pb-4',
+          'min-h-0 flex-1 overflow-y-auto overscroll-contain',
+          isFocus ? 'focus-main pb-28' : 'px-4 pb-4',
         ].join(' ')}
         style={{ paddingTop: contentTop }}
       >
