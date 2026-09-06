@@ -4,12 +4,16 @@ import { TextField } from '../../components/TextField'
 import { NumberStepper } from '../../components/NumberStepper'
 import { ExerciseThumb } from '../../components/ExerciseThumb'
 import {
+  addExerciseAlternative,
   addExerciseToDay,
   clearExerciseImage,
+  removeExerciseAlternative,
+  renameExerciseAlternative,
   saveExerciseImage,
+  setExerciseUnderMaintenance,
   updateExercise,
 } from '../../db/repository'
-import type { RoutineExercise } from '../../types'
+import type { ExerciseAlternative, RoutineExercise } from '../../types'
 import { openTutorial } from '../exercises/media'
 
 function clampInt(n: number, min: number, max: number) {
@@ -44,6 +48,13 @@ export function ExerciseEditor({
   const [imageUrl, setImageUrl] = useState(exercise?.imageUrl ?? '/exercises/default.svg')
   const [hasCustomImage, setHasCustomImage] = useState(Boolean(exercise?.hasCustomImage))
   const [exerciseId, setExerciseId] = useState(exercise?.id)
+  const [alternatives, setAlternatives] = useState<ExerciseAlternative[]>(
+    () => [...(exercise?.alternatives ?? [])],
+  )
+  const [underMaintenance, setUnderMaintenance] = useState(
+    Boolean(exercise?.underMaintenance),
+  )
+  const [newAltName, setNewAltName] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -54,6 +65,25 @@ export function ExerciseEditor({
       document.body.style.overflow = prev
     }
   }, [])
+
+  async function ensureExerciseSaved(): Promise<string> {
+    if (exerciseId) return exerciseId
+    const trimmed = name.trim() || 'Nuevo ejercicio'
+    const created = await addExerciseToDay(
+      dayId,
+      {
+        name: trimmed,
+        targetSets,
+        targetReps: { min: repsMin, max: repsMax },
+        targetRir,
+        videoUrl: videoUrl.trim() || undefined,
+      },
+      routineId,
+    )
+    setExerciseId(created.id)
+    setName(created.name)
+    return created.id
+  }
 
   async function handleSave() {
     const trimmed = name.trim()
@@ -83,6 +113,7 @@ export function ExerciseEditor({
         videoUrl: videoUrl.trim() || undefined,
         imageUrl,
         hasCustomImage,
+        underMaintenance: underMaintenance || undefined,
       }
 
       if (isEdit && exercise) {
@@ -90,11 +121,97 @@ export function ExerciseEditor({
       } else {
         const created = await addExerciseToDay(dayId, payload, routineId)
         setExerciseId(created.id)
+        if (underMaintenance) {
+          await setExerciseUnderMaintenance(dayId, created.id, true, routineId)
+        }
       }
       onSaved()
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleAddAlternative() {
+    setSaving(true)
+    setError(null)
+    try {
+      const id = await ensureExerciseSaved()
+      const updated = await addExerciseAlternative(
+        dayId,
+        id,
+        newAltName,
+        routineId,
+      )
+      setAlternatives([...(updated.alternatives ?? [])])
+      setNewAltName('')
+      onSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo agregar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleRemoveAlternative(alternativeId: string) {
+    if (!exerciseId) return
+    const ok = window.confirm('¿Quitar esta máquina alternativa del banco?')
+    if (!ok) return
+    setSaving(true)
+    setError(null)
+    try {
+      const updated = await removeExerciseAlternative(
+        dayId,
+        exerciseId,
+        alternativeId,
+        routineId,
+      )
+      setAlternatives([...(updated.alternatives ?? [])])
+      onSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo quitar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleRenameAlternative(alternativeId: string, current: string) {
+    if (!exerciseId) return
+    const next = window.prompt('Nuevo nombre de la máquina alternativa', current)
+    if (next == null) return
+    setSaving(true)
+    setError(null)
+    try {
+      const updated = await renameExerciseAlternative(
+        dayId,
+        exerciseId,
+        alternativeId,
+        next,
+        routineId,
+      )
+      setAlternatives([...(updated.alternatives ?? [])])
+      onSaved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo renombrar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleToggleMaintenance() {
+    const next = !underMaintenance
+    setUnderMaintenance(next)
+    if (!exerciseId) return
+    setSaving(true)
+    setError(null)
+    try {
+      await setExerciseUnderMaintenance(dayId, exerciseId, next, routineId)
+      onSaved()
+    } catch (err) {
+      setUnderMaintenance(!next)
+      setError(err instanceof Error ? err.message : 'No se pudo actualizar')
     } finally {
       setSaving(false)
     }
@@ -110,24 +227,7 @@ export function ExerciseEditor({
     setSaving(true)
     setError(null)
     try {
-      let id = exerciseId
-      if (!id) {
-        const trimmed = name.trim() || 'Nuevo ejercicio'
-        const created = await addExerciseToDay(
-          dayId,
-          {
-            name: trimmed,
-            targetSets,
-            targetReps: { min: repsMin, max: repsMax },
-            targetRir,
-            videoUrl: videoUrl.trim() || undefined,
-          },
-          routineId,
-        )
-        id = created.id
-        setExerciseId(id)
-        setName(created.name)
-      }
+      const id = await ensureExerciseSaved()
       await saveExerciseImage(id, file, dayId, routineId)
       setHasCustomImage(true)
       onSaved()
@@ -286,6 +386,81 @@ export function ExerciseEditor({
               Ver tutorial
             </Button>
           ) : null}
+
+          <section className="space-y-3 rounded-2xl border border-line bg-surface px-3 py-3">
+            <div>
+              <p className="font-display text-sm font-bold text-fg">
+                Máquinas alternativas
+              </p>
+              <p className="mt-1 text-xs text-muted">
+                Créalas aquí con calma. En el gym solo eliges cuál usas si la
+                oficial está en mantenimiento.
+              </p>
+            </div>
+
+            <label className="flex min-h-11 items-center gap-3 text-sm font-medium text-fg">
+              <input
+                type="checkbox"
+                checked={underMaintenance}
+                onChange={() => void handleToggleMaintenance()}
+                className="h-5 w-5 accent-[var(--color-brand)]"
+              />
+              Máquina oficial en mantenimiento
+            </label>
+
+            {alternatives.length > 0 ? (
+              <ul className="space-y-2">
+                {alternatives.map((alt) => (
+                  <li
+                    key={alt.id}
+                    className="flex items-center gap-2 rounded-xl bg-surface-elevated px-3 py-2 ring-1 ring-line"
+                  >
+                    <span className="min-w-0 flex-1 truncate font-semibold text-fg">
+                      {alt.name}
+                    </span>
+                    <button
+                      type="button"
+                      className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-brand"
+                      disabled={saving}
+                      onClick={() => void handleRenameAlternative(alt.id, alt.name)}
+                    >
+                      Renombrar
+                    </button>
+                    <button
+                      type="button"
+                      className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-danger"
+                      disabled={saving}
+                      onClick={() => void handleRemoveAlternative(alt.id)}
+                    >
+                      Quitar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted">
+                Aún no hay alternativas. Ej: Remo polea, Curl polea…
+              </p>
+            )}
+
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={newAltName}
+                onChange={(e) => setNewAltName(e.target.value)}
+                placeholder="Nombre de la alternativa"
+                className="input-ios-safe min-h-11 min-w-0 flex-1 rounded-xl border border-line bg-surface-elevated px-3 text-fg outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
+              />
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={saving || !newAltName.trim()}
+                onClick={() => void handleAddAlternative()}
+              >
+                Agregar
+              </Button>
+            </div>
+          </section>
 
           {!exerciseId ? (
             <div>

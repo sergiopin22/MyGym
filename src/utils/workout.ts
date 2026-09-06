@@ -59,10 +59,12 @@ export function buildExerciseLogFromRoutine(
   exercise: RoutineExercise,
   createId: () => string,
 ): ExerciseLog {
+  const plannedName = exercise.name
   return {
     id: createId(),
     routineExerciseId: exercise.id,
-    name: exercise.name,
+    name: plannedName,
+    plannedName,
     targetSets: exercise.targetSets,
     targetReps: { ...exercise.targetReps },
     targetRir: exercise.targetRir,
@@ -73,6 +75,24 @@ export function buildExerciseLogFromRoutine(
     status: 'pending',
     sets: emptySets(exercise.targetSets, createId),
   }
+}
+
+/** Compatibilidad con sesiones antiguas (sin plannedName). */
+export function getPlannedExerciseName(exercise: {
+  name: string
+  plannedName?: string
+}): string {
+  return exercise.plannedName?.trim() || exercise.name
+}
+
+export function isUsingAlternative(exercise: {
+  name: string
+  plannedName?: string
+  activeAlternativeId?: string
+}): boolean {
+  if (exercise.activeAlternativeId) return true
+  const planned = getPlannedExerciseName(exercise)
+  return planned !== exercise.name
 }
 
 export type { LastExercisePerformance, Routine, RoutineDay, RoutineExercise, SessionSummary, Weekday, WorkoutSession }

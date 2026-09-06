@@ -14,6 +14,13 @@ export interface RepRange {
   max: number
 }
 
+/** Máquina alternativa guardada para un ejercicio de rutina */
+export interface ExerciseAlternative {
+  id: string
+  name: string
+  createdAt: number
+}
+
 /** Ejercicio dentro de un día de rutina (plantilla) */
 export interface RoutineExercise {
   id: string
@@ -28,6 +35,10 @@ export interface RoutineExercise {
   videoUrl?: string
   /** Si true, la imagen real está como blob en IndexedDB (tabla exerciseImages) */
   hasCustomImage?: boolean
+  /** Banco de máquinas alternativas (ej. Remo polea si Remo T está en mantenimiento) */
+  alternatives?: ExerciseAlternative[]
+  /** Marca visual: la máquina oficial no está disponible */
+  underMaintenance?: boolean
 }
 
 export interface RoutineDay {
@@ -65,7 +76,16 @@ export interface SetLog {
 export interface ExerciseLog {
   id: string
   routineExerciseId: string
+  /** Máquina que estás usando hoy (oficial o alternativa). Clave de PR/historial. */
   name: string
+  /**
+   * Nombre oficial de la rutina.
+   * Si usas alternativa, name ≠ plannedName y los PR quedan separados.
+   * Ausente en sesiones antiguas (= name).
+   */
+  plannedName?: string
+  /** Id de la alternativa activa; ausente = máquina oficial */
+  activeAlternativeId?: string
   targetSets: number
   targetReps: RepRange
   targetRir: number

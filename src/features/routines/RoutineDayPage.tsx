@@ -214,6 +214,17 @@ export function RoutineDayPage() {
                         {ex.targetSets} series · {ex.targetReps.min}–{ex.targetReps.max} reps ·
                         RIR {ex.targetRir}
                       </p>
+                      {ex.underMaintenance ? (
+                        <p className="mt-1 text-xs font-semibold text-danger">
+                          En mantenimiento
+                        </p>
+                      ) : null}
+                      {(ex.alternatives?.length ?? 0) > 0 ? (
+                        <p className="mt-1 text-xs font-medium text-brand">
+                          {ex.alternatives!.length} alternativa
+                          {ex.alternatives!.length === 1 ? '' : 's'}
+                        </p>
+                      ) : null}
                       {ex.videoUrl ? (
                         <p className="mt-1 text-xs font-medium text-brand">Tutorial configurado</p>
                       ) : null}

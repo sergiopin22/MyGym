@@ -4,6 +4,7 @@ import type {
   BodyCheckInPhoto,
   BodyPhotoAngle,
   ConstancyGoal,
+  ExerciseAlternative,
   ExerciseImage,
   ExerciseLog,
   LastExercisePerformance,
@@ -291,6 +292,8 @@ export async function updateExercise(
       | 'imageUrl'
       | 'hasCustomImage'
       | 'order'
+      | 'alternatives'
+      | 'underMaintenance'
     >
   >,
   routineId?: string,
@@ -323,6 +326,213 @@ export async function updateExercise(
   }
   await saveRoutine(replaceDay(routine, nextDay))
   return updated
+}
+
+function normalizeAltName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ')
+}
+
+export async function addExerciseAlternative(
+  dayId: string,
+  exerciseId: string,
+  name: string,
+  routineId?: string,
+): Promise<RoutineExercise> {
+  const routine = await requireRoutine(routineId)
+  const day = findDay(routine, dayId)
+  if (!day) throw new Error('Día de rutina no encontrado')
+  const current = day.exercises.find((e) => e.id === exerciseId)
+  if (!current) throw new Error('Ejercicio no encontrado')
+
+  const trimmed = normalizeAltName(name)
+  if (!trimmed) throw new Error('Ponle un nombre a la máquina alternativa')
+  if (trimmed.toLowerCase() === current.name.trim().toLowerCase()) {
+    throw new Error('La alternativa no puede llamarse igual que la máquina oficial')
+  }
+
+  const existing = current.alternatives ?? []
+  if (
+    existing.some((a) => a.name.trim().toLowerCase() === trimmed.toLowerCase())
+  ) {
+    throw new Error('Esa alternativa ya está en el banco')
+  }
+
+  const alt: ExerciseAlternative = {
+    id: createId('alt'),
+    name: trimmed,
+    createdAt: Date.now(),
+  }
+
+  return updateExercise(
+    dayId,
+    exerciseId,
+    { alternatives: [...existing, alt] },
+    routine.id,
+  )
+}
+
+export async function removeExerciseAlternative(
+  dayId: string,
+  exerciseId: string,
+  alternativeId: string,
+  routineId?: string,
+): Promise<RoutineExercise> {
+  const routine = await requireRoutine(routineId)
+  const day = findDay(routine, dayId)
+  if (!day) throw new Error('Día de rutina no encontrado')
+  const current = day.exercises.find((e) => e.id === exerciseId)
+  if (!current) throw new Error('Ejercicio no encontrado')
+
+  const next = (current.alternatives ?? []).filter((a) => a.id !== alternativeId)
+  return updateExercise(dayId, exerciseId, { alternatives: next }, routine.id)
+}
+
+export async function renameExerciseAlternative(
+  dayId: string,
+  exerciseId: string,
+  alternativeId: string,
+  name: string,
+  routineId?: string,
+): Promise<RoutineExercise> {
+  const routine = await requireRoutine(routineId)
+  const day = findDay(routine, dayId)
+  if (!day) throw new Error('Día de rutina no encontrado')
+  const current = day.exercises.find((e) => e.id === exerciseId)
+  if (!current) throw new Error('Ejercicio no encontrado')
+
+  const trimmed = normalizeAltName(name)
+  if (!trimmed) throw new Error('Ponle un nombre a la máquina alternativa')
+  if (trimmed.toLowerCase() === current.name.trim().toLowerCase()) {
+    throw new Error('La alternativa no puede llamarse igual que la máquina oficial')
+  }
+
+  const alts = current.alternatives ?? []
+  if (!alts.some((a) => a.id === alternativeId)) {
+    throw new Error('Alternativa no encontrada')
+  }
+  if (
+    alts.some(
+      (a) =>
+        a.id !== alternativeId &&
+        a.name.trim().toLowerCase() === trimmed.toLowerCase(),
+    )
+  ) {
+    throw new Error('Esa alternativa ya está en el banco')
+  }
+
+  return updateExercise(
+    dayId,
+    exerciseId,
+    {
+      alternatives: alts.map((a) =>
+        a.id === alternativeId ? { ...a, name: trimmed } : a,
+      ),
+    },
+    routine.id,
+  )
+}
+
+export async function setExerciseUnderMaintenance(
+  dayId: string,
+  exerciseId: string,
+  underMaintenance: boolean,
+  routineId?: string,
+): Promise<RoutineExercise> {
+  return updateExercise(
+    dayId,
+    exerciseId,
+    { underMaintenance: underMaintenance || undefined },
+    routineId,
+  )
+}
+
+export type SessionMachineChoice =
+  | { type: 'original' }
+  | { type: 'alternative'; alternativeId: string }
+  | { type: 'new'; name: string }
+
+/**
+ * Cambia la máquina activa de un ejercicio en la sesión.
+ * Los PR/historial siguen el `name` activo; `plannedName` conserva la oficial.
+ */
+export async function setSessionExerciseMachine(
+  sessionId: string,
+  exerciseLogId: string,
+  choice: SessionMachineChoice,
+): Promise<WorkoutSession> {
+  const session = await getSessionById(sessionId)
+  if (!session) throw new Error('Sesión no encontrada')
+  if (session.status !== 'in_progress') {
+    throw new Error('La sesión ya está finalizada')
+  }
+
+  const exercise = session.exercises.find((e) => e.id === exerciseLogId)
+  if (!exercise) throw new Error('Ejercicio no encontrado en la sesión')
+
+  const plannedName = exercise.plannedName?.trim() || exercise.name
+  let nextName = plannedName
+  let activeAlternativeId: string | undefined
+  let routineUpdated = false
+
+  if (choice.type === 'original') {
+    nextName = plannedName
+    activeAlternativeId = undefined
+  } else {
+    const found = await getRoutineDay(session.routineDayId, session.routineId)
+    if (!found) throw new Error('Día de rutina no encontrado')
+    const routineEx = found.day.exercises.find(
+      (e) => e.id === exercise.routineExerciseId,
+    )
+    if (!routineEx) throw new Error('Ejercicio de rutina no encontrado')
+
+    if (choice.type === 'alternative') {
+      const alt = (routineEx.alternatives ?? []).find(
+        (a) => a.id === choice.alternativeId,
+      )
+      if (!alt) throw new Error('Alternativa no encontrada')
+      nextName = alt.name
+      activeAlternativeId = alt.id
+    } else {
+      const updated = await addExerciseAlternative(
+        found.day.id,
+        routineEx.id,
+        choice.name,
+        found.routine.id,
+      )
+      routineUpdated = true
+      const created = (updated.alternatives ?? []).find(
+        (a) =>
+          a.name.trim().toLowerCase() ===
+          normalizeAltName(choice.name).toLowerCase(),
+      )
+      if (!created) throw new Error('No se pudo crear la alternativa')
+      nextName = created.name
+      activeAlternativeId = created.id
+    }
+    void routineUpdated
+  }
+
+  const exercises = session.exercises.map((ex) =>
+    ex.id === exerciseLogId
+      ? {
+          ...ex,
+          plannedName,
+          name: nextName,
+          activeAlternativeId,
+        }
+      : ex,
+  )
+
+  return saveSession({ ...session, exercises })
+}
+
+export async function getRoutineExerciseById(
+  routineExerciseId: string,
+  routineDayId: string,
+  routineId?: string,
+): Promise<RoutineExercise | undefined> {
+  const found = await getRoutineDay(routineDayId, routineId)
+  return found?.day.exercises.find((e) => e.id === routineExerciseId)
 }
 
 export async function removeExerciseFromDay(
@@ -413,6 +623,12 @@ export async function copyExercisesFromDay(
     imageUrl: ex.imageUrl,
     videoUrl: ex.videoUrl,
     hasCustomImage: false,
+    alternatives: (ex.alternatives ?? []).map((alt) => ({
+      id: createId('alt'),
+      name: alt.name,
+      createdAt: alt.createdAt,
+    })),
+    underMaintenance: ex.underMaintenance,
   }))
 
   // Duplicar blobs de imagen con el nuevo id

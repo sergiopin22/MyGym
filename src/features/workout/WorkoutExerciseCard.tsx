@@ -8,6 +8,7 @@ import {
   applyPreviousWeights,
   getLastExercisePerformance,
   setExerciseStraps,
+  setSessionExerciseMachine,
   updateExerciseNote,
   updateSet,
 } from '../../db/repository'
@@ -20,7 +21,12 @@ import type {
 import { openTutorial } from '../exercises/media'
 import { WEIGHT_STEP, WEIGHT_UNIT } from '../../utils/weight'
 import { supportsStrapsTracking, formatStrapsSuffix } from '../../utils/straps'
-import { computeExerciseStatus } from '../../utils/workout'
+import {
+  computeExerciseStatus,
+  getPlannedExerciseName,
+  isUsingAlternative,
+} from '../../utils/workout'
+import { MachinePicker } from './MachinePicker'
 
 function setHasData(set: { weight: number | null; reps: number | null }) {
   return set.weight != null && set.reps != null
@@ -132,11 +138,17 @@ export function WorkoutExerciseCard({
   const [error, setError] = useState<string | null>(null)
   const [noteDraft, setNoteDraft] = useState(exercise.note ?? '')
   const [noteOpen, setNoteOpen] = useState(Boolean(exercise.note))
+  const [machinePickerOpen, setMachinePickerOpen] = useState(false)
 
   useEffect(() => {
     setNoteDraft(exercise.note ?? '')
     if (exercise.note) setNoteOpen(true)
   }, [exercise.id, exercise.note])
+
+  useEffect(() => {
+    setLast(undefined)
+    setExpandedLast(false)
+  }, [exercise.name])
 
   async function loadLast() {
     setLoadingLast(true)
@@ -254,7 +266,39 @@ export function WorkoutExerciseCard({
     }
   }
 
-  const showStraps = supportsStrapsTracking(exercise.name, session.muscleGroups)
+  async function chooseMachine(
+    choice:
+      | { type: 'original' }
+      | { type: 'alternative'; alternativeId: string }
+      | { type: 'new'; name: string },
+  ) {
+    if (editMode) {
+      setError('Cambia la máquina en un entrenamiento en curso.')
+      return
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      const updated = await setSessionExerciseMachine(
+        session.id,
+        exercise.id,
+        choice,
+      )
+      onSessionChange(updated)
+      setMachinePickerOpen(false)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo cambiar la máquina')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const plannedName = getPlannedExerciseName(exercise)
+  const usingAlt = isUsingAlternative(exercise)
+  const showStraps = supportsStrapsTracking(
+    plannedName,
+    session.muscleGroups,
+  )
 
   return (
     <article className="space-y-3 rounded-3xl border border-line bg-surface-elevated p-4 shadow-[0_10px_30px_-20px_rgba(12,26,20,0.45)]">
@@ -272,6 +316,11 @@ export function WorkoutExerciseCard({
             </h2>
             <StatusBadge status={exercise.status} />
           </div>
+          {usingAlt ? (
+            <p className="text-sm font-semibold text-brand">
+              Sustituye a {plannedName} · PR propio
+            </p>
+          ) : null}
           <p className="text-sm text-muted">
             Meta: {exercise.targetSets}×{exercise.targetReps.min}–
             {exercise.targetReps.max} · RIR {exercise.targetRir}
@@ -280,6 +329,16 @@ export function WorkoutExerciseCard({
       </div>
 
       <div className="flex flex-wrap gap-2">
+        {canEdit && !editMode ? (
+          <Button
+            variant="secondary"
+            className="min-h-11 px-3 text-sm"
+            disabled={busy}
+            onClick={() => setMachinePickerOpen(true)}
+          >
+            {usingAlt ? 'Cambiar máquina' : 'Usar otra máquina'}
+          </Button>
+        ) : null}
         {exercise.videoUrl ? (
           <Button
             variant="ghost"
@@ -479,6 +538,25 @@ export function WorkoutExerciseCard({
           </li>
         ))}
       </ul>
+
+      {machinePickerOpen ? (
+        <MachinePicker
+          routineDayId={session.routineDayId}
+          routineId={session.routineId}
+          routineExerciseId={exercise.routineExerciseId}
+          plannedName={plannedName}
+          activeAlternativeId={exercise.activeAlternativeId}
+          busy={busy}
+          onClose={() => setMachinePickerOpen(false)}
+          onPickOriginal={() => void chooseMachine({ type: 'original' })}
+          onPickAlternative={(alternativeId) =>
+            void chooseMachine({ type: 'alternative', alternativeId })
+          }
+          onCreateAlternative={(name) =>
+            void chooseMachine({ type: 'new', name })
+          }
+        />
+      ) : null}
     </article>
   )
 }
