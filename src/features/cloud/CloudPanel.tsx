@@ -25,11 +25,11 @@ export function CloudPanel() {
     try {
       if (mode === 'login') {
         await signIn(email, password)
-        setMessage('Sesión iniciada. Tus datos locales siguen intactos.')
+        setMessage('Sesión iniciada. Cargando datos de tu cuenta…')
       } else {
         await signUp(email, password)
         setMessage(
-          'Cuenta creada. Si pide confirmar correo, revisa la bandeja; si no, ya puedes subir.',
+          'Cuenta lista. Si ya tienes datos en este celular se subirán solos; si la cuenta ya tiene datos, aparecerán aquí.',
         )
       }
       setPassword('')
@@ -123,8 +123,8 @@ export function CloudPanel() {
       <div>
         <h2 className="font-display text-lg font-bold">Nube (multi-dispositivo)</h2>
         <p className="mt-1 text-sm text-muted">
-          Inicia sesión y sube tu gym a la nube. En otro celular: misma cuenta →
-          Bajar. Lo local solo se reemplaza si pulsas Bajar.
+          Al iniciar sesión se sincroniza sola tu cuenta. Los botones de abajo
+          son solo por si quieres forzar una subida o bajada manual.
         </p>
       </div>
 
@@ -201,7 +201,7 @@ export function CloudPanel() {
           </p>
 
           <Button fullWidth disabled={busy} onClick={() => void handleUpload()}>
-            {busy && step ? step : 'Subir mis datos a la nube'}
+            {busy && step ? step : 'Forzar subida a la cuenta'}
           </Button>
 
           <Button
@@ -210,7 +210,7 @@ export function CloudPanel() {
             disabled={busy}
             onClick={() => void handleDownload()}
           >
-            Bajar desde la nube
+            Forzar bajar cuenta (reemplaza este dispositivo)
           </Button>
 
           <Button
