@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
 import { BackupPanel } from '../backup/BackupPanel'
+import { CloudPanel } from '../cloud/CloudPanel'
 import { ThemePicker } from '../settings/ThemePicker'
 import { PageHeader } from '../../ui/PageHeader'
 
@@ -15,6 +16,13 @@ export function ProgressPage() {
         })
       }, 100)
     }
+    if (location.hash === '#nube') {
+      window.setTimeout(() => {
+        document.getElementById('nube')?.scrollIntoView({
+          behavior: 'smooth',
+        })
+      }, 100)
+    }
   }, [location.hash])
 
   return (
@@ -22,11 +30,15 @@ export function ProgressPage() {
       <PageHeader
         kicker="Focus · Sistema"
         title="Ajustes"
-        subtitle="Temas, respaldo y preferencias."
+        subtitle="Temas, nube, respaldo y preferencias."
       />
 
       <div id="temas">
         <ThemePicker />
+      </div>
+
+      <div id="nube">
+        <CloudPanel />
       </div>
 
       <BackupPanel />

@@ -213,6 +213,12 @@ export function AppDrawer({
                   onClick={() => setView('prs')}
                 />
                 <DrawerActionItem
+                  icon="☁️"
+                  label="Nube"
+                  subtitle="Cuenta y sync multi-dispositivo"
+                  onClick={() => go('/progreso#nube')}
+                />
+                <DrawerActionItem
                   icon="⚙️"
                   label="Temas y respaldo"
                   subtitle="Apariencia y exportar datos"

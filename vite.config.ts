@@ -57,7 +57,8 @@ export default defineConfig({
         ],
       },
       devOptions: {
-        enabled: true,
+        // En dev el SW rompe /src/*.tsx (404) y deja "Cargando Mi Gym…"
+        enabled: false,
       },
     }),
   ],
