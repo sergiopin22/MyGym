@@ -15,6 +15,7 @@ import {
   type FocusAccentId,
   type UiLayoutId,
 } from '../ui/layoutMode'
+import { scheduleCloudSync } from '../sync/autoSync'
 
 interface ThemeContextValue {
   themeId: ThemeId
@@ -48,11 +49,13 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
           applyTheme(id)
         }
         setThemeIdState(id)
+        scheduleCloudSync({ delayMs: 2500 })
       },
       uiLayout,
       setUiLayout: (id: UiLayoutId) => {
         applyUiLayout(id, focusAccent)
         setUiLayoutState(id)
+        scheduleCloudSync({ delayMs: 2500 })
       },
       focusAccent,
       setFocusAccent: (id: FocusAccentId) => {
@@ -66,6 +69,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
             /* ignore */
           }
         }
+        scheduleCloudSync({ delayMs: 2500 })
       },
     }),
     [themeId, uiLayout, focusAccent],

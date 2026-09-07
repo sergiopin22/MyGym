@@ -76,7 +76,9 @@ async function uploadBlob(path: string, blob: Blob, mimeType: string) {
 export async function uploadLocalToCloud(
   userId: string,
   onProgress: SyncProgress = () => undefined,
+  options: { includeMedia?: boolean } = {},
 ): Promise<UploadStats> {
+  const includeMedia = options.includeMedia !== false
   const sb = getSupabase()
   if (!sb) throw new Error('Supabase no está configurado.')
 
@@ -232,6 +234,7 @@ export async function uploadLocalToCloud(
   let mediaCount = 0
   const mediaRows: Record<string, unknown>[] = []
 
+  if (includeMedia) {
   await report(onProgress, 'Subiendo avatar GIF…')
   const avatar = await getCustomAvatarRecord()
   if (avatar?.blob) {
@@ -307,6 +310,9 @@ export async function uploadLocalToCloud(
   if (mediaRows.length > 0) {
     await report(onProgress, 'Guardando metadatos de medios…')
     await upsertChunk('media_assets', mediaRows, 'user_id,id')
+  }
+  } else {
+    await report(onProgress, 'Omitiendo medios (sync rápida)…')
   }
 
   markCloudUpload()

@@ -75,8 +75,9 @@ export function CloudPanel() {
       <div>
         <h2 className="font-display text-lg font-bold">Cuenta y sync</h2>
         <p className="mt-1 text-sm text-muted">
-          Sync automática al entrar. Aquí puedes forzar subida/bajada o cerrar
-          sesión (vuelves al login).
+          Los cambios (entrenos, meta, caminadora, rutina…) se suben solos a tu
+          cuenta unos segundos después. Estos botones son solo por si quieres
+          forzar ahora.
         </p>
       </div>
 

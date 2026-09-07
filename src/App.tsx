@@ -3,6 +3,9 @@ import { ThemeProvider } from './context/ThemeProvider'
 import { AccountSyncBootstrap } from './features/cloud/AccountSyncBootstrap'
 import { AuthGate } from './features/cloud/AuthGate'
 import { AppRouter } from './app/AppRouter'
+import { installCloudAutoSyncHooks } from './sync/autoSync'
+
+installCloudAutoSyncHooks()
 
 export default function App() {
   return (

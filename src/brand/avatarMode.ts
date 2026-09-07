@@ -18,6 +18,12 @@ export function setStoredAvatarMode(mode: AvatarMode): void {
   } catch {
     /* ignore */
   }
+  void import('../sync/autoSync').then((m) =>
+    m.scheduleCloudSync({
+      includeMedia: mode === 'custom',
+      delayMs: 2500,
+    }),
+  )
 }
 
 export function isAvatarMode(value: string): value is AvatarMode {

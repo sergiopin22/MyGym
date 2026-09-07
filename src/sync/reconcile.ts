@@ -2,6 +2,7 @@ import { db } from '../db/schema'
 import { getSupabase } from '../lib/supabase'
 import { downloadCloudToLocal } from './download'
 import { uploadLocalToCloud, type SyncProgress } from './upload'
+import { pauseCloudAutoSync, resumeCloudAutoSync } from './autoSync'
 
 export type ReconcileAction = 'noop' | 'downloaded' | 'uploaded'
 
@@ -46,6 +47,18 @@ async function cloudCounts(userId: string): Promise<{
 export async function reconcileAccountOnLogin(
   userId: string,
   onProgress: SyncProgress = () => undefined,
+): Promise<ReconcileResult> {
+  pauseCloudAutoSync()
+  try {
+    return await reconcileAccountOnLoginInner(userId, onProgress)
+  } finally {
+    resumeCloudAutoSync()
+  }
+}
+
+async function reconcileAccountOnLoginInner(
+  userId: string,
+  onProgress: SyncProgress,
 ): Promise<ReconcileResult> {
   onProgress('Sincronizando cuenta…')
 

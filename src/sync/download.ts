@@ -25,6 +25,7 @@ import type {
 } from '../types'
 import type { SyncProgress } from './upload'
 import { isoToMs, isoToMsRequired } from './time'
+import { pauseCloudAutoSync, resumeCloudAutoSync } from './autoSync'
 
 const MEDIA_BUCKET = 'user-media'
 
@@ -160,6 +161,18 @@ type CloudPrefs = {
 export async function downloadCloudToLocal(
   userId: string,
   onProgress: SyncProgress = () => undefined,
+): Promise<DownloadStats> {
+  pauseCloudAutoSync()
+  try {
+    return await downloadCloudToLocalInner(userId, onProgress)
+  } finally {
+    resumeCloudAutoSync()
+  }
+}
+
+async function downloadCloudToLocalInner(
+  userId: string,
+  onProgress: SyncProgress,
 ): Promise<DownloadStats> {
   onProgress('Descargando desde la nube…')
 

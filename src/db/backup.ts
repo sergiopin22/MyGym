@@ -500,6 +500,31 @@ export async function importFullBackup(raw: unknown): Promise<{
   preservedCustomAvatar: boolean
   restoredPreferences: boolean
 }> {
+  const { pauseCloudAutoSync, resumeCloudAutoSync, scheduleCloudSync } =
+    await import('../sync/autoSync')
+  pauseCloudAutoSync()
+  try {
+    const result = await importFullBackupInner(raw)
+    scheduleCloudSync({ includeMedia: true, delayMs: 2000 })
+    return result
+  } finally {
+    resumeCloudAutoSync()
+  }
+}
+
+async function importFullBackupInner(raw: unknown): Promise<{
+  routines: number
+  sessions: number
+  improvements: number
+  images: number
+  bodyCheckIns: number
+  constancyGoals: number
+  treadmillSessions: number
+  preservedTreadmillSessions: number
+  customAvatar: number
+  preservedCustomAvatar: boolean
+  restoredPreferences: boolean
+}> {
   const backup = parseBackup(raw)
   const restoreTreadmill = backupIncludesTreadmillSessions(raw)
   const restoreCustomAvatar = backupIncludesCustomAvatar(raw)

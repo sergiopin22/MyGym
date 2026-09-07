@@ -64,6 +64,9 @@ export function setStoredBrandAvatarId(id: BrandAvatarId): void {
   } catch {
     /* ignore */
   }
+  void import('../sync/autoSync').then((m) =>
+    m.scheduleCloudSync({ delayMs: 2500 }),
+  )
 }
 
 export function getBrandAvatar(id: BrandAvatarId): BrandAvatar {
