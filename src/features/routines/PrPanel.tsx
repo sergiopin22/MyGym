@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { Button } from '../../components/Button'
 import { useTheme } from '../../context/ThemeProvider'
 import {
-  getFeaturedExercisePRs,
   getRoutineExercisePRs,
   type ExercisePR,
 } from '../../db/repository'
@@ -39,7 +38,7 @@ function GoldenTrophy() {
     <span
       className="relative flex h-10 w-10 shrink-0 items-center justify-center"
       aria-hidden
-      title="PR principal"
+      title="PR"
     >
       <span className="absolute inset-0 rounded-full bg-amber-400/25 blur-md" />
       <span
@@ -52,22 +51,29 @@ function GoldenTrophy() {
   )
 }
 
+type RoutinePrRow = {
+  exerciseName: string
+  dayLabels: string[]
+  pr: ExercisePR | null
+  prWithStraps: ExercisePR | null
+  supportsStraps: boolean
+}
+
 function PrRow({
   title,
   subtitle,
   pr,
   prWithStraps,
   supportsStraps = false,
-  showTrophy = false,
 }: {
   title: string
   subtitle?: string
   pr: ExercisePR | null
   prWithStraps?: ExercisePR | null
   supportsStraps?: boolean
-  showTrophy?: boolean
 }) {
   const { unit } = useWeightUnit()
+  const hasMark = Boolean(pr || prWithStraps)
   return (
     <li className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-3 ring-1 ring-line">
       <div className="min-w-0 flex-1">
@@ -118,16 +124,9 @@ function PrRow({
           <p className="mt-1 text-sm text-muted">Aún sin marca registrada</p>
         )}
       </div>
-      {showTrophy && (pr || prWithStraps) ? <GoldenTrophy /> : null}
+      {hasMark ? <GoldenTrophy /> : null}
     </li>
   )
-}
-
-type FeaturedRow = {
-  label: string
-  pr: ExercisePR | null
-  prWithStraps: ExercisePR | null
-  supportsStraps: boolean
 }
 
 function signalPct(weight: number, ceiling: number): number {
@@ -140,7 +139,7 @@ function FocusBillboard({
   index,
   ceiling,
 }: {
-  row: FeaturedRow
+  row: RoutinePrRow
   index: number
   ceiling: number
 }) {
@@ -165,7 +164,7 @@ function FocusBillboard({
       </div>
 
       <p className="focus-pr-bill__cut">
-        Corte {String(index + 1).padStart(2, '0')}
+        {String(index + 1).padStart(2, '0')}
       </p>
 
       {ghost != null ? (
@@ -183,7 +182,10 @@ function FocusBillboard({
       </div>
 
       <div className="focus-pr-bill__copy">
-        <h3 className="focus-pr-bill__name">{row.label}</h3>
+        <h3 className="focus-pr-bill__name">{row.exerciseName}</h3>
+        {row.dayLabels.length ? (
+          <p className="focus-pr-bill__days">{row.dayLabels.join(' · ')}</p>
+        ) : null}
 
         {row.supportsStraps ? (
           <div className="focus-pr-bill__split">
@@ -224,7 +226,7 @@ function FocusBillboard({
             <span>{formatPrDate(best.date)}</span>
           </p>
         ) : (
-          <p className="focus-pr-bill__meta">Aún sin exposición</p>
+          <p className="focus-pr-bill__meta">Aún sin marca</p>
         )}
       </div>
     </section>
@@ -243,19 +245,8 @@ export function PrPanel({
   showCloseButton = true,
 }: PrPanelProps) {
   const { uiLayout } = useTheme()
-  const { unit, toDisplay, label } = useWeightUnit()
   const isFocus = uiLayout === 'focus'
-  const [tab, setTab] = useState<'featured' | 'all'>('featured')
-  const [featured, setFeatured] = useState<FeaturedRow[]>([])
-  const [routineRows, setRoutineRows] = useState<
-    Array<{
-      exerciseName: string
-      dayLabels: string[]
-      pr: ExercisePR | null
-      prWithStraps: ExercisePR | null
-      supportsStraps: boolean
-    }>
-  >([])
+  const [rows, setRows] = useState<RoutinePrRow[]>([])
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -263,11 +254,10 @@ export function PrPanel({
     if (!active) return
     let alive = true
     setLoading(true)
-    Promise.all([getFeaturedExercisePRs(), getRoutineExercisePRs()])
-      .then(([f, rows]) => {
+    getRoutineExercisePRs()
+      .then((list) => {
         if (!alive) return
-        setFeatured(f)
-        setRoutineRows(rows)
+        setRows(list)
       })
       .finally(() => {
         if (alive) setLoading(false)
@@ -277,57 +267,32 @@ export function PrPanel({
     }
   }, [active])
 
-  const filteredAll = useMemo(() => {
+  const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return routineRows
-    return routineRows.filter((row) =>
-      row.exerciseName.toLowerCase().includes(q),
-    )
-  }, [routineRows, query])
+    if (!q) return rows
+    return rows.filter((row) => row.exerciseName.toLowerCase().includes(q))
+  }, [rows, query])
 
   const billCeiling = useMemo(() => {
     let peak = 0
-    for (const row of featured) {
+    for (const row of filtered) {
       const pr = pickBestPr(row.pr, row.prWithStraps)
       if (pr && pr.weight > peak) peak = pr.weight
     }
     return peak || 1
-  }, [featured])
+  }, [filtered])
 
   if (isFocus) {
     return (
       <div className="focus-pr-reel">
         <aside className="focus-pr-reel__spine" aria-hidden>
-          <span>MARCAS</span>
+          <span>PR</span>
         </aside>
 
         <div className="focus-pr-reel__main">
           <header className="focus-pr-reel__chrome">
-            <div className="focus-pr-reel__modes" role="tablist">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === 'featured'}
-                className={[
-                  'focus-pr-reel__mode',
-                  tab === 'featured' ? 'focus-pr-reel__mode--on' : '',
-                ].join(' ')}
-                onClick={() => setTab('featured')}
-              >
-                Cartelera
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={tab === 'all'}
-                className={[
-                  'focus-pr-reel__mode',
-                  tab === 'all' ? 'focus-pr-reel__mode--on' : '',
-                ].join(' ')}
-                onClick={() => setTab('all')}
-              >
-                Guion
-              </button>
+            <div className="focus-pr-reel__title-block">
+              <p className="focus-pr-reel__title">PR en todos los ejercicios</p>
             </div>
             {showCloseButton && onClose ? (
               <button
@@ -341,99 +306,39 @@ export function PrPanel({
           </header>
 
           <p className="focus-pr-reel__lede">
-            {tab === 'featured'
-              ? 'Un corte por ejercicio. Desliza el rollo.'
-              : 'Todas las máquinas, línea a línea.'}
+            Todas las máquinas de tu rutina. Desliza para ver cada marca.
           </p>
 
           <div className="focus-pr-reel__body">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Buscar ejercicio…"
+              className="focus-pr-reel__search input-ios-safe"
+            />
+
             {loading ? (
-              <p className="focus-pr-reel__loading">Revelando el rollo…</p>
-            ) : tab === 'featured' ? (
-              <div className="focus-pr-reel__track" aria-label="Cartelera de PRs">
-                {featured.map((row, index) => (
+              <p className="focus-pr-reel__loading">Cargando PRs…</p>
+            ) : filtered.length === 0 ? (
+              <p className="focus-pr-reel__loading">
+                {rows.length === 0
+                  ? 'No hay ejercicios en tu rutina. Agrégalos en Rutinas.'
+                  : 'Ningún ejercicio con ese nombre.'}
+              </p>
+            ) : (
+              <div
+                className="focus-pr-reel__track"
+                aria-label="PR en todos los ejercicios"
+              >
+                {filtered.map((row, index) => (
                   <FocusBillboard
-                    key={row.label}
+                    key={row.exerciseName}
                     row={row}
                     index={index}
                     ceiling={billCeiling}
                   />
                 ))}
-              </div>
-            ) : (
-              <div className="focus-pr-script">
-                <input
-                  type="search"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Buscar escena…"
-                  className="focus-pr-script__search input-ios-safe"
-                />
-
-                {filteredAll.length === 0 ? (
-                  <p className="focus-pr-reel__loading">
-                    {routineRows.length === 0
-                      ? 'No hay ejercicios en tu rutina. Agrégalos en Rutinas.'
-                      : 'Ninguna escena con ese nombre.'}
-                  </p>
-                ) : (
-                  <ol className="focus-pr-script__list">
-                    {filteredAll.map((row, index) => {
-                      const best = pickBestPr(row.pr, row.prWithStraps)
-                      return (
-                        <li
-                          key={row.exerciseName}
-                          className="focus-pr-script__shot"
-                          style={{ animationDelay: `${28 + index * 24}ms` }}
-                        >
-                          <span className="focus-pr-script__num">
-                            {String(index + 1).padStart(2, '0')}
-                          </span>
-                          <div className="focus-pr-script__block">
-                            <p className="focus-pr-script__title">
-                              {row.exerciseName}
-                            </p>
-                            {row.dayLabels.length ? (
-                              <p className="focus-pr-script__days">
-                                {row.dayLabels.join(' · ')}
-                              </p>
-                            ) : null}
-                            {row.supportsStraps ? (
-                              <div className="focus-pr-script__dual">
-                                <span>
-                                  {formatStrapsLabel(false)} ·{' '}
-                                  {row.pr ? formatPrLine(row.pr, unit) : '—'}
-                                </span>
-                                <span>
-                                  {formatStrapsLabel(true)} ·{' '}
-                                  {row.prWithStraps
-                                    ? formatPrLine(row.prWithStraps, unit)
-                                    : '—'}
-                                </span>
-                              </div>
-                            ) : (
-                              <p className="focus-pr-script__line">
-                                {best
-                                  ? `${formatPrLine(best, unit)} · ${formatPrDate(best.date)}`
-                                  : 'Sin marca'}
-                              </p>
-                            )}
-                          </div>
-                          <span className="focus-pr-script__weight">
-                            {best ? (
-                              <>
-                                {toDisplay(best.weight)}
-                                <small>{label}</small>
-                              </>
-                            ) : (
-                              '—'
-                            )}
-                          </span>
-                        </li>
-                      )
-                    })}
-                  </ol>
-                )}
               </div>
             )}
           </div>
@@ -458,7 +363,9 @@ export function PrPanel({
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
-          <h2 className="font-display text-xl font-extrabold text-fg">Tus PR</h2>
+          <h2 className="font-display text-xl font-extrabold text-fg">
+            PR en todos los ejercicios
+          </h2>
           <p className="text-sm text-muted">
             Mejor peso × reps · RIR · sin/con straps en espalda
           </p>
@@ -474,68 +381,26 @@ export function PrPanel({
         ) : null}
       </div>
 
-      <div className="mb-3 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => setTab('featured')}
-          className={[
-            'min-h-11 rounded-xl text-sm font-semibold ring-1',
-            tab === 'featured'
-              ? 'bg-chrome text-chrome-fg ring-chrome'
-              : 'bg-surface text-muted ring-line',
-          ].join(' ')}
-        >
-          Principales
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('all')}
-          className={[
-            'min-h-11 rounded-xl text-sm font-semibold ring-1',
-            tab === 'all'
-              ? 'bg-chrome text-chrome-fg ring-chrome'
-              : 'bg-surface text-muted ring-line',
-          ].join(' ')}
-        >
-          Cualquier máquina
-        </button>
-      </div>
-
-      {tab === 'all' ? (
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Buscar en tu rutina…"
-          className="mb-3 min-h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-fg"
-        />
-      ) : null}
+      <input
+        type="search"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+        placeholder="Buscar ejercicio…"
+        className="mb-3 min-h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-fg"
+      />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {loading ? (
           <p className="py-6 text-center text-sm text-muted">Cargando…</p>
-        ) : tab === 'featured' ? (
-          <ul className="space-y-2">
-            {featured.map((row) => (
-              <PrRow
-                key={row.label}
-                title={row.label}
-                pr={row.pr}
-                prWithStraps={row.prWithStraps}
-                supportsStraps={row.supportsStraps}
-                showTrophy
-              />
-            ))}
-          </ul>
-        ) : filteredAll.length === 0 ? (
+        ) : filtered.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted">
-            {routineRows.length === 0
+            {rows.length === 0
               ? 'No hay ejercicios en tu rutina. Agrégalos en Rutinas.'
-              : 'No hay máquinas con ese nombre.'}
+              : 'Ningún ejercicio con ese nombre.'}
           </p>
         ) : (
           <ul className="space-y-2">
-            {filteredAll.map((row) => (
+            {filtered.map((row) => (
               <PrRow
                 key={row.exerciseName}
                 title={row.exerciseName}

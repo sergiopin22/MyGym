@@ -2164,52 +2164,12 @@ export interface ExercisePR {
   withStraps?: boolean
 }
 
-/** Ejercicios estrella que se muestran primero en el botón PR */
-export const FEATURED_PR_EXERCISES: Array<{
-  label: string
-  /** fragmentos para emparejar con el nombre en la rutina */
-  match: string[]
-  supportsStraps?: boolean
-}> = [
-  {
-    label: 'Elevaciones laterales con mancuerna',
-    match: ['elevaciones laterales', 'elevacion lateral', 'lateral mancuerna'],
-  },
-  {
-    label: 'Press inclinado en máquina',
-    match: ['press inclinado'],
-  },
-  {
-    label: 'Jalón al pecho',
-    match: ['jalon al pecho', 'jalón al pecho', 'jalon pecho', 'jalón pecho'],
-    supportsStraps: true,
-  },
-  {
-    label: 'Remo T',
-    match: ['remo t', 'remo-t', 'remo en t'],
-    supportsStraps: true,
-  },
-  {
-    label: 'Predicador',
-    match: ['predicador'],
-  },
-  {
-    label: 'Sentadilla hack',
-    match: ['sentadilla hack', 'hack squat', 'hack'],
-  },
-]
-
 function normalizeExerciseName(name: string): string {
   return name
     .trim()
     .toLowerCase()
     .normalize('NFD')
     .replace(/\p{M}/gu, '')
-}
-
-function exerciseNameMatches(name: string, fragments: string[]): boolean {
-  const n = normalizeExerciseName(name)
-  return fragments.some((f) => n.includes(normalizeExerciseName(f)))
 }
 
 function isBetterPR(
@@ -2239,21 +2199,6 @@ function exerciseLogPrLabel(ex: {
 }): string {
   const grip = ex.activeGripName?.trim()
   return grip ? `${ex.name} · ${grip}` : ex.name
-}
-
-function findExercisePR(
-  all: ExercisePR[],
-  fragments: string[],
-  withStraps: boolean,
-): ExercisePR | null {
-  return (
-    all.find(
-      (p) =>
-        exerciseNameMatches(p.exerciseName, fragments) &&
-        !p.gripName &&
-        Boolean(p.withStraps) === withStraps,
-    ) ?? null
-  )
 }
 
 /** PR de todas las máquinas vistas en historial (mejor peso; si empata, más reps) */
@@ -2381,7 +2326,6 @@ export async function detectNewPRsInSession(
 
 /**
  * Todos los ejercicios de la rutina activa + su PR si existe.
- * Así “Cualquier máquina” lista todo lo que tienes creado.
  */
 export async function getRoutineExercisePRs(): Promise<
   Array<{
@@ -2484,28 +2428,6 @@ export async function getRoutineExercisePRs(): Promise<
   return [...byKey.values()].sort((a, b) =>
     a.exerciseName.localeCompare(b.exerciseName, 'es'),
   )
-}
-
-export async function getFeaturedExercisePRs(): Promise<
-  Array<{
-    label: string
-    pr: ExercisePR | null
-    prWithStraps: ExercisePR | null
-    supportsStraps: boolean
-  }>
-> {
-  const all = await getAllExercisePRs()
-  return FEATURED_PR_EXERCISES.map((feat) => {
-    const supportsStraps = Boolean(feat.supportsStraps)
-    return {
-      label: feat.label,
-      pr: findExercisePR(all, feat.match, false),
-      prWithStraps: supportsStraps
-        ? findExercisePR(all, feat.match, true)
-        : null,
-      supportsStraps,
-    }
-  })
 }
 
 /* ─── Caminadora (cardio aparte) ─── */

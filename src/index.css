@@ -2220,6 +2220,42 @@ html[data-ui-layout='focus'] .focus-pr-reel__chrome {
   padding: 0 1rem 0 0.85rem;
 }
 
+html[data-ui-layout='focus'] .focus-pr-reel__title-block {
+  min-width: 0;
+  flex: 1;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__title {
+  margin: 0;
+  color: var(--color-fg);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__search {
+  display: block;
+  width: calc(100% - 1.7rem);
+  margin: 0 0.85rem 0.65rem;
+  min-height: 2.5rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  padding: 0 0.85rem;
+  color: var(--color-fg);
+  font-size: 0.9rem;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill__days {
+  margin: 0.15rem 0 0;
+  color: var(--color-fg-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 html[data-ui-layout='focus'] .focus-pr-reel__modes {
   display: flex;
   gap: 0.15rem;
