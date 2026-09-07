@@ -32,16 +32,16 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh w-full flex-col items-center justify-center px-5 py-10">
+    <div className="flex min-h-dvh w-full flex-col items-center justify-center bg-[#070707] px-5 py-10">
       <div className="w-full max-w-sm space-y-8">
         <header className="text-center">
-          <p className="font-display text-xs font-semibold uppercase tracking-[0.2em] text-brand">
-            Tu gym en la nube
-          </p>
-          <h1 className="mt-2 font-display text-4xl font-extrabold tracking-tight text-fg">
-            Mi Gym
-          </h1>
-          <p className="mt-3 text-sm text-muted">
+          <img
+            src="/brand/my-gym-logo.jpg"
+            alt="My Gym"
+            className="mx-auto h-44 w-44 object-cover drop-shadow-[0_24px_48px_rgba(220,30,40,0.35)]"
+          />
+          <h1 className="sr-only">Mi Gym</h1>
+          <p className="mt-5 text-sm text-muted">
             Entra con tu cuenta para ver tu rutina, historial y progreso en este
             dispositivo.
           </p>
