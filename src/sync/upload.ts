@@ -46,12 +46,7 @@ async function upsertChunk(
   }
 }
 
-async function uploadBlob(
-  userId: string,
-  path: string,
-  blob: Blob,
-  mimeType: string,
-) {
+async function uploadBlob(path: string, blob: Blob, mimeType: string) {
   const sb = getSupabase()
   if (!sb) throw new Error('Supabase no está configurado.')
   const { error } = await sb.storage.from(MEDIA_BUCKET).upload(path, blob, {
@@ -235,7 +230,7 @@ export async function uploadLocalToCloud(
   const avatar = await getCustomAvatarRecord()
   if (avatar?.blob) {
     const path = `${userId}/avatar.gif`
-    await uploadBlob(userId, path, avatar.blob, avatar.mimeType)
+    await uploadBlob(path, avatar.blob, avatar.mimeType)
     mediaRows.push({
       id: CUSTOM_AVATAR_ID,
       user_id: userId,
@@ -257,7 +252,7 @@ export async function uploadLocalToCloud(
         ? 'webp'
         : 'jpg'
     const path = `${userId}/exercises/${img.id}.${ext}`
-    await uploadBlob(userId, path, img.blob, img.mimeType)
+    await uploadBlob(path, img.blob, img.mimeType)
     mediaRows.push({
       id: `ex-${img.id}`,
       user_id: userId,
@@ -279,7 +274,7 @@ export async function uploadLocalToCloud(
         ? 'webp'
         : 'jpg'
     const path = `${userId}/body/${photo.checkInId}/${photo.angle}.${ext}`
-    await uploadBlob(userId, path, photo.blob, photo.mimeType)
+    await uploadBlob(path, photo.blob, photo.mimeType)
     mediaRows.push({
       id: photo.id,
       user_id: userId,
