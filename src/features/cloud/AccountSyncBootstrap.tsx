@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
-import { useAuth } from '../context/AuthProvider'
-import { reconcileAccountOnLogin } from '../sync/reconcile'
+import { useAuth } from '../../context/AuthProvider'
+import { reconcileAccountOnLogin } from '../../sync/reconcile'
 
 /**
  * Al haber sesión: trae (o sube) los datos de la cuenta sin pedir "Bajar".
