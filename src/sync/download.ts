@@ -12,6 +12,11 @@ import {
   type FocusAccentId,
   type UiLayoutId,
 } from '../ui/layoutMode'
+import {
+  isWeightUnit,
+  setStoredWeightUnit,
+} from '../utils/weight'
+import { setLocalDataOwner } from './localDataOwner'
 import type {
   BodyCheckIn,
   BodyCheckInPhoto,
@@ -152,6 +157,7 @@ type CloudPrefs = {
   focus_accent: string | null
   brand_avatar_id: string | null
   avatar_mode: string | null
+  weight_unit: string | null
 }
 
 /**
@@ -392,9 +398,14 @@ async function downloadCloudToLocalInner(
       setStoredAvatarMode(prefs.avatar_mode)
       restoredPreferences = true
     }
+    if (prefs.weight_unit && isWeightUnit(prefs.weight_unit)) {
+      setStoredWeightUnit(prefs.weight_unit, true, userId)
+      restoredPreferences = true
+    }
   }
 
   onProgress('Listo')
+  setLocalDataOwner(userId)
   return {
     routines: routines.length,
     sessions: sessions.length,

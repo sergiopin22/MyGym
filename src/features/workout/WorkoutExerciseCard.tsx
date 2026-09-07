@@ -23,7 +23,6 @@ import type {
   WorkoutSession,
 } from '../../types'
 import { openTutorial } from '../exercises/media'
-import { WEIGHT_STEP, WEIGHT_UNIT } from '../../utils/weight'
 import { supportsStrapsTracking, formatStrapsSuffix } from '../../utils/straps'
 import {
   computeExerciseStatus,
@@ -31,6 +30,7 @@ import {
   isUsingAlternative,
 } from '../../utils/workout'
 import { MachinePicker } from './MachinePicker'
+import { useWeightUnit } from '../../context/WeightUnitProvider'
 
 function setHasData(set: { weight: number | null; reps: number | null }) {
   return set.weight != null && set.reps != null
@@ -132,6 +132,7 @@ export function WorkoutExerciseCard({
   onSessionChange,
   editMode = false,
 }: WorkoutExerciseCardProps) {
+  const { label, step, toDisplay, toStorage, format } = useWeightUnit()
   const canEdit = editMode || session.status === 'in_progress'
   const [expandedLast, setExpandedLast] = useState(false)
   const [last, setLast] = useState<LastExercisePerformance | null | undefined>(
@@ -564,7 +565,7 @@ export function WorkoutExerciseCard({
                   >
                     <span>Serie {s.setNumber}</span>
                     <span className="font-medium text-ink">
-                      {s.weight ?? '—'} {WEIGHT_UNIT} · {s.reps ?? '—'} reps ·
+                      {format(s.weight)} · {s.reps ?? '—'} reps ·
                       RIR {s.rir ?? '—'}
                       {formatStrapsSuffix(s.withStraps)}
                     </span>
@@ -651,12 +652,14 @@ export function WorkoutExerciseCard({
             <div className="space-y-3">
               <NumberStepper
                 label="Peso"
-                suffix={WEIGHT_UNIT}
-                step={WEIGHT_STEP}
+                suffix={label}
+                step={step}
                 min={0}
-                value={set.weight}
+                value={toDisplay(set.weight)}
                 disabled={!canEdit}
-                onChange={(weight) => void patchSet(set.id, { weight })}
+                onChange={(weight) =>
+                  void patchSet(set.id, { weight: toStorage(weight) })
+                }
               />
               <NumberStepper
                 label="Reps"

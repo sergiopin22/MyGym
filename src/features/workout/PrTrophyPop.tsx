@@ -1,5 +1,6 @@
 import type { SessionNewPR } from '../../db/repository'
 import { formatStrapsLabel } from '../../utils/straps'
+import { useWeightUnit } from '../../context/WeightUnitProvider'
 
 interface PrTrophyPopProps {
   prs: SessionNewPR[]
@@ -7,6 +8,7 @@ interface PrTrophyPopProps {
 }
 
 export function PrTrophyPop({ prs, onClose }: PrTrophyPopProps) {
+  const { formatPair } = useWeightUnit()
   if (prs.length === 0) return null
 
   return (
@@ -53,12 +55,12 @@ export function PrTrophyPop({ prs, onClose }: PrTrophyPopProps) {
                 ) : null}
               </p>
               <p className="mt-1 text-sm font-bold text-fg">
-                {pr.weight} lb × {pr.reps}
+                {formatPair(pr.weight, pr.reps)}
                 {pr.rir != null ? ` · RIR ${pr.rir}` : ''}
               </p>
               <p className="mt-0.5 text-xs text-muted">
                 {pr.previous
-                  ? `Antes: ${pr.previous.weight} lb × ${pr.previous.reps}`
+                  ? `Antes: ${formatPair(pr.previous.weight, pr.previous.reps)}`
                   : 'Primera marca registrada'}
               </p>
             </li>
@@ -70,7 +72,7 @@ export function PrTrophyPop({ prs, onClose }: PrTrophyPopProps) {
           className="mt-5 inline-flex min-h-12 w-full shrink-0 items-center justify-center rounded-2xl bg-accent px-5 text-base font-semibold text-accent-fg transition active:scale-[0.98]"
           onClick={onClose}
         >
-          Genial
+          Seguir
         </button>
       </div>
     </div>

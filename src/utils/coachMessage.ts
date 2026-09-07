@@ -1,18 +1,22 @@
 import type { WorkoutSession } from '../types'
 import { formatDuration } from './id'
 import { formatStrapsSuffix } from './straps'
+import { formatWeight, type WeightUnit } from './weight'
 
-function formatSetLine(set: {
-  setNumber: number
-  weight: number | null
-  reps: number | null
-  rir: number | null
-  completed: boolean
-  withStraps?: boolean
-}): string | null {
+function formatSetLine(
+  set: {
+    setNumber: number
+    weight: number | null
+    reps: number | null
+    rir: number | null
+    completed: boolean
+    withStraps?: boolean
+  },
+  unit: WeightUnit,
+): string | null {
   if (!set.completed && set.weight == null && set.reps == null) return null
 
-  const weight = set.weight != null ? `${set.weight} lb` : '— lb'
+  const weight = formatWeight(set.weight, unit)
   const reps = set.reps != null ? `${set.reps} reps` : '— reps'
   const rir = set.rir != null ? ` · RIR ${set.rir}` : ''
   const straps = formatStrapsSuffix(set.withStraps)
@@ -21,8 +25,11 @@ function formatSetLine(set: {
   return `  Serie ${set.setNumber}: ${weight} × ${reps}${rir}${straps}${note}`
 }
 
-/** Texto listo para WhatsApp / coach */
-export function formatWorkoutForCoach(session: WorkoutSession): string {
+/** Texto listo para WhatsApp / coach (pesos en la unidad de la cuenta) */
+export function formatWorkoutForCoach(
+  session: WorkoutSession,
+  unit: WeightUnit = 'lb',
+): string {
   const dateLabel = new Date(session.date + 'T12:00:00').toLocaleDateString('es-ES', {
     weekday: 'long',
     day: 'numeric',
@@ -67,7 +74,7 @@ export function formatWorkoutForCoach(session: WorkoutSession): string {
 
   for (const ex of exercises) {
     const setLines = ex.sets
-      .map(formatSetLine)
+      .map((s) => formatSetLine(s, unit))
       .filter((line): line is string => line !== null)
     const note = ex.note?.trim()
 

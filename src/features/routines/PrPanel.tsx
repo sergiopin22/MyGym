@@ -7,6 +7,9 @@ import {
   type ExercisePR,
 } from '../../db/repository'
 import { formatStrapsLabel } from '../../utils/straps'
+import { useWeightUnit } from '../../context/WeightUnitProvider'
+import type { WeightUnit } from '../../utils/weight'
+import { formatWeightPair } from '../../utils/weight'
 
 function formatPrDate(iso: string): string {
   return new Date(iso + 'T12:00:00').toLocaleDateString('es-ES', {
@@ -16,9 +19,9 @@ function formatPrDate(iso: string): string {
   })
 }
 
-function formatPrLine(pr: ExercisePR): string {
+function formatPrLine(pr: ExercisePR, unit: WeightUnit): string {
   const rir = pr.rir != null ? ` · RIR ${pr.rir}` : ' · RIR —'
-  return `${pr.weight} lb × ${pr.reps}${rir}`
+  return `${formatWeightPair(pr.weight, pr.reps, unit)}${rir}`
 }
 
 function pickBestPr(
@@ -64,6 +67,7 @@ function PrRow({
   supportsStraps?: boolean
   showTrophy?: boolean
 }) {
+  const { unit } = useWeightUnit()
   return (
     <li className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-3 ring-1 ring-line">
       <div className="min-w-0 flex-1">
@@ -79,7 +83,7 @@ function PrRow({
               </span>
               {pr ? (
                 <>
-                  <span className="font-bold text-fg">{formatPrLine(pr)}</span>
+                  <span className="font-bold text-fg">{formatPrLine(pr, unit)}</span>
                   <span className="text-muted"> · {formatPrDate(pr.date)}</span>
                 </>
               ) : (
@@ -93,7 +97,7 @@ function PrRow({
               {prWithStraps ? (
                 <>
                   <span className="font-bold text-fg">
-                    {formatPrLine(prWithStraps)}
+                    {formatPrLine(prWithStraps, unit)}
                   </span>
                   <span className="text-muted">
                     {' '}
@@ -107,7 +111,7 @@ function PrRow({
           </div>
         ) : pr ? (
           <p className="mt-1 text-sm text-muted">
-            <span className="font-bold text-fg">{formatPrLine(pr)}</span>
+            <span className="font-bold text-fg">{formatPrLine(pr, unit)}</span>
             <span className="text-muted"> · {formatPrDate(pr.date)}</span>
           </p>
         ) : (
@@ -140,8 +144,10 @@ function FocusBillboard({
   index: number
   ceiling: number
 }) {
+  const { unit, toDisplay, label } = useWeightUnit()
   const best = pickBestPr(row.pr, row.prWithStraps)
   const pct = best ? signalPct(best.weight, ceiling) : 8
+  const ghost = best ? toDisplay(best.weight) : null
 
   return (
     <section
@@ -162,9 +168,9 @@ function FocusBillboard({
         Corte {String(index + 1).padStart(2, '0')}
       </p>
 
-      {best ? (
+      {ghost != null ? (
         <span className="focus-pr-bill__ghost" aria-hidden>
-          {best.weight}
+          {ghost}
         </span>
       ) : (
         <span className="focus-pr-bill__ghost focus-pr-bill__ghost--dash" aria-hidden>
@@ -184,7 +190,9 @@ function FocusBillboard({
             <div>
               <span>{formatStrapsLabel(false)}</span>
               <strong>
-                {row.pr ? `${row.pr.weight} lb × ${row.pr.reps}` : 'Sin marca'}
+                {row.pr
+                  ? formatWeightPair(row.pr.weight, row.pr.reps, unit)
+                  : 'Sin marca'}
               </strong>
               {row.pr ? <em>{formatPrDate(row.pr.date)}</em> : null}
             </div>
@@ -192,7 +200,11 @@ function FocusBillboard({
               <span>{formatStrapsLabel(true)}</span>
               <strong>
                 {row.prWithStraps
-                  ? `${row.prWithStraps.weight} lb × ${row.prWithStraps.reps}`
+                  ? formatWeightPair(
+                      row.prWithStraps.weight,
+                      row.prWithStraps.reps,
+                      unit,
+                    )
                   : 'Sin marca'}
               </strong>
               {row.prWithStraps ? (
@@ -202,7 +214,9 @@ function FocusBillboard({
           </div>
         ) : best ? (
           <p className="focus-pr-bill__meta">
-            <strong>{best.weight} lb</strong>
+            <strong>
+              {toDisplay(best.weight)} {label}
+            </strong>
             <span>
               × {best.reps}
               {best.rir != null ? ` · RIR ${best.rir}` : ''}
@@ -229,6 +243,7 @@ export function PrPanel({
   showCloseButton = true,
 }: PrPanelProps) {
   const { uiLayout } = useTheme()
+  const { unit, toDisplay, label } = useWeightUnit()
   const isFocus = uiLayout === 'focus'
   const [tab, setTab] = useState<'featured' | 'all'>('featured')
   const [featured, setFeatured] = useState<FeaturedRow[]>([])
@@ -387,19 +402,19 @@ export function PrPanel({
                               <div className="focus-pr-script__dual">
                                 <span>
                                   {formatStrapsLabel(false)} ·{' '}
-                                  {row.pr ? formatPrLine(row.pr) : '—'}
+                                  {row.pr ? formatPrLine(row.pr, unit) : '—'}
                                 </span>
                                 <span>
                                   {formatStrapsLabel(true)} ·{' '}
                                   {row.prWithStraps
-                                    ? formatPrLine(row.prWithStraps)
+                                    ? formatPrLine(row.prWithStraps, unit)
                                     : '—'}
                                 </span>
                               </div>
                             ) : (
                               <p className="focus-pr-script__line">
                                 {best
-                                  ? `${formatPrLine(best)} · ${formatPrDate(best.date)}`
+                                  ? `${formatPrLine(best, unit)} · ${formatPrDate(best.date)}`
                                   : 'Sin marca'}
                               </p>
                             )}
@@ -407,8 +422,8 @@ export function PrPanel({
                           <span className="focus-pr-script__weight">
                             {best ? (
                               <>
-                                {best.weight}
-                                <small>lb</small>
+                                {toDisplay(best.weight)}
+                                <small>{label}</small>
                               </>
                             ) : (
                               '—'

@@ -1,12 +1,27 @@
-import type { ReactNode } from 'react'
+import { useEffect, type ReactNode } from 'react'
 import { useAuth } from '../../context/AuthProvider'
+import { useWeightUnit } from '../../context/WeightUnitProvider'
+import {
+  markWeightUnitOnboardingNeeded,
+  needsWeightUnitOnboarding,
+} from '../../utils/weight'
+import { hasPendingWeightOnboarding } from './LoginPage'
 import { LoginPage } from './LoginPage'
+import { WeightUnitOnboarding } from './WeightUnitOnboarding'
 
 /**
- * Si Supabase está configurado, exige sesión antes de mostrar la app.
+ * Exige sesión. Tras crear cuenta, pide lb/kg (queda guardado por usuario).
  */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { configured, loading, user } = useAuth()
+  const { unit } = useWeightUnit()
+
+  useEffect(() => {
+    if (!user) return
+    if (hasPendingWeightOnboarding()) {
+      markWeightUnitOnboardingNeeded(user.id)
+    }
+  }, [user])
 
   if (!configured) return <>{children}</>
 
@@ -21,6 +36,12 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }
 
   if (!user) return <LoginPage />
+
+  // unit en deps: al elegir kg/lb se re-renderiza y sale del onboarding
+  void unit
+  if (needsWeightUnitOnboarding(user.id) || hasPendingWeightOnboarding()) {
+    return <WeightUnitOnboarding />
+  }
 
   return <>{children}</>
 }

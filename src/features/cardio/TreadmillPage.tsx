@@ -93,7 +93,7 @@ export function TreadmillPage() {
   }
 
   return (
-    <div className="app-safe-top mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden px-4">
+    <div className="app-safe-top mx-auto flex h-full max-h-full w-full max-w-lg lg:max-w-4xl flex-col overflow-hidden px-4">
       <PageHeader
         kicker="Focus · Cardio"
         title="Caminadora"

@@ -5,6 +5,8 @@ import { db } from '../db/schema'
 import { getSupabase } from '../lib/supabase'
 import { getStoredThemeId } from '../themes/applyTheme'
 import { getStoredFocusAccent, getStoredUiLayout } from '../ui/layoutMode'
+import { getStoredWeightUnit } from '../utils/weight'
+import { setLocalDataOwner } from './localDataOwner'
 import { msToIso } from './time'
 
 export const LAST_CLOUD_UPLOAD_KEY = 'mi-gym-last-cloud-upload-at'
@@ -224,6 +226,7 @@ export async function uploadLocalToCloud(
         focus_accent: getStoredFocusAccent(),
         brand_avatar_id: getStoredBrandAvatarId(),
         avatar_mode: getStoredAvatarMode(),
+        weight_unit: getStoredWeightUnit(userId),
         updated_at: new Date().toISOString(),
       },
       { onConflict: 'user_id' },
@@ -316,6 +319,7 @@ export async function uploadLocalToCloud(
   }
 
   markCloudUpload()
+  setLocalDataOwner(userId)
   await report(onProgress, 'Listo')
 
   return {

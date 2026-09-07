@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button } from '../../components/Button'
+import { useWeightUnit } from '../../context/WeightUnitProvider'
 import { getSessionDetail } from '../../db/repository'
 import type { SessionSummary, WorkoutSession } from '../../types'
 import { formatWorkoutForCoach } from '../../utils/coachMessage'
@@ -20,6 +21,7 @@ export function CopyCoachMessageButton({
   fullWidth,
   className = '',
 }: CopyCoachMessageButtonProps) {
+  const { unit } = useWeightUnit()
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -37,7 +39,7 @@ export function CopyCoachMessageButton({
       }
       if (!session) throw new Error('Sesión no encontrada')
 
-      const text = formatWorkoutForCoach(session)
+      const text = formatWorkoutForCoach(session, unit)
       await copyToClipboard(text)
       setDone(true)
       window.setTimeout(() => setDone(false), 2500)

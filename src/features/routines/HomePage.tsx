@@ -542,7 +542,10 @@ export function HomePage() {
           )
 
     return (
-      <div className="focus-home focus-arena">
+      <div
+        className="focus-home focus-arena"
+        data-deck={focusDeck}
+      >
         <nav className="focus-deck" aria-label="Secciones Focus">
           {(
             [
@@ -579,6 +582,7 @@ export function HomePage() {
               muscles={selectedDay?.muscleGroups ?? []}
             />
 
+            <div className="focus-desktop-hoy-side">
             <div className="focus-section-pad">
               <FocusGymHeatmap
                 refreshKey={
@@ -660,6 +664,7 @@ export function HomePage() {
                 {sessionActions}
               </div>
             </section>
+            </div>
           </>
         ) : null}
 

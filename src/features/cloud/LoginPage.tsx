@@ -2,7 +2,35 @@ import { useState, type FormEvent } from 'react'
 import { Button } from '../../components/Button'
 import { useAuth } from '../../context/AuthProvider'
 
+const PENDING_WEIGHT_ONBOARDING = 'mi-gym-pending-weight-onboarding'
+
 type AuthMode = 'login' | 'register'
+
+export function markPendingWeightOnboarding() {
+  try {
+    sessionStorage.setItem(PENDING_WEIGHT_ONBOARDING, '1')
+  } catch {
+    /* ignore */
+  }
+}
+
+export function consumePendingWeightOnboarding(): boolean {
+  try {
+    const v = sessionStorage.getItem(PENDING_WEIGHT_ONBOARDING) === '1'
+    if (v) sessionStorage.removeItem(PENDING_WEIGHT_ONBOARDING)
+    return v
+  } catch {
+    return false
+  }
+}
+
+export function hasPendingWeightOnboarding(): boolean {
+  try {
+    return sessionStorage.getItem(PENDING_WEIGHT_ONBOARDING) === '1'
+  } catch {
+    return false
+  }
+}
 
 /** Pantalla de entrada: sin sesión no se entra a la app. */
 export function LoginPage() {
@@ -22,6 +50,7 @@ export function LoginPage() {
         await signIn(email, password)
       } else {
         await signUp(email, password)
+        markPendingWeightOnboarding()
       }
       setPassword('')
     } catch (err) {
@@ -32,13 +61,13 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-dvh w-full flex-col items-center justify-center bg-[#070707] px-5 py-10">
-      <div className="w-full max-w-sm space-y-8">
+    <div className="flex min-h-dvh w-full flex-col items-center justify-center bg-[#070707] px-5 py-10 lg:px-8">
+      <div className="w-full max-w-sm space-y-8 lg:max-w-md">
         <header className="text-center">
           <img
             src="/brand/my-gym-logo.png"
             alt="My Gym"
-            className="mx-auto h-48 w-auto max-w-[14rem] object-contain"
+            className="mx-auto h-48 w-auto max-w-[14rem] object-contain lg:h-56 lg:max-w-[16rem]"
           />
           <h1 className="sr-only">Mi Gym</h1>
           <p className="mt-5 text-sm text-muted">

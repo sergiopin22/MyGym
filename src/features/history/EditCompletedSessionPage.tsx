@@ -126,7 +126,7 @@ export function EditCompletedSessionPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto min-h-dvh max-w-lg px-4 pt-8">
+      <div className="mx-auto min-h-dvh max-w-lg lg:max-w-4xl px-4 pt-8">
         <p className="text-muted">Cargando sesión…</p>
       </div>
     )
@@ -134,7 +134,7 @@ export function EditCompletedSessionPage() {
 
   if (!draft) {
     return (
-      <div className="mx-auto min-h-dvh max-w-lg space-y-3 px-4 pt-8">
+      <div className="mx-auto min-h-dvh max-w-lg lg:max-w-4xl space-y-3 px-4 pt-8">
         <p className="text-danger">{error ?? 'Sesión no encontrada'}</p>
         <Link to="/historial" className="font-semibold text-brand underline">
           Volver al historial
@@ -144,7 +144,7 @@ export function EditCompletedSessionPage() {
   }
 
   return (
-    <div className="app-safe-top mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden px-4">
+    <div className="app-safe-top mx-auto flex h-full max-h-full w-full max-w-lg lg:max-w-4xl flex-col overflow-hidden px-4">
       <header className="focus-sticky-bar shrink-0 space-y-3 border-b border-line py-3">
         <PageHeader
           kicker="Focus · Corregir"

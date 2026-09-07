@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { BackupPanel } from '../backup/BackupPanel'
 import { CloudPanel } from '../cloud/CloudPanel'
 import { ThemePicker } from '../settings/ThemePicker'
+import { WeightUnitSettings } from '../settings/WeightUnitSettings'
 import { PageHeader } from '../../ui/PageHeader'
 
 export function ProgressPage() {
@@ -33,15 +34,18 @@ export function ProgressPage() {
         subtitle="Temas, nube, respaldo y preferencias."
       />
 
-      <div id="temas">
-        <ThemePicker />
+      <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
+        <div id="temas" className="space-y-5">
+          <ThemePicker />
+          <WeightUnitSettings />
+        </div>
+        <div className="space-y-5">
+          <div id="nube">
+            <CloudPanel />
+          </div>
+          <BackupPanel />
+        </div>
       </div>
-
-      <div id="nube">
-        <CloudPanel />
-      </div>
-
-      <BackupPanel />
     </div>
   )
 }

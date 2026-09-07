@@ -152,7 +152,7 @@ export function WorkoutPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto min-h-dvh max-w-lg px-4 pt-8">
+      <div className="mx-auto min-h-dvh max-w-lg lg:max-w-4xl px-4 pt-8">
         <p className="text-muted">Cargando entrenamiento…</p>
       </div>
     )
@@ -160,7 +160,7 @@ export function WorkoutPage() {
 
   if (error && !session) {
     return (
-      <div className="mx-auto min-h-dvh max-w-lg space-y-4 px-4 pt-8">
+      <div className="mx-auto min-h-dvh max-w-lg lg:max-w-4xl space-y-4 px-4 pt-8">
         <p className="text-danger">{error}</p>
         <Link to="/" className="font-semibold text-brand underline">
           Volver al inicio
@@ -173,7 +173,7 @@ export function WorkoutPage() {
 
   if (summary && session.status === 'completed') {
     return (
-      <div className="app-safe-top mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden px-4">
+      <div className="app-safe-top mx-auto flex h-full max-h-full w-full max-w-lg lg:max-w-4xl flex-col overflow-hidden px-4">
         {showPrPop ? (
           <PrTrophyPop prs={newPRs} onClose={() => setShowPrPop(false)} />
         ) : null}
@@ -293,7 +293,7 @@ export function WorkoutPage() {
   }
 
   return (
-    <div className="app-safe-top mx-auto flex h-full max-h-full w-full max-w-lg flex-col overflow-hidden px-4">
+    <div className="app-safe-top mx-auto flex h-full max-h-full w-full max-w-lg lg:max-w-4xl flex-col overflow-hidden px-4">
       <div
         className={[
           'sticky top-0 z-20 -mx-4 shrink-0 bg-surface-elevated px-4 shadow-sm shadow-black/5',

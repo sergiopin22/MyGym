@@ -9,6 +9,7 @@ import { formatDuration } from '../../utils/id'
 import { CopyCoachMessageButton } from './CopyCoachMessageButton'
 import { HistoryList } from './HistoryList'
 import { PageHeader } from '../../ui/PageHeader'
+import { useWeightUnit } from '../../context/WeightUnitProvider'
 
 export function HistoryPage() {
   return (
@@ -26,6 +27,7 @@ export function HistoryPage() {
 
 export function HistoryDetailPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
+  const { format } = useWeightUnit()
   const [session, setSession] = useState<WorkoutSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [exerciseName, setExerciseName] = useState<string | null>(null)
@@ -144,7 +146,7 @@ export function HistoryDetailPage() {
                   >
                     <span>Serie {s.setNumber}{s.completed ? '' : ' (no)'}</span>
                     <span className="font-medium text-ink">
-                      {s.weight ?? '—'} lb · {s.reps ?? '—'} · RIR {s.rir ?? '—'}
+                      {format(s.weight)} · {s.reps ?? '—'} · RIR {s.rir ?? '—'}
                       {formatStrapsSuffix(s.withStraps)}
                     </span>
                   </li>
@@ -171,6 +173,7 @@ function ExerciseHistoryView({
   name: string
   onBack: () => void
 }) {
+  const { format } = useWeightUnit()
   const [rows, setRows] = useState<
     Awaited<ReturnType<typeof getExerciseHistory>>
   >([])
@@ -234,7 +237,7 @@ function ExerciseHistoryView({
                     <li key={s.id} className="flex justify-between text-muted">
                       <span>S{s.setNumber}</span>
                       <span className="text-ink">
-                        {s.weight ?? '—'} lb · {s.reps ?? '—'} · RIR {s.rir ?? '—'}
+                        {format(s.weight)} · {s.reps ?? '—'} · RIR {s.rir ?? '—'}
                         {formatStrapsSuffix(s.withStraps)}
                       </span>
                     </li>

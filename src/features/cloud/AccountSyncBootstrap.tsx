@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthProvider'
+import { useWeightUnit } from '../../context/WeightUnitProvider'
 import { reconcileAccountOnLogin } from '../../sync/reconcile'
 
 /**
  * Al haber sesión: trae (o sube) los datos de la cuenta sin pedir "Bajar".
+ * También aplica la unidad de peso (lb/kg) de ESA cuenta.
  */
 export function AccountSyncBootstrap() {
   const { user, loading } = useAuth()
+  const { refreshFromStorage } = useWeightUnit()
   const [banner, setBanner] = useState<string | null>(null)
   const ranForUser = useRef<string | null>(null)
 
@@ -28,7 +31,9 @@ export function AccountSyncBootstrap() {
         })
         if (cancelled) return
 
-        if (result.action === 'downloaded') {
+        refreshFromStorage()
+
+        if (result.action === 'downloaded' || result.action === 'cleared') {
           setBanner(result.detail + ' Recargando…')
           window.setTimeout(() => window.location.reload(), 900)
           return
@@ -51,7 +56,7 @@ export function AccountSyncBootstrap() {
     return () => {
       cancelled = true
     }
-  }, [user, loading])
+  }, [user, loading, refreshFromStorage])
 
   if (!banner) return null
 
