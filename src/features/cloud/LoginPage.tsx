@@ -36,9 +36,9 @@ export function LoginPage() {
       <div className="w-full max-w-sm space-y-8">
         <header className="text-center">
           <img
-            src="/brand/my-gym-logo.jpg"
+            src="/brand/my-gym-logo.png"
             alt="My Gym"
-            className="mx-auto h-44 w-44 object-cover drop-shadow-[0_24px_48px_rgba(220,30,40,0.35)]"
+            className="mx-auto h-48 w-auto max-w-[14rem] object-contain"
           />
           <h1 className="sr-only">Mi Gym</h1>
           <p className="mt-5 text-sm text-muted">
