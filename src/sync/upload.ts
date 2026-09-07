@@ -32,6 +32,18 @@ function markCloudUpload(at = Date.now()) {
   }
 }
 
+/** Deja que React pinte el mensaje de progreso (iPhone se traba con blobs). */
+function yieldToUi(): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, 0)
+  })
+}
+
+async function report(onProgress: SyncProgress, step: string) {
+  onProgress(step)
+  await yieldToUi()
+}
+
 async function upsertChunk(
   table: string,
   rows: Record<string, unknown>[],
@@ -68,28 +80,22 @@ export async function uploadLocalToCloud(
   const sb = getSupabase()
   if (!sb) throw new Error('Supabase no está configurado.')
 
-  onProgress('Leyendo datos locales…')
-  const [
-    routines,
-    sessions,
-    goals,
-    treadmill,
-    improvements,
-    bodyCheckIns,
-    exerciseImages,
-    bodyPhotos,
-  ] = await Promise.all([
-    db.routines.toArray(),
-    db.sessions.toArray(),
+  // Texto primero (rápido). Medios después, uno a uno (no congelar el iPhone).
+  await report(onProgress, 'Leyendo rutinas…')
+  const routines = await db.routines.toArray()
+
+  await report(onProgress, 'Leyendo historial…')
+  const sessions = await db.sessions.toArray()
+
+  await report(onProgress, 'Leyendo meta y caminadora…')
+  const [goals, treadmill, improvements, bodyCheckIns] = await Promise.all([
     db.constancyGoals.toArray(),
     db.treadmillSessions.toArray(),
     db.improvements.toArray(),
     db.bodyCheckIns.toArray(),
-    db.exerciseImages.toArray(),
-    db.bodyCheckInPhotos.toArray(),
   ])
 
-  onProgress('Subiendo rutinas…')
+  await report(onProgress, 'Subiendo rutinas…')
   await upsertChunk(
     'routines',
     routines.map((r) => ({
@@ -103,7 +109,7 @@ export async function uploadLocalToCloud(
     'user_id,id',
   )
 
-  onProgress('Subiendo historial…')
+  await report(onProgress, `Subiendo historial (${sessions.length})…`)
   await upsertChunk(
     'workout_sessions',
     sessions.map((s) => ({
@@ -128,7 +134,7 @@ export async function uploadLocalToCloud(
     'user_id,id',
   )
 
-  onProgress('Subiendo meta de constancia…')
+  await report(onProgress, 'Subiendo meta de constancia…')
   await upsertChunk(
     'constancy_goals',
     goals.map((g) => ({
@@ -152,7 +158,7 @@ export async function uploadLocalToCloud(
     'user_id,id',
   )
 
-  onProgress('Subiendo caminadora…')
+  await report(onProgress, 'Subiendo caminadora…')
   await upsertChunk(
     'treadmill_sessions',
     treadmill.map((t) => ({
@@ -170,7 +176,7 @@ export async function uploadLocalToCloud(
     'user_id,id',
   )
 
-  onProgress('Subiendo mejoras…')
+  await report(onProgress, 'Subiendo mejoras…')
   await upsertChunk(
     'improvements',
     improvements.map((i) => ({
@@ -188,7 +194,7 @@ export async function uploadLocalToCloud(
     'user_id,id',
   )
 
-  onProgress('Subiendo check-ins…')
+  await report(onProgress, 'Subiendo check-ins…')
   await upsertChunk(
     'body_check_ins',
     bodyCheckIns.map((b) => ({
@@ -206,7 +212,7 @@ export async function uploadLocalToCloud(
     'user_id,id',
   )
 
-  onProgress('Subiendo preferencias…')
+  await report(onProgress, 'Subiendo preferencias…')
   {
     const { error } = await sb.from('user_preferences').upsert(
       {
@@ -226,7 +232,7 @@ export async function uploadLocalToCloud(
   let mediaCount = 0
   const mediaRows: Record<string, unknown>[] = []
 
-  onProgress('Subiendo avatar GIF…')
+  await report(onProgress, 'Subiendo avatar GIF…')
   const avatar = await getCustomAvatarRecord()
   if (avatar?.blob) {
     const path = `${userId}/avatar.gif`
@@ -244,8 +250,13 @@ export async function uploadLocalToCloud(
     mediaCount += 1
   }
 
-  onProgress('Subiendo imágenes de ejercicios…')
-  for (const img of exerciseImages) {
+  const exerciseImages = await db.exerciseImages.toArray()
+  for (let i = 0; i < exerciseImages.length; i++) {
+    const img = exerciseImages[i]
+    await report(
+      onProgress,
+      `Subiendo imagen ejercicio ${i + 1}/${exerciseImages.length}…`,
+    )
     const ext = img.mimeType.includes('png')
       ? 'png'
       : img.mimeType.includes('webp')
@@ -266,8 +277,13 @@ export async function uploadLocalToCloud(
     mediaCount += 1
   }
 
-  onProgress('Subiendo fotos corporales…')
-  for (const photo of bodyPhotos) {
+  const bodyPhotos = await db.bodyCheckInPhotos.toArray()
+  for (let i = 0; i < bodyPhotos.length; i++) {
+    const photo = bodyPhotos[i]
+    await report(
+      onProgress,
+      `Subiendo foto corporal ${i + 1}/${bodyPhotos.length}…`,
+    )
     const ext = photo.mimeType.includes('png')
       ? 'png'
       : photo.mimeType.includes('webp')
@@ -289,11 +305,12 @@ export async function uploadLocalToCloud(
   }
 
   if (mediaRows.length > 0) {
+    await report(onProgress, 'Guardando metadatos de medios…')
     await upsertChunk('media_assets', mediaRows, 'user_id,id')
   }
 
   markCloudUpload()
-  onProgress('Listo')
+  await report(onProgress, 'Listo')
 
   return {
     routines: routines.length,
