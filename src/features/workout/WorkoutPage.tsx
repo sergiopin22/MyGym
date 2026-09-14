@@ -16,6 +16,11 @@ import { getDailyMotivationQuote } from '../../utils/dailyMotivation'
 import { CopyCoachMessageButton } from '../history/CopyCoachMessageButton'
 import { DailyQuoteBar } from './DailyQuoteBar'
 import { PrTrophyPop } from './PrTrophyPop'
+import {
+  PrCountUpPop,
+  sessionNewPrToCountUp,
+  type PrCountUpPayload,
+} from './PrCountUpPop'
 import { WorkoutExerciseCard } from './WorkoutExerciseCard'
 import { WorkoutPlateFab } from './WorkoutPlateFab'
 import { PageHeader } from '../../ui/PageHeader'
@@ -34,6 +39,7 @@ export function WorkoutPage() {
   const [cancelling, setCancelling] = useState(false)
   const [newPRs, setNewPRs] = useState<SessionNewPR[]>([])
   const [showPrPop, setShowPrPop] = useState(false)
+  const [livePrPop, setLivePrPop] = useState<PrCountUpPayload | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -295,6 +301,12 @@ export function WorkoutPage() {
 
   return (
     <div className="app-safe-top mx-auto flex h-full max-h-full w-full max-w-lg lg:max-w-4xl flex-col overflow-hidden px-4">
+      {livePrPop ? (
+        <PrCountUpPop
+          {...livePrPop}
+          onClose={() => setLivePrPop(null)}
+        />
+      ) : null}
       <div
         className={[
           'sticky top-0 z-20 -mx-4 shrink-0 bg-surface-elevated px-4 shadow-sm shadow-black/5',
@@ -345,6 +357,7 @@ export function WorkoutPage() {
             session={session}
             exercise={exercise}
             onSessionChange={setSession}
+            onLivePr={(pr) => setLivePrPop(sessionNewPrToCountUp(pr))}
           />
         ))}
         </div>

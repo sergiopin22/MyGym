@@ -1616,6 +1616,41 @@ export async function getExercisePRsForName(
   return { pr, prWithStraps }
 }
 
+/**
+ * ¿La serie recién marcada rompe el PR histórico de esa máquina?
+ * (excluye la sesión en curso; útil mid-entreno).
+ */
+export async function evaluateLiveSetPR(
+  session: WorkoutSession,
+  exerciseLogId: string,
+  setId: string,
+): Promise<SessionNewPR | null> {
+  const ex = session.exercises.find((e) => e.id === exerciseLogId)
+  const set = ex?.sets.find((s) => s.id === setId)
+  if (!ex || !set || !set.completed) return null
+  if (set.weight == null || set.reps == null) return null
+  if (set.weight <= 0 || set.reps <= 0) return null
+
+  const withStraps = Boolean(set.withStraps)
+  const { pr, prWithStraps } = await getExercisePRsForName(
+    ex.name,
+    ex.activeGripName,
+    session.id,
+  )
+  const prev = withStraps ? prWithStraps : pr
+  const cand = { weight: set.weight, reps: set.reps, rir: set.rir }
+  if (!isBetterPR(cand, prev)) return null
+
+  return {
+    exerciseName: exerciseLogPrLabel(ex),
+    weight: cand.weight,
+    reps: cand.reps,
+    rir: cand.rir,
+    withStraps: withStraps || undefined,
+    previous: prev ? { weight: prev.weight, reps: prev.reps } : null,
+  }
+}
+
 export async function getExerciseHistory(
   exerciseName: string,
   limit = 20,

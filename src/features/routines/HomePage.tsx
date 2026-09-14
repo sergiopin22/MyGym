@@ -16,10 +16,6 @@ import { BrandAvatarButton } from './BrandAvatarButton'
 import { FocusGymHeatmap } from './FocusGymHeatmap'
 import { RestDayToggle } from './RestDayToggle'
 import { BackupReminderCard } from '../backup/BackupReminderCard'
-import {
-  PR_COUNT_UP_DEMO,
-  PrCountUpPop,
-} from '../workout/PrCountUpPop'
 import { useTheme } from '../../context/ThemeProvider'
 
 function sortDays(days: RoutineDay[]): RoutineDay[] {
@@ -117,27 +113,8 @@ export function HomePage() {
   const [focusDeck, setFocusDeck] = useState<'hoy' | 'semana' | 'meta'>('hoy')
   const [weekExpanded, setWeekExpanded] = useState<Weekday | null>(todayWeekday)
   const [posterEnterKey, setPosterEnterKey] = useState(0)
-  const [showPrPreview, setShowPrPreview] = useState(false)
   const todayChipRef = useRef<HTMLButtonElement | null>(null)
   const todayLocatePlayedRef = useRef(false)
-
-  const prPreviewButton = (
-    <button
-      type="button"
-      onClick={() => setShowPrPreview(true)}
-      className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-brand-soft px-4 text-sm font-semibold text-brand ring-1 ring-brand/30 transition active:scale-[0.98]"
-    >
-      <span aria-hidden>🏆</span> Probar animación PR
-    </button>
-  )
-
-  const prPreviewOverlay = showPrPreview ? (
-    <PrCountUpPop
-      {...PR_COUNT_UP_DEMO}
-      stayOpen
-      onClose={() => setShowPrPreview(false)}
-    />
-  ) : null
 
   useEffect(() => {
     let alive = true
@@ -622,8 +599,6 @@ export function HomePage() {
               <BackupReminderCard />
             </div>
 
-            <div className="focus-section-pad">{prPreviewButton}</div>
-
             {selectedDay && routine && isTodaySelected ? (
               <div className="focus-section-pad">
                 <RestDayToggle
@@ -819,7 +794,6 @@ export function HomePage() {
           </section>
         ) : null}
       </div>
-      {prPreviewOverlay}
       </>
     )
   }
@@ -847,8 +821,6 @@ export function HomePage() {
       </header>
 
       <BackupReminderCard />
-
-      {prPreviewButton}
 
       <ConstancyGoalCard
         recoveryDayId={recoveryDay?.id ?? null}
@@ -883,7 +855,6 @@ export function HomePage() {
 
       <Card className="space-y-4">{sessionBody}</Card>
       </div>
-      {prPreviewOverlay}
     </>
   )
 }

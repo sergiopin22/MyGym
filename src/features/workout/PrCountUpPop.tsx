@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useWeightUnit } from '../../context/WeightUnitProvider'
+import { playPrChime } from '../../utils/prChime'
 
 export interface PrCountUpPayload {
   exerciseName: string
@@ -15,6 +16,8 @@ interface PrCountUpPopProps extends PrCountUpPayload {
   onClose: () => void
   /** Si true, no cierra solo (útil para mirar con calma). Default: auto-cierra. */
   stayOpen?: boolean
+  /** Sonido corto al abrir. Default true. */
+  playSound?: boolean
 }
 
 function easeOutCubic(t: number) {
@@ -28,7 +31,7 @@ function prefersReducedMotion() {
   )
 }
 
-/** Overlay de prueba / celebración: el número sube del PR anterior al nuevo. */
+/** Overlay: el número sube del PR anterior al nuevo. */
 export function PrCountUpPop({
   exerciseName,
   fromWeight,
@@ -37,22 +40,27 @@ export function PrCountUpPop({
   toReps,
   onClose,
   stayOpen = false,
+  playSound = true,
 }: PrCountUpPopProps) {
   const { toDisplay, label } = useWeightUnit()
   const fromW = toDisplay(fromWeight) ?? fromWeight
   const toW = toDisplay(toWeight) ?? toWeight
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
   const [weight, setWeight] = useState(fromW)
   const [reps, setReps] = useState(fromReps)
   const [phase, setPhase] = useState<'count' | 'done'>('count')
 
   useEffect(() => {
+    if (playSound) playPrChime()
+
     if (prefersReducedMotion()) {
       setWeight(toW)
       setReps(toReps)
       setPhase('done')
       if (!stayOpen) {
-        const t = window.setTimeout(onClose, 1800)
+        const t = window.setTimeout(() => onCloseRef.current(), 1800)
         return () => window.clearTimeout(t)
       }
       return
@@ -80,14 +88,14 @@ export function PrCountUpPop({
 
     let autoClose: number | undefined
     if (!stayOpen) {
-      autoClose = window.setTimeout(onClose, duration + 1600)
+      autoClose = window.setTimeout(() => onCloseRef.current(), duration + 1600)
     }
 
     return () => {
       cancelAnimationFrame(raf)
       if (autoClose) window.clearTimeout(autoClose)
     }
-  }, [fromW, toW, fromReps, toReps, onClose, stayOpen])
+  }, [fromW, toW, fromReps, toReps, stayOpen, playSound])
 
   const weightText =
     Math.abs(toW - fromW) >= 1
@@ -105,7 +113,7 @@ export function PrCountUpPop({
       role="dialog"
       aria-modal="true"
       aria-label="Nuevo récord personal"
-      onClick={onClose}
+      onClick={() => onCloseRef.current()}
     >
       <div
         className="pr-count-pop w-full max-w-sm rounded-3xl bg-surface-elevated p-6 text-center shadow-xl ring-1 ring-line"
@@ -138,7 +146,9 @@ export function PrCountUpPop({
           <p className="mt-3 text-sm text-muted">
             Antes:{' '}
             <span className="font-semibold text-fg">
-              {fromW % 1 === 0 ? fromW : fromW.toFixed(1)} {label} × {fromReps}
+              {fromWeight <= 0 && fromReps <= 0
+                ? 'Primera marca'
+                : `${fromW % 1 === 0 ? fromW : fromW.toFixed(1)} ${label} × ${fromReps}`}
             </span>
           </p>
         </div>
@@ -146,20 +156,26 @@ export function PrCountUpPop({
         <button
           type="button"
           className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-accent px-5 text-base font-semibold text-accent-fg transition active:scale-[0.98]"
-          onClick={onClose}
+          onClick={() => onCloseRef.current()}
         >
-          {stayOpen ? 'Cerrar prueba' : 'Seguir'}
+          Seguir
         </button>
       </div>
     </div>
   )
 }
 
-/** Datos de demo para el botón “Probar PR” (lb canónicos). */
-export const PR_COUNT_UP_DEMO: PrCountUpPayload = {
-  exerciseName: 'Press banca (demo)',
-  fromWeight: 135,
-  toWeight: 145,
-  fromReps: 8,
-  toReps: 10,
+export function sessionNewPrToCountUp(pr: {
+  exerciseName: string
+  weight: number
+  reps: number
+  previous: { weight: number; reps: number } | null
+}): PrCountUpPayload {
+  return {
+    exerciseName: pr.exerciseName,
+    fromWeight: pr.previous?.weight ?? 0,
+    toWeight: pr.weight,
+    fromReps: pr.previous?.reps ?? 0,
+    toReps: pr.reps,
+  }
 }

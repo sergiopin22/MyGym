@@ -7,6 +7,7 @@ import { StrapsToggle } from '../../components/StrapsToggle'
 import {
   addExerciseAlternative,
   applyPreviousWeights,
+  evaluateLiveSetPR,
   getExercisePRsForName,
   getLastExercisePerformance,
   getRoutineExerciseById,
@@ -16,6 +17,7 @@ import {
   updateExerciseNote,
   updateSet,
   type ExercisePR,
+  type SessionNewPR,
 } from '../../db/repository'
 import type {
   ExerciseGrip,
@@ -126,6 +128,8 @@ interface WorkoutExerciseCardProps {
   onSessionChange: (session: WorkoutSession) => void
   /** Edición de sesión completada: misma UI, sin escribir a DB hasta Guardar */
   editMode?: boolean
+  /** Se dispara al marcar una serie que rompe PR (solo entreno en vivo) */
+  onLivePr?: (pr: SessionNewPR) => void
 }
 
 export function WorkoutExerciseCard({
@@ -133,6 +137,7 @@ export function WorkoutExerciseCard({
   exercise,
   onSessionChange,
   editMode = false,
+  onLivePr,
 }: WorkoutExerciseCardProps) {
   const { label, step, toDisplay, toStorage, format } = useWeightUnit()
   const canEdit = editMode || session.status === 'in_progress'
@@ -232,6 +237,15 @@ export function WorkoutExerciseCard({
     }
     const updated = await updateSet(session.id, exercise.id, setId, patch)
     onSessionChange(updated)
+
+    if (patch.completed === true && onLivePr) {
+      try {
+        const livePr = await evaluateLiveSetPR(updated, exercise.id, setId)
+        if (livePr) onLivePr(livePr)
+      } catch {
+        /* no bloquear el entreno si falla el check de PR */
+      }
+    }
   }
 
   async function usePreviousWeight() {
