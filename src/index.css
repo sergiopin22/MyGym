@@ -3170,3 +3170,69 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   font-weight: 700;
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-brand) 30%, transparent);
 }
+
+/* ─── Discos flotante en entrenamiento ─── */
+.workout-plate-fab {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  z-index: 55;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.7rem 1rem 0.7rem 0.85rem;
+  background: var(--color-brand);
+  color: var(--color-chrome-fg, #fff);
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  box-shadow:
+    0 12px 28px -12px color-mix(in srgb, var(--color-brand) 75%, black),
+    0 0 0 1px color-mix(in srgb, white 12%, transparent);
+}
+
+.workout-plate-fab:active {
+  transform: scale(0.97);
+}
+
+.workout-plate-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.workout-plate-sheet__scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: color-mix(in srgb, black 55%, transparent);
+}
+
+.workout-plate-sheet__panel {
+  position: relative;
+  z-index: 1;
+  max-height: min(92dvh, 44rem);
+  overflow: auto;
+  border-radius: 1.4rem 1.4rem 0 0;
+  padding: 1.1rem 1rem max(1.25rem, env(safe-area-inset-bottom));
+  background: var(--color-surface-elevated);
+  box-shadow: 0 -20px 48px -24px rgba(0, 0, 0, 0.75);
+}
+
+.plate-calc__exit {
+  width: 100%;
+  min-height: 3rem;
+  border: 0;
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--color-surface) 88%, black);
+  color: var(--color-fg);
+  font-size: 1rem;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}

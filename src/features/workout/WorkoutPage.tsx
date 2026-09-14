@@ -17,6 +17,7 @@ import { CopyCoachMessageButton } from '../history/CopyCoachMessageButton'
 import { DailyQuoteBar } from './DailyQuoteBar'
 import { PrTrophyPop } from './PrTrophyPop'
 import { WorkoutExerciseCard } from './WorkoutExerciseCard'
+import { WorkoutPlateFab } from './WorkoutPlateFab'
 import { PageHeader } from '../../ui/PageHeader'
 import { useTheme } from '../../context/ThemeProvider'
 
@@ -367,6 +368,7 @@ export function WorkoutPage() {
         </p>
       </div>
       </div>
+      <WorkoutPlateFab />
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { PrPanel } from '../features/routines/PrPanel'
+import { PlateCalcIcon } from '../features/tools/PlateCalculator'
 
 interface FocusFabMenuProps {
   showBackupBadge?: boolean
@@ -84,16 +85,6 @@ function IconTrophy() {
   )
 }
 
-function IconPlates() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="8" stroke="currentColor" strokeWidth="1.8" />
-      <circle cx="12" cy="12" r="4.5" stroke="currentColor" strokeWidth="1.8" />
-      <circle cx="12" cy="12" r="1.6" fill="currentColor" />
-    </svg>
-  )
-}
-
 function IconGear() {
   return (
     <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
@@ -115,7 +106,7 @@ const ARC_ITEMS: Array<
   { id: 'home', label: 'Inicio', kind: 'path', path: '/', icon: <IconHome />, phiDeg: -90 },
   { id: 'routines', label: 'Rutinas', kind: 'path', path: '/rutinas', icon: <IconList />, phiDeg: -60 },
   { id: 'history', label: 'Historial', kind: 'path', path: '/historial', icon: <IconClock />, phiDeg: -30 },
-  { id: 'plates', label: 'Discos', kind: 'path', path: '/discos', icon: <IconPlates />, phiDeg: 0 },
+  { id: 'plates', label: 'Discos', kind: 'path', path: '/discos', icon: <PlateCalcIcon />, phiDeg: 0 },
   { id: 'cardio', label: 'Caminadora', kind: 'path', path: '/caminadora', icon: <IconRun />, phiDeg: 30 },
   { id: 'prs', label: 'PRs', kind: 'prs', icon: <IconTrophy />, phiDeg: 60 },
   { id: 'settings', label: 'Ajustes', kind: 'path', path: '/progreso', icon: <IconGear />, phiDeg: 90 },
