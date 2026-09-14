@@ -207,6 +207,12 @@ export function AppDrawer({
                   onClick={() => go('/caminadora')}
                 />
                 <DrawerActionItem
+                  icon="🏋️"
+                  label="Discos"
+                  subtitle="Suma rápida de placas"
+                  onClick={() => go('/discos')}
+                />
+                <DrawerActionItem
                   icon="🏆"
                   label="Tus PR"
                   subtitle="Marcas personales"

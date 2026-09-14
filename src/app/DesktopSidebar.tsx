@@ -11,6 +11,7 @@ const LINKS: Array<{
   { to: '/rutinas', label: 'Rutinas', hint: 'Tu plan' },
   { to: '/historial', label: 'Historial', hint: 'Sesiones' },
   { to: '/caminadora', label: 'Caminadora', hint: 'Cardio' },
+  { to: '/discos', label: 'Discos', hint: 'Calculadora' },
   { to: '/progreso', label: 'Ajustes', hint: 'Cuenta y temas' },
 ]
 

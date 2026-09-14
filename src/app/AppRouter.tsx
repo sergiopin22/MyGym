@@ -8,6 +8,7 @@ import { EditCompletedSessionPage } from '../features/history/EditCompletedSessi
 import { ProgressPage } from '../features/progress/ProgressPage'
 import { WorkoutPage } from '../features/workout/WorkoutPage'
 import { TreadmillPage } from '../features/cardio/TreadmillPage'
+import { PlateCalculatorPage } from '../features/tools/PlateCalculatorPage'
 
 export function AppRouter() {
   return (
@@ -25,6 +26,7 @@ export function AppRouter() {
           <Route path="rutinas/:dayId" element={<RoutineDayPage />} />
           <Route path="historial" element={<HistoryPage />} />
           <Route path="historial/:sessionId" element={<HistoryDetailPage />} />
+          <Route path="discos" element={<PlateCalculatorPage />} />
           <Route path="progreso" element={<ProgressPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
