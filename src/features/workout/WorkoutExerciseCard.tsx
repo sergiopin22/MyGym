@@ -7,6 +7,7 @@ import { StrapsToggle } from '../../components/StrapsToggle'
 import {
   addExerciseAlternative,
   applyPreviousWeights,
+  getExercisePRsForName,
   getLastExercisePerformance,
   getRoutineExerciseById,
   setExerciseStraps,
@@ -14,6 +15,7 @@ import {
   setSessionExerciseMachine,
   updateExerciseNote,
   updateSet,
+  type ExercisePR,
 } from '../../db/repository'
 import type {
   ExerciseGrip,
@@ -138,6 +140,8 @@ export function WorkoutExerciseCard({
   const [last, setLast] = useState<LastExercisePerformance | null | undefined>(
     undefined,
   )
+  const [currentPr, setCurrentPr] = useState<ExercisePR | null>(null)
+  const [currentPrStraps, setCurrentPrStraps] = useState<ExercisePR | null>(null)
   const [loadingLast, setLoadingLast] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -153,6 +157,8 @@ export function WorkoutExerciseCard({
 
   useEffect(() => {
     setLast(undefined)
+    setCurrentPr(null)
+    setCurrentPrStraps(null)
     setExpandedLast(false)
   }, [exercise.name, exercise.activeGripId, exercise.activeGripName])
 
@@ -182,12 +188,21 @@ export function WorkoutExerciseCard({
   async function loadLast() {
     setLoadingLast(true)
     try {
-      const perf = await getLastExercisePerformance(
-        exercise.name,
-        session.id,
-        exercise.activeGripName,
-      )
+      const [perf, prs] = await Promise.all([
+        getLastExercisePerformance(
+          exercise.name,
+          session.id,
+          exercise.activeGripName,
+        ),
+        getExercisePRsForName(
+          exercise.name,
+          exercise.activeGripName,
+          session.id,
+        ),
+      ])
       setLast(perf ?? null)
+      setCurrentPr(prs.pr)
+      setCurrentPrStraps(prs.prWithStraps)
     } finally {
       setLoadingLast(false)
     }
@@ -548,33 +563,89 @@ export function WorkoutExerciseCard({
         <div className="rounded-2xl bg-surface px-3 py-3 text-sm">
           {loadingLast ? (
             <p className="text-muted">Buscando…</p>
-          ) : last ? (
-            <div className="space-y-2">
-              <p className="font-semibold text-ink">
-                {new Date(last.date + 'T12:00:00').toLocaleDateString('es-ES', {
-                  weekday: 'short',
-                  day: 'numeric',
-                  month: 'short',
-                })}
-              </p>
-              <ul className="space-y-1">
-                {last.sets.map((s) => (
-                  <li
-                    key={s.setNumber}
-                    className="flex justify-between text-muted"
-                  >
-                    <span>Serie {s.setNumber}</span>
-                    <span className="font-medium text-ink">
-                      {format(s.weight)} · {s.reps ?? '—'} reps ·
-                      RIR {s.rir ?? '—'}
-                      {formatStrapsSuffix(s.withStraps)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
           ) : (
-            <p className="text-muted">Todavía no hay historial de este ejercicio.</p>
+            <div className="space-y-3">
+              {currentPr || currentPrStraps ? (
+                <div className="space-y-1.5 rounded-xl bg-brand-soft/60 px-3 py-2.5 ring-1 ring-brand/25">
+                  <p className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-brand">
+                    <span aria-hidden>🏆</span> PR actual
+                  </p>
+                  {showStraps ? (
+                    <div className="space-y-1">
+                      <p className="flex justify-between gap-2 text-muted">
+                        <span>Sin straps</span>
+                        <span className="font-semibold text-ink">
+                          {currentPr
+                            ? `${format(currentPr.weight)} × ${currentPr.reps}${
+                                currentPr.rir != null
+                                  ? ` · RIR ${currentPr.rir}`
+                                  : ''
+                              }`
+                            : 'Sin marca'}
+                        </span>
+                      </p>
+                      <p className="flex justify-between gap-2 text-muted">
+                        <span>Con straps</span>
+                        <span className="font-semibold text-ink">
+                          {currentPrStraps
+                            ? `${format(currentPrStraps.weight)} × ${currentPrStraps.reps}${
+                                currentPrStraps.rir != null
+                                  ? ` · RIR ${currentPrStraps.rir}`
+                                  : ''
+                              }`
+                            : 'Sin marca'}
+                        </span>
+                      </p>
+                    </div>
+                  ) : currentPr ? (
+                    <p className="font-semibold text-ink">
+                      {format(currentPr.weight)} × {currentPr.reps}
+                      {currentPr.rir != null ? ` · RIR ${currentPr.rir}` : ''}
+                      <span className="ml-2 text-xs font-medium text-muted">
+                        {new Date(currentPr.date + 'T12:00:00').toLocaleDateString(
+                          'es-ES',
+                          { day: 'numeric', month: 'short' },
+                        )}
+                      </span>
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {last ? (
+                <div className="space-y-2">
+                  <p className="font-semibold text-ink">
+                    Última vez ·{' '}
+                    {new Date(last.date + 'T12:00:00').toLocaleDateString('es-ES', {
+                      weekday: 'short',
+                      day: 'numeric',
+                      month: 'short',
+                    })}
+                  </p>
+                  <ul className="space-y-1">
+                    {last.sets.map((s) => (
+                      <li
+                        key={s.setNumber}
+                        className="flex justify-between text-muted"
+                      >
+                        <span>Serie {s.setNumber}</span>
+                        <span className="font-medium text-ink">
+                          {format(s.weight)} · {s.reps ?? '—'} reps ·
+                          RIR {s.rir ?? '—'}
+                          {formatStrapsSuffix(s.withStraps)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : (
+                <p className="text-muted">
+                  {currentPr || currentPrStraps
+                    ? 'Sin sesión anterior completa (solo PR).'
+                    : 'Todavía no hay historial de este ejercicio.'}
+                </p>
+              )}
+            </div>
           )}
         </div>
       ) : null}

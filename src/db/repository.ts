@@ -1584,6 +1584,38 @@ export async function getLastExercisePerformance(
   return undefined
 }
 
+/** PR actual de una máquina (y con straps si aplica), excluyendo la sesión en curso. */
+export async function getExercisePRsForName(
+  exerciseName: string,
+  gripName?: string | null,
+  excludeSessionId?: string,
+): Promise<{ pr: ExercisePR | null; prWithStraps: ExercisePR | null }> {
+  const wantName = normalizeExerciseName(exerciseName)
+  const wantGrip = (gripName ?? '').trim().toLowerCase()
+  if (!wantName) return { pr: null, prWithStraps: null }
+
+  const all = await getAllExercisePRs(excludeSessionId)
+  let pr: ExercisePR | null = null
+  let prWithStraps: ExercisePR | null = null
+
+  for (const p of all) {
+    const baseName = p.gripName
+      ? p.exerciseName
+          .slice(
+            0,
+            Math.max(0, p.exerciseName.length - ` · ${p.gripName}`.length),
+          )
+          .trim()
+      : p.exerciseName
+    if (normalizeExerciseName(baseName) !== wantName) continue
+    if ((p.gripName ?? '').trim().toLowerCase() !== wantGrip) continue
+    if (p.withStraps) prWithStraps = p
+    else pr = p
+  }
+
+  return { pr, prWithStraps }
+}
+
 export async function getExerciseHistory(
   exerciseName: string,
   limit = 20,
