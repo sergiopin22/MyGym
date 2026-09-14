@@ -66,8 +66,9 @@ export function WeightProgressChart({
 
   const layout = useMemo(() => {
     const W = 520
-    const H = 168
-    const pad = { top: 22, right: 8, bottom: 10, left: 8 }
+    const H = 176
+    // Margen lateral para que puntos y tooltips no se corten
+    const pad = { top: 28, right: 28, bottom: 14, left: 28 }
     const innerW = W - pad.left - pad.right
     const innerH = H - pad.top - pad.bottom
     const floorY = pad.top + innerH
@@ -80,7 +81,7 @@ export function WeightProgressChart({
     const yMin = Math.max(0, minW - span * 0.4)
 
     const xAt = (i: number) => {
-      if (points.length === 1) return pad.left + innerW * 0.82
+      if (points.length === 1) return pad.left + innerW * 0.72
       return pad.left + (i / (points.length - 1)) * innerW
     }
     const yAt = (w: number) =>
@@ -92,7 +93,7 @@ export function WeightProgressChart({
     if (coords.length === 1) {
       const end = coords[0]
       const start = {
-        x: pad.left + innerW * 0.04,
+        x: pad.left + innerW * 0.12,
         y: Math.min(floorY - 6, end.y + innerH * 0.5),
         w: end.w,
       }
@@ -129,6 +130,15 @@ export function WeightProgressChart({
       : null
   const activeDot = layout.dots.find((d) => d.i === active) ?? null
   const fillId = `hevyFill-${gid}`
+
+  const tipEdge =
+    active == null || points.length <= 1
+      ? 'mid'
+      : active === 0
+        ? 'start'
+        : active === points.length - 1
+          ? 'end'
+          : 'mid'
 
   return (
     <div className="pr-stats-chart pr-stats-chart--hevy">
@@ -192,7 +202,10 @@ export function WeightProgressChart({
 
         {activePoint && activeDot ? (
           <div
-            className="pr-stats-chart__tip"
+            className={[
+              'pr-stats-chart__tip',
+              `pr-stats-chart__tip--${tipEdge}`,
+            ].join(' ')}
             style={{
               left: `${(activeDot.x / layout.W) * 100}%`,
               top: `${(activeDot.y / layout.H) * 100}%`,

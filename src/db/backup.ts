@@ -27,7 +27,16 @@ import { CUSTOM_AVATAR_ID, getCustomAvatarRecord } from './customAvatar'
 export const BACKUP_VERSION = 6 as const
 export const BACKUP_APP_ID = 'mi-gym'
 export const LAST_BACKUP_STORAGE_KEY = 'mi-gym-last-backup-at'
-export const BACKUP_REMINDER_DAYS = 3
+/** Tras un respaldo, el próximo aviso es en 7 días. */
+export const BACKUP_REMINDER_WEEKLY_DAYS = 7
+/** Si lo pospone o sigue sin respaldar, vuelve a avisar en 2 días. */
+export const BACKUP_REMINDER_NUDGE_DAYS = 2
+/** @deprecated usar BACKUP_REMINDER_WEEKLY_DAYS */
+export const BACKUP_REMINDER_DAYS = BACKUP_REMINDER_WEEKLY_DAYS
+
+const NEXT_REMINDER_STORAGE_KEY = 'mi-gym-backup-reminder-next-at'
+const WEEKLY_MS = BACKUP_REMINDER_WEEKLY_DAYS * 24 * 60 * 60 * 1000
+const NUDGE_MS = BACKUP_REMINDER_NUDGE_DAYS * 24 * 60 * 60 * 1000
 
 export interface StoredExerciseImage {
   id: string
@@ -90,23 +99,51 @@ export function getLastBackupAt(): number | null {
   }
 }
 
-export function markBackupDone(at = Date.now()): void {
+function getNextReminderAt(): number | null {
   try {
-    localStorage.setItem(LAST_BACKUP_STORAGE_KEY, String(at))
+    const raw = localStorage.getItem(NEXT_REMINDER_STORAGE_KEY)
+    if (!raw) return null
+    const n = Number(raw)
+    return Number.isFinite(n) ? n : null
+  } catch {
+    return null
+  }
+}
+
+function setNextReminderAt(at: number): void {
+  try {
+    localStorage.setItem(NEXT_REMINDER_STORAGE_KEY, String(at))
   } catch {
     /* ignore */
   }
 }
 
-/** true si nunca respaldó o pasaron ≥ 3 días */
-export function isBackupReminderDue(
-  now = Date.now(),
-  everyDays = BACKUP_REMINDER_DAYS,
-): boolean {
+export function markBackupDone(at = Date.now()): void {
+  try {
+    localStorage.setItem(LAST_BACKUP_STORAGE_KEY, String(at))
+    setNextReminderAt(at + WEEKLY_MS)
+  } catch {
+    /* ignore */
+  }
+}
+
+/** “Ahora no”: vuelve a mostrar en 2 días. */
+export function snoozeBackupReminder(now = Date.now()): void {
+  setNextReminderAt(now + NUDGE_MS)
+}
+
+/**
+ * true si toca mostrar el aviso:
+ * - tras respaldar → cada 7 días
+ * - si lo pospone o no ha respaldado → cada 2 días
+ */
+export function isBackupReminderDue(now = Date.now()): boolean {
+  const next = getNextReminderAt()
+  if (next != null) return now >= next
+
   const last = getLastBackupAt()
   if (last == null) return true
-  const ms = everyDays * 24 * 60 * 60 * 1000
-  return now - last >= ms
+  return now - last >= WEEKLY_MS
 }
 
 export function daysSinceLastBackup(now = Date.now()): number | null {

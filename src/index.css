@@ -2909,7 +2909,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 }
 
 .pr-stats-chart--hevy {
-  overflow: hidden;
+  overflow: visible;
 }
 
 .pr-stats-chart__head {
@@ -2948,6 +2948,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 .pr-stats-chart__canvas {
   position: relative;
   width: 100%;
+  overflow: visible;
 }
 
 .pr-stats-chart__svg {
@@ -3009,6 +3010,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   z-index: 2;
   transform: translate(-50%, calc(-100% - 12px));
   min-width: 4.5rem;
+  max-width: calc(100% - 0.5rem);
   padding: 0.4rem 0.55rem;
   border-radius: 0.65rem;
   background: color-mix(in srgb, var(--color-surface) 55%, #111);
@@ -3017,6 +3019,19 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
     inset 0 0 0 1px color-mix(in srgb, var(--color-line) 80%, transparent);
   text-align: center;
   pointer-events: none;
+  white-space: nowrap;
+}
+
+.pr-stats-chart__tip--start {
+  transform: translate(0, calc(-100% - 12px));
+}
+
+.pr-stats-chart__tip--end {
+  transform: translate(-100%, calc(-100% - 12px));
+}
+
+.pr-stats-chart__tip--mid {
+  transform: translate(-50%, calc(-100% - 12px));
 }
 
 .pr-stats-chart__tip strong {

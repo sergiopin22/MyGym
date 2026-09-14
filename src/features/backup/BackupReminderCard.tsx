@@ -1,12 +1,14 @@
 import { useState } from 'react'
 import { Button } from '../../components/Button'
 import {
-  BACKUP_REMINDER_DAYS,
+  BACKUP_REMINDER_NUDGE_DAYS,
+  BACKUP_REMINDER_WEEKLY_DAYS,
   backupFilename,
   daysSinceLastBackup,
   exportAndMarkBackup,
   getLastBackupAt,
   isBackupReminderDue,
+  snoozeBackupReminder,
 } from '../../db/backup'
 import { downloadTextFile } from '../../utils/clipboard'
 
@@ -22,8 +24,8 @@ export function BackupReminderCard() {
   const days = daysSinceLastBackup()
   const subtitle =
     last == null
-      ? 'Aún no has descargado un respaldo en este celular.'
-      : `Han pasado ${days ?? BACKUP_REMINDER_DAYS}+ días desde el último. Incluye rutina, historial, PRs, meta, tema y avatar.`
+      ? `Aún no has descargado un respaldo. Si lo dejas para después, te lo recordamos cada ${BACKUP_REMINDER_NUDGE_DAYS} días.`
+      : `Han pasado ${days ?? BACKUP_REMINDER_WEEKLY_DAYS}+ días. Ideal: al menos cada ${BACKUP_REMINDER_WEEKLY_DAYS} días. Incluye rutina, historial, PRs, meta, tema y avatar.`
 
   async function handleDownload() {
     setSaving(true)
@@ -33,7 +35,7 @@ export function BackupReminderCard() {
       const json = await exportAndMarkBackup(true)
       downloadTextFile(backupFilename(), json)
       setMessage(
-        'Respaldo descargado. Guárdalo en Drive, iCloud o envíatelo por correo.',
+        `Respaldo listo. El próximo aviso será en ${BACKUP_REMINDER_WEEKLY_DAYS} días. Guárdalo en Drive, iCloud o correo.`,
       )
       window.setTimeout(() => setVisible(false), 1800)
     } catch (err) {
@@ -43,6 +45,11 @@ export function BackupReminderCard() {
     }
   }
 
+  function handleSnooze() {
+    snoozeBackupReminder()
+    setVisible(false)
+  }
+
   return (
     <div className="space-y-3 rounded-2xl border border-line bg-brand-soft p-4 ring-1 ring-brand/30">
       <div>
@@ -50,7 +57,7 @@ export function BackupReminderCard() {
           Protege tus datos
         </p>
         <h2 className="mt-1 font-display text-lg font-extrabold text-fg">
-          Respaldo recomendado
+          Respaldo semanal
         </h2>
         <p className="mt-1 text-sm text-muted">{subtitle}</p>
       </div>
@@ -62,9 +69,9 @@ export function BackupReminderCard() {
       <button
         type="button"
         className="w-full text-center text-xs font-semibold text-muted underline"
-        onClick={() => setVisible(false)}
+        onClick={handleSnooze}
       >
-        Ahora no
+        Ahora no (recordar en {BACKUP_REMINDER_NUDGE_DAYS} días)
       </button>
 
       {message ? (
