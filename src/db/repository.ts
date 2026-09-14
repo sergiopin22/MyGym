@@ -2330,6 +2330,8 @@ export async function detectNewPRsInSession(
 export async function getRoutineExercisePRs(): Promise<
   Array<{
     exerciseName: string
+    baseName: string
+    gripName?: string
     dayLabels: string[]
     pr: ExercisePR | null
     prWithStraps: ExercisePR | null
@@ -2355,6 +2357,8 @@ export async function getRoutineExercisePRs(): Promise<
     string,
     {
       exerciseName: string
+      baseName: string
+      gripName?: string
       dayLabels: string[]
       pr: ExercisePR | null
       prWithStraps: ExercisePR | null
@@ -2381,6 +2385,8 @@ export async function getRoutineExercisePRs(): Promise<
     }
     byKey.set(listKey, {
       exerciseName: label,
+      baseName: exerciseName,
+      gripName,
       dayLabels: dayLabel ? [dayLabel] : [],
       pr: prByKey.get(prStorageKey(exerciseName, false, gripName)) ?? null,
       prWithStraps: supportsStraps
@@ -2417,6 +2423,8 @@ export async function getRoutineExercisePRs(): Promise<
     if (!byKey.has(listKey)) {
       byKey.set(listKey, {
         exerciseName: pr.exerciseName,
+        baseName,
+        gripName: pr.gripName,
         dayLabels: [],
         pr: pr.withStraps ? null : pr,
         prWithStraps: pr.withStraps ? pr : null,
@@ -2428,6 +2436,280 @@ export async function getRoutineExercisePRs(): Promise<
   return [...byKey.values()].sort((a, b) =>
     a.exerciseName.localeCompare(b.exerciseName, 'es'),
   )
+}
+
+/**
+ * Elimina una máquina por completo: historial, rutina e improvements.
+ * No une con otra; desaparece de PR.
+ */
+export async function deleteExerciseEverywhere(
+  exerciseName: string,
+): Promise<{ sessionsUpdated: number; routineUpdated: boolean }> {
+  const name = exerciseName.trim()
+  if (!name) throw new Error('Falta el nombre de la máquina.')
+  const key = normalizeExerciseName(name)
+
+  let sessionsUpdated = 0
+  const sessions = await db.sessions.toArray()
+  await db.transaction('rw', db.sessions, async () => {
+    for (const session of sessions) {
+      const next = session.exercises.filter(
+        (ex) => normalizeExerciseName(ex.name) !== key,
+      )
+      if (next.length === session.exercises.length) continue
+      await db.sessions.put({ ...session, exercises: next })
+      sessionsUpdated++
+    }
+  })
+
+  let routineUpdated = false
+  const routine = await getActiveRoutine()
+  if (routine) {
+    const days = routine.days.map((day) => ({
+      ...day,
+      exercises: day.exercises.filter(
+        (ex) => normalizeExerciseName(ex.name) !== key,
+      ),
+    }))
+    if (JSON.stringify(days) !== JSON.stringify(routine.days)) {
+      await db.routines.put({
+        ...routine,
+        days,
+        updatedAt: Date.now(),
+      })
+      routineUpdated = true
+    }
+  }
+
+  const improvements = await db.improvements.toArray()
+  await db.transaction('rw', db.improvements, async () => {
+    for (const row of improvements) {
+      if (normalizeExerciseName(row.exerciseName) !== key) continue
+      await db.improvements.delete(row.id)
+    }
+  })
+
+  return { sessionsUpdated, routineUpdated }
+}
+
+/**
+ * Une dos nombres de máquina: el historial y la rutina del nombre "from"
+ * pasan a "into". Así desaparece el duplicado en PR.
+ */
+export async function mergeExerciseNames(
+  fromName: string,
+  intoName: string,
+): Promise<{ sessionsUpdated: number; routineUpdated: boolean }> {
+  const from = fromName.trim()
+  const into = intoName.trim()
+  if (!from || !into) throw new Error('Faltan nombres para unir.')
+  if (normalizeExerciseName(from) === normalizeExerciseName(into) && from === into) {
+    throw new Error('Son el mismo nombre.')
+  }
+
+  const fromKey = normalizeExerciseName(from)
+  let sessionsUpdated = 0
+
+  const sessions = await db.sessions.toArray()
+  await db.transaction('rw', db.sessions, async () => {
+    for (const session of sessions) {
+      let changed = false
+      const exercises = session.exercises.map((ex) => {
+        if (normalizeExerciseName(ex.name) !== fromKey) return ex
+        changed = true
+        return { ...ex, name: into }
+      })
+      if (!changed) continue
+      await db.sessions.put({ ...session, exercises })
+      sessionsUpdated++
+    }
+  })
+
+  let routineUpdated = false
+  const routine = await getActiveRoutine()
+  if (routine) {
+    const days = routine.days.map((day) => ({
+      ...day,
+      exercises: day.exercises.flatMap((ex) => {
+        if (normalizeExerciseName(ex.name) !== fromKey) return [ex]
+        // Si ya existe "into" en el mismo día, quita el duplicado
+        const already = day.exercises.some(
+          (o) =>
+            o.id !== ex.id && normalizeExerciseName(o.name) === normalizeExerciseName(into),
+        )
+        if (already) return []
+        return [{ ...ex, name: into }]
+      }),
+    }))
+    const before = JSON.stringify(routine.days)
+    const after = JSON.stringify(days)
+    if (before !== after) {
+      await db.routines.put({
+        ...routine,
+        days,
+        updatedAt: Date.now(),
+      })
+      routineUpdated = true
+    }
+  }
+
+  const improvements = await db.improvements.toArray()
+  await db.transaction('rw', db.improvements, async () => {
+    for (const row of improvements) {
+      if (normalizeExerciseName(row.exerciseName) !== fromKey) continue
+      await db.improvements.put({ ...row, exerciseName: into })
+    }
+  })
+
+  return { sessionsUpdated, routineUpdated }
+}
+
+export type ExerciseProgressRange = '1m' | '3m' | 'all'
+
+export interface ExerciseProgressPoint {
+  date: string
+  sessionId: string
+  weight: number
+  reps: number
+  rir: number | null
+  withStraps: boolean
+  /** true si en esa fecha se igualó o superó el mejor peso visto hasta entonces */
+  isRunningPr: boolean
+}
+
+export interface ExerciseProgressStats {
+  baseName: string
+  gripName?: string
+  displayName: string
+  withStraps: boolean
+  points: ExerciseProgressPoint[]
+  currentPr: ExerciseProgressPoint | null
+  first: ExerciseProgressPoint | null
+  deltaWeight: number | null
+  sessionsCount: number
+  trend: 'up' | 'flat' | 'down' | 'unknown'
+}
+
+function rangeStartIso(range: ExerciseProgressRange): string | null {
+  if (range === 'all') return null
+  const d = new Date()
+  d.setHours(12, 0, 0, 0)
+  d.setDate(d.getDate() - (range === '1m' ? 31 : 93))
+  return d.toISOString().slice(0, 10)
+}
+
+/**
+ * Historial de una máquina: mejor serie por sesión (peso; si empata, más reps).
+ */
+export async function getExerciseProgressHistory(input: {
+  baseName: string
+  gripName?: string | null
+  withStraps: boolean
+  range?: ExerciseProgressRange
+}): Promise<ExerciseProgressStats> {
+  const baseName = input.baseName.trim()
+  const gripName = input.gripName?.trim() || undefined
+  const displayName = gripName ? `${baseName} · ${gripName}` : baseName
+  const range = input.range ?? '3m'
+  const start = rangeStartIso(range)
+  const wantKey = normalizeExerciseName(baseName)
+  const wantGrip = (gripName ?? '').toLowerCase()
+
+  const sessions = await db.sessions
+    .where('status')
+    .equals('completed')
+    .toArray()
+
+  sessions.sort((a, b) => {
+    if (a.date !== b.date) return a.date.localeCompare(b.date)
+    return a.startedAt - b.startedAt
+  })
+
+  const points: ExerciseProgressPoint[] = []
+  let runningBest: { weight: number; reps: number } | null = null
+
+  for (const session of sessions) {
+    let bestInSession: {
+      weight: number
+      reps: number
+      rir: number | null
+    } | null = null
+
+    for (const ex of session.exercises) {
+      if (normalizeExerciseName(ex.name) !== wantKey) continue
+      const grip = (ex.activeGripName?.trim() || '').toLowerCase()
+      if (grip !== wantGrip) continue
+
+      for (const set of ex.sets) {
+        if (!set.completed || set.weight == null || set.reps == null) continue
+        if (set.weight <= 0 || set.reps <= 0) continue
+        if (Boolean(set.withStraps) !== input.withStraps) continue
+        const cand = { weight: set.weight, reps: set.reps, rir: set.rir }
+        if (!isBetterPR(cand, bestInSession)) continue
+        bestInSession = cand
+      }
+    }
+
+    if (!bestInSession) continue
+
+    const isRunningPr = isBetterPR(bestInSession, runningBest)
+    if (isRunningPr) {
+      runningBest = {
+        weight: bestInSession.weight,
+        reps: bestInSession.reps,
+      }
+    }
+
+    if (start && session.date < start) continue
+
+    points.push({
+      date: session.date,
+      sessionId: session.id,
+      weight: bestInSession.weight,
+      reps: bestInSession.reps,
+      rir: bestInSession.rir,
+      withStraps: input.withStraps,
+      isRunningPr,
+    })
+  }
+
+  const first = points[0] ?? null
+  const currentPr =
+    points.reduce<ExerciseProgressPoint | null>((best, p) => {
+      if (!best) return p
+      return isBetterPR(p, best) ? p : best
+    }, null)
+
+  const deltaWeight =
+    first && currentPr ? currentPr.weight - first.weight : null
+
+  let trend: ExerciseProgressStats['trend'] = 'unknown'
+  if (points.length >= 3) {
+    const mid = Math.floor(points.length / 2)
+    const avg = (slice: ExerciseProgressPoint[]) =>
+      slice.reduce((s, p) => s + p.weight, 0) / slice.length
+    const early = avg(points.slice(0, mid))
+    const late = avg(points.slice(mid))
+    const diff = late - early
+    if (Math.abs(diff) < 0.5) trend = 'flat'
+    else trend = diff > 0 ? 'up' : 'down'
+  } else if (points.length === 2 && deltaWeight != null) {
+    if (Math.abs(deltaWeight) < 0.5) trend = 'flat'
+    else trend = deltaWeight > 0 ? 'up' : 'down'
+  }
+
+  return {
+    baseName,
+    gripName,
+    displayName,
+    withStraps: input.withStraps,
+    points,
+    currentPr,
+    first,
+    deltaWeight,
+    sessionsCount: points.length,
+    trend,
+  }
 }
 
 /* ─── Caminadora (cardio aparte) ─── */

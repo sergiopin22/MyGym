@@ -2,13 +2,19 @@ import { useEffect, useMemo, useState } from 'react'
 import { Button } from '../../components/Button'
 import { useTheme } from '../../context/ThemeProvider'
 import {
+  deleteExerciseEverywhere,
   getRoutineExercisePRs,
   type ExercisePR,
 } from '../../db/repository'
+import { scheduleCloudSync } from '../../sync/autoSync'
 import { formatStrapsLabel } from '../../utils/straps'
 import { useWeightUnit } from '../../context/WeightUnitProvider'
 import type { WeightUnit } from '../../utils/weight'
 import { formatWeightPair } from '../../utils/weight'
+import {
+  ExerciseStatsPanel,
+  type ExerciseStatsTarget,
+} from './ExerciseStatsPanel'
 
 function formatPrDate(iso: string): string {
   return new Date(iso + 'T12:00:00').toLocaleDateString('es-ES', {
@@ -53,78 +59,106 @@ function GoldenTrophy() {
 
 type RoutinePrRow = {
   exerciseName: string
+  baseName: string
+  gripName?: string
   dayLabels: string[]
   pr: ExercisePR | null
   prWithStraps: ExercisePR | null
   supportsStraps: boolean
 }
 
+function toStatsTarget(row: RoutinePrRow): ExerciseStatsTarget {
+  return {
+    baseName: row.baseName,
+    gripName: row.gripName,
+    displayName: row.exerciseName,
+    supportsStraps: row.supportsStraps,
+    initialWithStraps: Boolean(row.supportsStraps && !row.pr && row.prWithStraps),
+  }
+}
+
 function PrRow({
-  title,
-  subtitle,
-  pr,
-  prWithStraps,
-  supportsStraps = false,
+  row,
+  onOpenStats,
+  onDelete,
 }: {
-  title: string
-  subtitle?: string
-  pr: ExercisePR | null
-  prWithStraps?: ExercisePR | null
-  supportsStraps?: boolean
+  row: RoutinePrRow
+  onOpenStats: () => void
+  onDelete: () => void
 }) {
   const { unit } = useWeightUnit()
-  const hasMark = Boolean(pr || prWithStraps)
+  const hasMark = Boolean(row.pr || row.prWithStraps)
   return (
-    <li className="flex items-center gap-3 rounded-2xl bg-surface px-3 py-3 ring-1 ring-line">
-      <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-fg">{title}</p>
-        {subtitle ? (
-          <p className="mt-0.5 text-xs text-muted">{subtitle}</p>
-        ) : null}
-        {supportsStraps ? (
-          <div className="mt-2 space-y-1.5">
-            <p className="text-sm text-muted">
-              <span className="text-xs font-bold uppercase tracking-wide text-muted">
-                {formatStrapsLabel(false)}:{' '}
-              </span>
-              {pr ? (
-                <>
-                  <span className="font-bold text-fg">{formatPrLine(pr, unit)}</span>
-                  <span className="text-muted"> · {formatPrDate(pr.date)}</span>
-                </>
-              ) : (
-                <span className="text-muted">Sin marca</span>
-              )}
+    <li className="rounded-2xl bg-surface px-3 py-3 ring-1 ring-line">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="text-sm font-semibold text-fg">{row.exerciseName}</p>
+          {row.dayLabels.length ? (
+            <p className="mt-0.5 text-xs text-muted">{row.dayLabels.join(' · ')}</p>
+          ) : null}
+          {row.supportsStraps ? (
+            <div className="mt-2 space-y-1.5">
+              <p className="text-sm text-muted">
+                <span className="text-xs font-bold uppercase tracking-wide text-muted">
+                  {formatStrapsLabel(false)}:{' '}
+                </span>
+                {row.pr ? (
+                  <>
+                    <span className="font-bold text-fg">
+                      {formatPrLine(row.pr, unit)}
+                    </span>
+                    <span className="text-muted"> · {formatPrDate(row.pr.date)}</span>
+                  </>
+                ) : (
+                  <span className="text-muted">Sin marca</span>
+                )}
+              </p>
+              <p className="text-sm text-muted">
+                <span className="text-xs font-bold uppercase tracking-wide text-muted">
+                  {formatStrapsLabel(true)}:{' '}
+                </span>
+                {row.prWithStraps ? (
+                  <>
+                    <span className="font-bold text-fg">
+                      {formatPrLine(row.prWithStraps, unit)}
+                    </span>
+                    <span className="text-muted">
+                      {' '}
+                      · {formatPrDate(row.prWithStraps.date)}
+                    </span>
+                  </>
+                ) : (
+                  <span className="text-muted">Sin marca</span>
+                )}
+              </p>
+            </div>
+          ) : row.pr ? (
+            <p className="mt-1 text-sm text-muted">
+              <span className="font-bold text-fg">{formatPrLine(row.pr, unit)}</span>
+              <span className="text-muted"> · {formatPrDate(row.pr.date)}</span>
             </p>
-            <p className="text-sm text-muted">
-              <span className="text-xs font-bold uppercase tracking-wide text-muted">
-                {formatStrapsLabel(true)}:{' '}
-              </span>
-              {prWithStraps ? (
-                <>
-                  <span className="font-bold text-fg">
-                    {formatPrLine(prWithStraps, unit)}
-                  </span>
-                  <span className="text-muted">
-                    {' '}
-                    · {formatPrDate(prWithStraps.date)}
-                  </span>
-                </>
-              ) : (
-                <span className="text-muted">Sin marca</span>
-              )}
-            </p>
-          </div>
-        ) : pr ? (
-          <p className="mt-1 text-sm text-muted">
-            <span className="font-bold text-fg">{formatPrLine(pr, unit)}</span>
-            <span className="text-muted"> · {formatPrDate(pr.date)}</span>
-          </p>
-        ) : (
-          <p className="mt-1 text-sm text-muted">Aún sin marca registrada</p>
-        )}
+          ) : (
+            <p className="mt-1 text-sm text-muted">Aún sin marca registrada</p>
+          )}
+        </div>
+        {hasMark ? <GoldenTrophy /> : null}
       </div>
-      {hasMark ? <GoldenTrophy /> : null}
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={onOpenStats}
+          className="min-h-10 rounded-xl bg-brand-soft text-sm font-bold text-fg ring-1 ring-line"
+        >
+          Ver estadística
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="min-h-10 rounded-xl bg-surface text-sm font-bold text-danger ring-1 ring-line"
+        >
+          Eliminar
+        </button>
+      </div>
     </li>
   )
 }
@@ -138,10 +172,14 @@ function FocusBillboard({
   row,
   index,
   ceiling,
+  onOpenStats,
+  onDelete,
 }: {
   row: RoutinePrRow
   index: number
   ceiling: number
+  onOpenStats: () => void
+  onDelete: () => void
 }) {
   const { unit, toDisplay, label } = useWeightUnit()
   const best = pickBestPr(row.pr, row.prWithStraps)
@@ -228,6 +266,23 @@ function FocusBillboard({
         ) : (
           <p className="focus-pr-bill__meta">Aún sin marca</p>
         )}
+
+        <div className="focus-pr-bill__actions">
+          <button
+            type="button"
+            className="focus-pr-bill__stats"
+            onClick={onOpenStats}
+          >
+            Ver estadística
+          </button>
+          <button
+            type="button"
+            className="focus-pr-bill__merge"
+            onClick={onDelete}
+          >
+            Eliminar
+          </button>
+        </div>
       </div>
     </section>
   )
@@ -249,9 +304,20 @@ export function PrPanel({
   const [rows, setRows] = useState<RoutinePrRow[]>([])
   const [query, setQuery] = useState('')
   const [loading, setLoading] = useState(false)
+  const [statsTarget, setStatsTarget] = useState<ExerciseStatsTarget | null>(
+    null,
+  )
+  const [deleteTarget, setDeleteTarget] = useState<RoutinePrRow | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
-    if (!active) return
+    if (!active) {
+      setStatsTarget(null)
+      setDeleteTarget(null)
+      return
+    }
     let alive = true
     setLoading(true)
     getRoutineExercisePRs()
@@ -265,7 +331,23 @@ export function PrPanel({
     return () => {
       alive = false
     }
-  }, [active])
+  }, [active, reloadKey])
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setDeleting(true)
+    setDeleteError(null)
+    try {
+      await deleteExerciseEverywhere(deleteTarget.baseName)
+      scheduleCloudSync({ delayMs: 800 })
+      setDeleteTarget(null)
+      setReloadKey((k) => k + 1)
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : 'No se pudo eliminar')
+    } finally {
+      setDeleting(false)
+    }
+  }
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -281,6 +363,54 @@ export function PrPanel({
     }
     return peak || 1
   }, [filtered])
+
+  if (statsTarget) {
+    return (
+      <ExerciseStatsPanel
+        target={statsTarget}
+        onClose={() => setStatsTarget(null)}
+      />
+    )
+  }
+
+  const deleteOverlay =
+    deleteTarget != null ? (
+      <div className="pr-merge" role="dialog" aria-label="Eliminar máquina">
+        <div className="pr-merge__card">
+          <p className="pr-merge__kicker">Eliminar máquina</p>
+          <h3 className="pr-merge__title">
+            ¿Borrar “{deleteTarget.baseName}”?
+          </h3>
+          <p className="pr-merge__hint">
+            Se quita de la rutina y se borra su historial (series y PR de ese
+            nombre). La otra máquina con nombre distinto no se toca.
+          </p>
+          {deleteError ? (
+            <p className="pr-merge__error">{deleteError}</p>
+          ) : null}
+          <div className="pr-merge__list">
+            <Button
+              fullWidth
+              disabled={deleting}
+              onClick={() => void confirmDelete()}
+            >
+              {deleting ? 'Eliminando…' : 'Sí, eliminar'}
+            </Button>
+            <Button
+              fullWidth
+              variant="secondary"
+              disabled={deleting}
+              onClick={() => {
+                setDeleteTarget(null)
+                setDeleteError(null)
+              }}
+            >
+              Cancelar
+            </Button>
+          </div>
+        </div>
+      </div>
+    ) : null
 
   if (isFocus) {
     return (
@@ -306,7 +436,7 @@ export function PrPanel({
           </header>
 
           <p className="focus-pr-reel__lede">
-            Todas las máquinas de tu rutina. Desliza para ver cada marca.
+            Todas las máquinas de tu rutina. Abre la estadística de cada una.
           </p>
 
           <div className="focus-pr-reel__body">
@@ -337,6 +467,11 @@ export function PrPanel({
                     row={row}
                     index={index}
                     ceiling={billCeiling}
+                    onOpenStats={() => setStatsTarget(toStatsTarget(row))}
+                    onDelete={() => {
+                      setDeleteError(null)
+                      setDeleteTarget(row)
+                    }}
                   />
                 ))}
               </div>
@@ -355,12 +490,13 @@ export function PrPanel({
             </div>
           ) : null}
         </div>
+        {deleteOverlay}
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col">
+    <div className="relative flex min-h-0 flex-1 flex-col">
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
           <h2 className="font-display text-xl font-extrabold text-fg">
@@ -403,13 +539,12 @@ export function PrPanel({
             {filtered.map((row) => (
               <PrRow
                 key={row.exerciseName}
-                title={row.exerciseName}
-                subtitle={
-                  row.dayLabels.length ? row.dayLabels.join(' · ') : undefined
-                }
-                pr={row.pr}
-                prWithStraps={row.prWithStraps}
-                supportsStraps={row.supportsStraps}
+                row={row}
+                onOpenStats={() => setStatsTarget(toStatsTarget(row))}
+                onDelete={() => {
+                  setDeleteError(null)
+                  setDeleteTarget(row)
+                }}
               />
             ))}
           </ul>
@@ -421,6 +556,7 @@ export function PrPanel({
           Listo
         </Button>
       ) : null}
+      {deleteOverlay}
     </div>
   )
 }
