@@ -74,6 +74,20 @@ function validateExerciseInput(input: {
   }
 }
 
+function sanitizeMuscleGroups(groups: string[] | undefined): string[] {
+  const seen = new Set<string>()
+  const out: string[] = []
+  for (const group of groups ?? []) {
+    const label = group.trim()
+    if (!label) continue
+    const key = label.toLowerCase()
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(label)
+  }
+  return out
+}
+
 const WEEKDAY_ORDER: Weekday[] = [1, 2, 3, 4, 5, 6, 0] // Lun → Dom
 
 function isWeekendRest(weekday: Weekday) {
@@ -251,6 +265,7 @@ export async function addExerciseToDay(
     targetRir?: number
     videoUrl?: string
     imageUrl?: string
+    muscleGroups?: string[]
   },
   routineId?: string,
 ): Promise<RoutineExercise> {
@@ -259,6 +274,7 @@ export async function addExerciseToDay(
   if (!day) throw new Error('Día de rutina no encontrado')
 
   const validated = validateExerciseInput(input)
+  const muscleGroups = sanitizeMuscleGroups(input.muscleGroups)
 
   const exercise: RoutineExercise = {
     id: createId('ex'),
@@ -270,6 +286,7 @@ export async function addExerciseToDay(
     imageUrl: input.imageUrl ?? DEFAULT_IMAGE,
     videoUrl: input.videoUrl,
     hasCustomImage: false,
+    muscleGroups: muscleGroups.length ? muscleGroups : undefined,
   }
 
   const nextDay: RoutineDay = {
@@ -297,6 +314,7 @@ export async function updateExercise(
       | 'alternatives'
       | 'underMaintenance'
       | 'grips'
+      | 'muscleGroups'
     >
   >,
   routineId?: string,
@@ -315,6 +333,11 @@ export async function updateExercise(
     targetRir: patch.targetRir !== undefined ? patch.targetRir : current.targetRir,
   })
 
+  const muscleGroups =
+    patch.muscleGroups !== undefined
+      ? sanitizeMuscleGroups(patch.muscleGroups)
+      : sanitizeMuscleGroups(current.muscleGroups)
+
   const updated: RoutineExercise = {
     ...current,
     ...patch,
@@ -322,6 +345,7 @@ export async function updateExercise(
     targetSets: validated.targetSets,
     targetReps: validated.targetReps,
     targetRir: validated.targetRir,
+    muscleGroups: muscleGroups.length ? muscleGroups : undefined,
   }
   const nextDay: RoutineDay = {
     ...day,
@@ -859,6 +883,10 @@ export async function copyExercisesFromDay(
       createdAt: g.createdAt,
     })),
     underMaintenance: ex.underMaintenance,
+    muscleGroups: (() => {
+      const groups = sanitizeMuscleGroups(ex.muscleGroups)
+      return groups.length ? groups : undefined
+    })(),
   }))
 
   // Duplicar blobs de imagen con el nuevo id
@@ -2404,12 +2432,10 @@ export async function listCoachMachines(): Promise<CoachMachineSummary[]> {
           lastDayLabel: session.dayLabel,
           muscleGroups: new Set(),
         }
-        addMuscles(acc, session.muscleGroups)
         byKey.set(key, acc)
         continue
       }
       existing.sessionIds.add(session.id)
-      addMuscles(existing, session.muscleGroups)
       if (isNewer) {
         existing.name = ex.name
         existing.lastDate = session.date
@@ -2427,13 +2453,20 @@ export async function listCoachMachines(): Promise<CoachMachineSummary[]> {
         const key = normalizeExerciseName(ex.name)
         if (!key) continue
         const acc = ensureAcc(key, ex.name, day.label)
-        addMuscles(acc, day.muscleGroups)
+        const tagged = sanitizeMuscleGroups(ex.muscleGroups)
+        const machineGroups =
+          tagged.length > 0
+            ? tagged
+            : day.muscleGroups.length === 1
+              ? day.muscleGroups
+              : []
+        addMuscles(acc, machineGroups)
         if (ex.underMaintenance) maintenanceByKey.set(key, true)
         for (const alt of ex.alternatives ?? []) {
           const altKey = normalizeExerciseName(alt.name)
           if (!altKey) continue
           const altAcc = byKey.get(altKey)
-          if (altAcc) addMuscles(altAcc, day.muscleGroups)
+          if (altAcc) addMuscles(altAcc, machineGroups)
         }
       }
     }

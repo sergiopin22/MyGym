@@ -10,12 +10,27 @@ export const MUSCLE_PRESETS = [
   'Cardio',
 ] as const
 
+/** Grupos que el coach filtra: cada máquina debe tener uno de estos. */
+export const MACHINE_MUSCLE_GROUPS = [
+  'Pecho',
+  'Hombros',
+  'Tríceps',
+  'Piernas',
+  'Bíceps',
+  'Espalda',
+] as const
+
 interface MuscleGroupPickerProps {
   value: string[]
   onChange: (next: string[]) => void
+  groups?: readonly string[]
 }
 
-export function MuscleGroupPicker({ value, onChange }: MuscleGroupPickerProps) {
+export function MuscleGroupPicker({
+  value,
+  onChange,
+  groups = MUSCLE_PRESETS,
+}: MuscleGroupPickerProps) {
   function toggle(group: string) {
     if (value.includes(group)) {
       onChange(value.filter((g) => g !== group))
@@ -26,7 +41,7 @@ export function MuscleGroupPicker({ value, onChange }: MuscleGroupPickerProps) {
 
   return (
     <div className="flex flex-wrap gap-2">
-      {MUSCLE_PRESETS.map((group) => {
+      {groups.map((group) => {
         const active = value.includes(group)
         return (
           <button

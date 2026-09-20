@@ -8,12 +8,13 @@ import {
   getRoutineDay,
   removeExerciseFromDay,
   reorderExercises,
+  updateExercise,
   updateRoutineDay,
 } from '../../db/repository'
 import type { Routine, RoutineDay, RoutineExercise } from '../../types'
 import { weekdayLabel } from '../../utils/id'
 import { ExerciseEditor } from './ExerciseEditor'
-import { MuscleGroupPicker } from './MuscleGroupPicker'
+import { MACHINE_MUSCLE_GROUPS, MuscleGroupPicker } from './MuscleGroupPicker'
 import { CopyDayExercises } from './CopyDayExercises'
 import { RestDayToggle } from './RestDayToggle'
 import { PageHeader } from '../../ui/PageHeader'
@@ -79,6 +80,22 @@ export function RoutineDayPage() {
     if (!day || !routine) return
     const updated = await updateRoutineDay(day.id, { muscleGroups }, routine.id)
     setDay(updated)
+  }
+
+  async function persistExerciseMuscles(
+    exerciseId: string,
+    muscleGroups: string[],
+  ) {
+    if (!day || !routine) return
+    setBusyId(exerciseId)
+    try {
+      await updateExercise(day.id, exerciseId, { muscleGroups }, routine.id)
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo guardar el músculo')
+    } finally {
+      setBusyId(null)
+    }
   }
 
   async function moveExercise(exerciseId: string, direction: -1 | 1) {
@@ -162,7 +179,11 @@ export function RoutineDayPage() {
         />
 
         <div className="space-y-2">
-          <p className="text-sm font-semibold text-ink">Grupos musculares</p>
+          <p className="text-sm font-semibold text-ink">Título muscular del día</p>
+          <p className="text-xs text-muted">
+            Solo nombra el día (ej. Pecho · Tríceps). El filtro del coach usa el
+            músculo de cada máquina, más abajo.
+          </p>
           <MuscleGroupPicker
             value={day.muscleGroups}
             onChange={(groups) => void persistMuscles(groups)}
@@ -199,6 +220,12 @@ export function RoutineDayPage() {
             </p>
           </Card>
         ) : (
+          <>
+            {exercises.some((ex) => (ex.muscleGroups?.length ?? 0) === 0) ? (
+              <p className="text-sm font-medium text-danger">
+                Marca el músculo de cada máquina para que el coach pueda filtrar.
+              </p>
+            ) : null}
           <ul className="space-y-3">
             {exercises.map((ex, index) => (
               <li key={ex.id}>
@@ -221,6 +248,23 @@ export function RoutineDayPage() {
                           En mantenimiento
                         </p>
                       ) : null}
+                      <div className="mt-2 space-y-1">
+                        <p className="text-xs font-semibold text-ink">
+                          Músculo de esta máquina
+                        </p>
+                        {(ex.muscleGroups?.length ?? 0) === 0 ? (
+                          <p className="text-xs font-medium text-danger">
+                            Sin clasificar: el coach no podrá filtrarla
+                          </p>
+                        ) : null}
+                        <MuscleGroupPicker
+                          value={ex.muscleGroups ?? []}
+                          onChange={(groups) =>
+                            void persistExerciseMuscles(ex.id, groups)
+                          }
+                          groups={MACHINE_MUSCLE_GROUPS}
+                        />
+                      </div>
                       {(ex.alternatives?.length ?? 0) > 0 ? (
                         <p className="mt-1 text-xs font-medium text-brand">
                           {ex.alternatives!.length} alternativa
@@ -281,6 +325,7 @@ export function RoutineDayPage() {
               </li>
             ))}
           </ul>
+          </>
         )}
       </section>
         </>

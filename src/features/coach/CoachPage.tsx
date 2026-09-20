@@ -36,6 +36,7 @@ const COACH_MUSCLE_FILTERS = [
   { id: 'triceps', label: 'Tríceps' },
   { id: 'pierna', label: 'Pierna' },
   { id: 'biceps', label: 'Bíceps' },
+  { id: 'espalda', label: 'Espalda' },
 ] as const
 
 function formatCoachDate(iso: string): string {

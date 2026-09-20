@@ -48,6 +48,8 @@ export interface RoutineExercise {
   underMaintenance?: boolean
   /** Agarres / variantes del mismo movimiento (PR separados por agarre) */
   grips?: ExerciseGrip[]
+  /** Músculo(s) de ESTA máquina. El filtro del coach usa esto, no el día. */
+  muscleGroups?: string[]
 }
 
 export interface RoutineDay {

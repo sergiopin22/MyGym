@@ -20,6 +20,7 @@ import {
 } from '../../db/repository'
 import type { ExerciseAlternative, ExerciseGrip, RoutineExercise } from '../../types'
 import { openTutorial } from '../exercises/media'
+import { MACHINE_MUSCLE_GROUPS, MuscleGroupPicker } from './MuscleGroupPicker'
 
 function clampInt(n: number, min: number, max: number) {
   return Math.min(max, Math.max(min, Math.round(n)))
@@ -62,6 +63,9 @@ export function ExerciseEditor({
   const [underMaintenance, setUnderMaintenance] = useState(
     Boolean(exercise?.underMaintenance),
   )
+  const [muscleGroups, setMuscleGroups] = useState<string[]>(
+    () => [...(exercise?.muscleGroups ?? [])],
+  )
   const [newAltName, setNewAltName] = useState('')
   const [newGripName, setNewGripName] = useState('')
   const [saving, setSaving] = useState(false)
@@ -86,6 +90,7 @@ export function ExerciseEditor({
         targetReps: { min: repsMin, max: repsMax },
         targetRir,
         videoUrl: videoUrl.trim() || undefined,
+        muscleGroups,
       },
       routineId,
     )
@@ -111,6 +116,11 @@ export function ExerciseEditor({
       return
     }
 
+    if (muscleGroups.length === 0) {
+      setError('Elige si esta máquina es pecho, hombro, tríceps, bíceps, pierna o espalda')
+      return
+    }
+
     setSaving(true)
     setError(null)
     try {
@@ -123,6 +133,7 @@ export function ExerciseEditor({
         imageUrl,
         hasCustomImage,
         underMaintenance: underMaintenance || undefined,
+        muscleGroups,
       }
 
       if (isEdit && exercise) {
@@ -462,6 +473,19 @@ export function ExerciseEditor({
             placeholder="Ej. Press banca"
             autoFocus
           />
+
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-ink">Músculo de esta máquina</p>
+            <p className="text-xs text-muted">
+              Así el coach puede filtrar pecho, hombro, tríceps, pierna, bíceps o espalda.
+              No uses el grupo del día: marca el de ESTA máquina.
+            </p>
+            <MuscleGroupPicker
+              value={muscleGroups}
+              onChange={setMuscleGroups}
+              groups={MACHINE_MUSCLE_GROUPS}
+            />
+          </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <NumberStepper
