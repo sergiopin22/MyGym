@@ -414,6 +414,41 @@ export async function removeExerciseAlternative(
   return updateExercise(dayId, exerciseId, { alternatives: next }, routine.id)
 }
 
+export interface RoutineAlternativeRow {
+  dayId: string
+  dayLabel: string
+  weekday: Weekday
+  exerciseId: string
+  officialName: string
+  alternative: ExerciseAlternative
+}
+
+/** Todas las alternativas de la rutina, para verlas y quitarlas sin abrir cada ejercicio. */
+export async function listRoutineAlternatives(
+  routineId?: string,
+): Promise<RoutineAlternativeRow[]> {
+  const routine = await requireRoutine(routineId)
+  const rows: RoutineAlternativeRow[] = []
+  for (const day of routine.days) {
+    if (day.isRestDay) continue
+    for (const ex of sortExercises(day.exercises)) {
+      for (const alt of ex.alternatives ?? []) {
+        rows.push({
+          dayId: day.id,
+          dayLabel: day.label,
+          weekday: day.weekday,
+          exerciseId: ex.id,
+          officialName: ex.name,
+          alternative: alt,
+        })
+      }
+    }
+  }
+  return rows.sort((a, b) =>
+    a.alternative.name.localeCompare(b.alternative.name, 'es'),
+  )
+}
+
 export async function renameExerciseAlternative(
   dayId: string,
   exerciseId: string,

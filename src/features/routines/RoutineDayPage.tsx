@@ -6,6 +6,7 @@ import { ExerciseThumb } from '../../components/ExerciseThumb'
 import { TextField } from '../../components/TextField'
 import {
   getRoutineDay,
+  removeExerciseAlternative,
   removeExerciseFromDay,
   reorderExercises,
   updateExercise,
@@ -93,6 +94,32 @@ export function RoutineDayPage() {
       await load()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar el músculo')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function handleRemoveAlternative(
+    exercise: RoutineExercise,
+    alternativeId: string,
+    alternativeName: string,
+  ) {
+    if (!day || !routine) return
+    const ok = window.confirm(
+      `¿Quitar "${alternativeName}" del banco de "${exercise.name}"?\n\nYa no la podrás elegir en el gym. Los entrenos que ya hiciste en esa máquina se quedan.`,
+    )
+    if (!ok) return
+    setBusyId(alternativeId)
+    try {
+      await removeExerciseAlternative(
+        day.id,
+        exercise.id,
+        alternativeId,
+        routine.id,
+      )
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo quitar')
     } finally {
       setBusyId(null)
     }
@@ -266,10 +293,37 @@ export function RoutineDayPage() {
                         />
                       </div>
                       {(ex.alternatives?.length ?? 0) > 0 ? (
-                        <p className="mt-1 text-xs font-medium text-brand">
-                          {ex.alternatives!.length} alternativa
-                          {ex.alternatives!.length === 1 ? '' : 's'}
-                        </p>
+                        <div className="mt-2 space-y-1">
+                          <p className="text-xs font-semibold text-ink">
+                            Alternativas
+                          </p>
+                          <ul className="space-y-1">
+                            {ex.alternatives!.map((alt) => (
+                              <li
+                                key={alt.id}
+                                className="flex items-center justify-between gap-2"
+                              >
+                                <span className="min-w-0 truncate text-xs font-medium text-brand">
+                                  {alt.name}
+                                </span>
+                                <button
+                                  type="button"
+                                  className="shrink-0 rounded-lg px-2 py-1 text-xs font-semibold text-danger"
+                                  disabled={busyId === alt.id}
+                                  onClick={() =>
+                                    void handleRemoveAlternative(
+                                      ex,
+                                      alt.id,
+                                      alt.name,
+                                    )
+                                  }
+                                >
+                                  Quitar
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
                       ) : null}
                       {(ex.grips?.length ?? 0) > 0 ? (
                         <p className="mt-1 text-xs font-medium text-brand">

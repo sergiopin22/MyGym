@@ -6,6 +6,7 @@ import { updateRoutineName } from '../../db/repository'
 import { useBootstrapRoutine } from '../../hooks/useBootstrapRoutine'
 import { weekdayLabel } from '../../utils/id'
 import { BackupPanel } from '../backup/BackupPanel'
+import { AlternativesBank } from './AlternativesBank'
 import { PageHeader } from '../../ui/PageHeader'
 import { useTheme } from '../../context/ThemeProvider'
 
@@ -155,6 +156,11 @@ export function RoutinesPage() {
           ))}
         </ul>
       )}
+
+      <AlternativesBank
+        routineId={routine.id}
+        routineUpdatedAt={routine.updatedAt}
+      />
 
       <BackupPanel />
     </div>
