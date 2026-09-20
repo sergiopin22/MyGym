@@ -2371,7 +2371,11 @@ html[data-ui-layout='focus'] .focus-pr-reel__loading {
 }
 
 html[data-ui-layout='focus'] .focus-pr-reel__footer {
-  padding: 0 1rem 0 0.85rem;
+  flex-shrink: 0;
+  z-index: 8;
+  padding: 0.65rem 1rem max(0.95rem, env(safe-area-inset-bottom)) 0.85rem;
+  background: color-mix(in srgb, var(--color-surface-elevated) 96%, black);
+  box-shadow: 0 -16px 28px -18px rgba(0, 0, 0, 0.8);
 }
 
 html[data-ui-layout='focus'] .focus-pr-reel__track {
@@ -2379,7 +2383,8 @@ html[data-ui-layout='focus'] .focus-pr-reel__track {
   overflow-y: auto;
   overscroll-behavior: contain;
   scroll-snap-type: y mandatory;
-  padding: 0.15rem 1rem 0.5rem 0.85rem;
+  padding: 0.15rem 1rem 5.75rem 0.85rem;
+  scroll-padding-bottom: 5.75rem;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
@@ -2389,7 +2394,7 @@ html[data-ui-layout='focus'] .focus-pr-reel__track {
 html[data-ui-layout='focus'] .focus-pr-bill {
   position: relative;
   flex: 0 0 auto;
-  min-height: min(68dvh, 28rem);
+  min-height: min(56dvh, 23rem);
   scroll-snap-align: start;
   overflow: hidden;
   border-radius: 1.6rem;
@@ -2405,6 +2410,15 @@ html[data-ui-layout='focus'] .focus-pr-bill {
 
 html[data-ui-layout='focus'] .focus-pr-bill--void {
   background: color-mix(in srgb, var(--color-surface-elevated) 92%, black);
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill:last-child {
+  scroll-snap-align: end;
+  padding-bottom: 4.25rem;
+}
+
+html[data-ui-layout='focus'] .focus-pr-bill:last-child .focus-pr-bill__copy {
+  bottom: 4.1rem;
 }
 
 html[data-ui-layout='focus'] .focus-pr-bill__frame {
