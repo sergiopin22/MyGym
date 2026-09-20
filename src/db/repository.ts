@@ -2929,6 +2929,7 @@ export async function getRoutineExercisePRs(): Promise<
     baseName: string
     gripName?: string
     dayLabels: string[]
+    muscleGroups: string[]
     pr: ExercisePR | null
     prWithStraps: ExercisePR | null
     supportsStraps: boolean
@@ -2956,17 +2957,27 @@ export async function getRoutineExercisePRs(): Promise<
       baseName: string
       gripName?: string
       dayLabels: string[]
+      muscleGroups: string[]
       pr: ExercisePR | null
       prWithStraps: ExercisePR | null
       supportsStraps: boolean
     }
   >()
 
+  function addMuscles(target: string[], groups: string[]) {
+    for (const group of groups) {
+      if (!target.some((g) => g.toLowerCase() === group.toLowerCase())) {
+        target.push(group)
+      }
+    }
+  }
+
   function upsertEntry(
     exerciseName: string,
     dayLabel: string | null,
     supportsStraps: boolean,
     gripName?: string,
+    muscleGroups: string[] = [],
   ) {
     const listKey = `${normalizeExerciseName(exerciseName)}::${(gripName ?? '').toLowerCase()}`
     if (!normalizeExerciseName(exerciseName)) return
@@ -2977,6 +2988,7 @@ export async function getRoutineExercisePRs(): Promise<
         existing.dayLabels.push(dayLabel)
       }
       if (supportsStraps) existing.supportsStraps = true
+      addMuscles(existing.muscleGroups, muscleGroups)
       return
     }
     byKey.set(listKey, {
@@ -2984,6 +2996,7 @@ export async function getRoutineExercisePRs(): Promise<
       baseName: exerciseName,
       gripName,
       dayLabels: dayLabel ? [dayLabel] : [],
+      muscleGroups: [...muscleGroups],
       pr: prByKey.get(prStorageKey(exerciseName, false, gripName)) ?? null,
       prWithStraps: supportsStraps
         ? prByKey.get(prStorageKey(exerciseName, true, gripName)) ?? null
@@ -2996,10 +3009,23 @@ export async function getRoutineExercisePRs(): Promise<
     for (const day of routine.days) {
       if (day.isRestDay) continue
       for (const ex of day.exercises) {
+        const tagged = sanitizeMuscleGroups(ex.muscleGroups)
+        const machineGroups =
+          tagged.length > 0
+            ? tagged
+            : day.muscleGroups.length === 1
+              ? [...day.muscleGroups]
+              : []
         const supportsStraps = supportsStrapsTracking(ex.name, day.muscleGroups)
-        upsertEntry(ex.name, day.label, supportsStraps)
+        upsertEntry(ex.name, day.label, supportsStraps, undefined, machineGroups)
         for (const grip of ex.grips ?? []) {
-          upsertEntry(ex.name, day.label, supportsStraps, grip.name)
+          upsertEntry(
+            ex.name,
+            day.label,
+            supportsStraps,
+            grip.name,
+            machineGroups,
+          )
         }
       }
     }
@@ -3022,6 +3048,7 @@ export async function getRoutineExercisePRs(): Promise<
         baseName,
         gripName: pr.gripName,
         dayLabels: [],
+        muscleGroups: [],
         pr: pr.withStraps ? null : pr,
         prWithStraps: pr.withStraps ? pr : null,
         supportsStraps: Boolean(pr.withStraps),

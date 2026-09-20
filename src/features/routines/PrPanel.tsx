@@ -7,6 +7,7 @@ import {
   type ExercisePR,
 } from '../../db/repository'
 import { scheduleCloudSync } from '../../sync/autoSync'
+import { muscleMatchesFilter, MUSCLE_FILTERS } from '../../utils/muscleFilter'
 import { formatStrapsLabel } from '../../utils/straps'
 import { useWeightUnit } from '../../context/WeightUnitProvider'
 import type { WeightUnit } from '../../utils/weight'
@@ -62,9 +63,88 @@ type RoutinePrRow = {
   baseName: string
   gripName?: string
   dayLabels: string[]
+  muscleGroups: string[]
   pr: ExercisePR | null
   prWithStraps: ExercisePR | null
   supportsStraps: boolean
+}
+
+function MuscleFilterChips({
+  value,
+  onChange,
+  focus,
+}: {
+  value: string | null
+  onChange: (next: string | null) => void
+  focus?: boolean
+}) {
+  return (
+    <div
+      className={
+        focus ? 'focus-pr-reel__muscles' : 'mb-3 flex flex-wrap gap-2'
+      }
+      role="group"
+      aria-label="Filtrar por músculo"
+    >
+      <button
+        type="button"
+        onClick={() => onChange(null)}
+        className={
+          focus
+            ? [
+                'pr-stats__chip',
+                value === null ? 'pr-stats__chip--on' : '',
+              ].join(' ')
+            : [
+                'min-h-11 rounded-full px-4 text-sm font-semibold transition active:scale-[0.98]',
+                value === null
+                  ? 'bg-chrome text-chrome-fg'
+                  : 'bg-surface text-muted ring-1 ring-line hover:text-fg',
+              ].join(' ')
+        }
+      >
+        Todos
+      </button>
+      {MUSCLE_FILTERS.map((group) => {
+        const active = value === group.id
+        return (
+          <button
+            key={group.id}
+            type="button"
+            onClick={() => onChange(active ? null : group.id)}
+            className={
+              focus
+                ? ['pr-stats__chip', active ? 'pr-stats__chip--on' : ''].join(
+                    ' ',
+                  )
+                : [
+                    'min-h-11 rounded-full px-4 text-sm font-semibold transition active:scale-[0.98]',
+                    active
+                      ? 'bg-chrome text-chrome-fg'
+                      : 'bg-surface text-muted ring-1 ring-line hover:text-fg',
+                  ].join(' ')
+            }
+          >
+            {group.label}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function emptyPrMessage(
+  rowCount: number,
+  query: string,
+  muscleFilter: string | null,
+): string {
+  if (rowCount === 0) {
+    return 'No hay ejercicios en tu rutina. Agrégalos en Rutinas.'
+  }
+  if (muscleFilter || query.trim()) {
+    return 'Ningún ejercicio con ese filtro.'
+  }
+  return 'Ningún ejercicio con ese nombre.'
 }
 
 function toStatsTarget(row: RoutinePrRow): ExerciseStatsTarget {
@@ -303,6 +383,7 @@ export function PrPanel({
   const isFocus = uiLayout === 'focus'
   const [rows, setRows] = useState<RoutinePrRow[]>([])
   const [query, setQuery] = useState('')
+  const [muscleFilter, setMuscleFilter] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [statsTarget, setStatsTarget] = useState<ExerciseStatsTarget | null>(
     null,
@@ -351,9 +432,11 @@ export function PrPanel({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
-    if (!q) return rows
-    return rows.filter((row) => row.exerciseName.toLowerCase().includes(q))
-  }, [rows, query])
+    return rows.filter((row) => {
+      if (q && !row.exerciseName.toLowerCase().includes(q)) return false
+      return muscleMatchesFilter(row.muscleGroups, muscleFilter)
+    })
+  }, [rows, query, muscleFilter])
 
   const billCeiling = useMemo(() => {
     let peak = 0
@@ -448,13 +531,17 @@ export function PrPanel({
               className="focus-pr-reel__search input-ios-safe"
             />
 
+            <MuscleFilterChips
+              focus
+              value={muscleFilter}
+              onChange={setMuscleFilter}
+            />
+
             {loading ? (
               <p className="focus-pr-reel__loading">Cargando PRs…</p>
             ) : filtered.length === 0 ? (
               <p className="focus-pr-reel__loading">
-                {rows.length === 0
-                  ? 'No hay ejercicios en tu rutina. Agrégalos en Rutinas.'
-                  : 'Ningún ejercicio con ese nombre.'}
+                {emptyPrMessage(rows.length, query, muscleFilter)}
               </p>
             ) : (
               <div
@@ -525,14 +612,14 @@ export function PrPanel({
         className="mb-3 min-h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-fg"
       />
 
+      <MuscleFilterChips value={muscleFilter} onChange={setMuscleFilter} />
+
       <div className="min-h-0 flex-1 overflow-y-auto">
         {loading ? (
           <p className="py-6 text-center text-sm text-muted">Cargando…</p>
         ) : filtered.length === 0 ? (
           <p className="py-6 text-center text-sm text-muted">
-            {rows.length === 0
-              ? 'No hay ejercicios en tu rutina. Agrégalos en Rutinas.'
-              : 'Ningún ejercicio con ese nombre.'}
+            {emptyPrMessage(rows.length, query, muscleFilter)}
           </p>
         ) : (
           <ul className="space-y-2">

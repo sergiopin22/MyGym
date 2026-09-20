@@ -20,6 +20,7 @@ import {
 import { getStoredCoachName } from '../../utils/coachName'
 import { getStoredDisplayName } from '../../utils/displayName'
 import { machineIdentityKey } from '../../utils/machineName'
+import { muscleMatchesFilter, MUSCLE_FILTERS } from '../../utils/muscleFilter'
 import {
   buildCoachSharePayload,
   fetchCoachSharePayload,
@@ -32,15 +33,6 @@ import { CoachNamePrompt } from '../settings/CoachNamePrompt'
 import { DisplayNamePrompt } from '../settings/DisplayNamePrompt'
 
 type CoachTab = 'machines' | 'prs'
-
-const COACH_MUSCLE_FILTERS = [
-  { id: 'pecho', label: 'Pecho' },
-  { id: 'hombro', label: 'Hombro' },
-  { id: 'triceps', label: 'Tríceps' },
-  { id: 'pierna', label: 'Pierna' },
-  { id: 'biceps', label: 'Bíceps' },
-  { id: 'espalda', label: 'Espalda' },
-] as const
 
 function formatCoachDate(iso: string): string {
   return new Date(iso + 'T12:00:00').toLocaleDateString('es-ES', {
@@ -75,17 +67,6 @@ function foldName(value: string): string {
 
 function sessionCountLabel(count: number): string {
   return count === 1 ? '1 entreno' : `${count} entrenos`
-}
-
-function machineMatchesMuscle(
-  groups: string[] | undefined,
-  filterId: string | null,
-): boolean {
-  if (!filterId) return true
-  return (groups ?? []).some((group) => {
-    const n = foldName(group)
-    return n === filterId || n.startsWith(filterId)
-  })
 }
 
 function muscleLine(groups: string[] | undefined): string {
@@ -171,7 +152,7 @@ export function CoachPage() {
       machines.filter(
         (row) =>
           matchesQuery(row.name, query) &&
-          machineMatchesMuscle(row.muscleGroups, muscleFilter),
+          muscleMatchesFilter(row.muscleGroups, muscleFilter),
       ),
     [machines, query, muscleFilter],
   )
@@ -191,7 +172,7 @@ export function CoachPage() {
         const machine = machines.find(
           (row) => foldName(row.name) === foldName(prMachineName(pr)),
         )
-        return machineMatchesMuscle(machine?.muscleGroups, muscleFilter)
+        return muscleMatchesFilter(machine?.muscleGroups, muscleFilter)
       }),
     [prs, machines, query, muscleFilter],
   )
@@ -266,7 +247,7 @@ export function CoachPage() {
       >
         Todos
       </button>
-      {COACH_MUSCLE_FILTERS.map((group) => {
+      {MUSCLE_FILTERS.map((group) => {
         const active = muscleFilter === group.id
         return (
           <button
