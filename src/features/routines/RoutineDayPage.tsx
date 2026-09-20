@@ -106,7 +106,7 @@ export function RoutineDayPage() {
   ) {
     if (!day || !routine) return
     const ok = window.confirm(
-      `¿Quitar "${alternativeName}" del banco de "${exercise.name}"?\n\nYa no la podrás elegir en el gym. Los entrenos que ya hiciste en esa máquina se quedan.`,
+      `¿Quitar "${alternativeName}" del banco de "${exercise.name}" en todos los días?\n\nYa no la podrás elegir en el gym. Los entrenos que ya hiciste en esa máquina se quedan.`,
     )
     if (!ok) return
     setBusyId(alternativeId)

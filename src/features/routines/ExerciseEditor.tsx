@@ -177,7 +177,9 @@ export function ExerciseEditor({
 
   async function handleRemoveAlternative(alternativeId: string) {
     if (!exerciseId) return
-    const ok = window.confirm('¿Quitar esta máquina alternativa del banco?')
+    const ok = window.confirm(
+      '¿Quitar esta máquina alternativa del banco en todos los días?',
+    )
     if (!ok) return
     setSaving(true)
     setError(null)

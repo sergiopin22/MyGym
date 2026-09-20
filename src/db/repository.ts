@@ -36,6 +36,7 @@ import {
   getIncompleteWorkoutParts,
 } from '../utils/workout'
 import { supportsStrapsTracking } from '../utils/straps'
+import { machineIdentityKey, sameMachineName } from '../utils/machineName'
 
 const DEFAULT_IMAGE = '/exercises/default.svg'
 const DEFAULT_ROUTINE_NAME = 'Mi rutina semanal'
@@ -373,29 +374,48 @@ export async function addExerciseAlternative(
 
   const trimmed = normalizeAltName(name)
   if (!trimmed) throw new Error('Ponle un nombre a la máquina alternativa')
-  if (trimmed.toLowerCase() === current.name.trim().toLowerCase()) {
+  if (sameMachineName(trimmed, current.name)) {
     throw new Error('La alternativa no puede llamarse igual que la máquina oficial')
   }
 
   const existing = current.alternatives ?? []
-  if (
-    existing.some((a) => a.name.trim().toLowerCase() === trimmed.toLowerCase())
-  ) {
+  if (existing.some((a) => sameMachineName(a.name, trimmed))) {
     throw new Error('Esa alternativa ya está en el banco')
   }
 
-  const alt: ExerciseAlternative = {
-    id: createId('alt'),
-    name: trimmed,
-    createdAt: Date.now(),
-  }
-
-  return updateExercise(
-    dayId,
-    exerciseId,
-    { alternatives: [...existing, alt] },
-    routine.id,
+  const nextDays = shareAlternativeOnOfficialMachine(
+    routine,
+    current.name,
+    trimmed,
   )
+  const saved = await saveRoutine({ ...routine, days: nextDays })
+  const savedDay = findDay(saved, dayId)
+  const savedEx = savedDay?.exercises.find((e) => e.id === exerciseId)
+  if (!savedEx) throw new Error('Ejercicio no encontrado')
+  return savedEx
+}
+
+function shareAlternativeOnOfficialMachine(
+  routine: Routine,
+  officialName: string,
+  altName: string,
+): RoutineDay[] {
+  const trimmed = normalizeAltName(altName)
+  return routine.days.map((day) => ({
+    ...day,
+    exercises: day.exercises.map((ex) => {
+      if (!sameMachineName(ex.name, officialName)) return ex
+      const existing = ex.alternatives ?? []
+      if (existing.some((a) => sameMachineName(a.name, trimmed))) return ex
+      return {
+        ...ex,
+        alternatives: [
+          ...existing,
+          { id: createId('alt'), name: trimmed, createdAt: Date.now() },
+        ],
+      }
+    }),
+  }))
 }
 
 export async function removeExerciseAlternative(
@@ -410,8 +430,27 @@ export async function removeExerciseAlternative(
   const current = day.exercises.find((e) => e.id === exerciseId)
   if (!current) throw new Error('Ejercicio no encontrado')
 
-  const next = (current.alternatives ?? []).filter((a) => a.id !== alternativeId)
-  return updateExercise(dayId, exerciseId, { alternatives: next }, routine.id)
+  const target = (current.alternatives ?? []).find((a) => a.id === alternativeId)
+  if (!target) throw new Error('Alternativa no encontrada')
+
+  const nextDays = routine.days.map((d) => ({
+    ...d,
+    exercises: d.exercises.map((ex) => {
+      if (!sameMachineName(ex.name, current.name)) return ex
+      return {
+        ...ex,
+        alternatives: (ex.alternatives ?? []).filter(
+          (a) =>
+            a.id !== alternativeId && !sameMachineName(a.name, target.name),
+        ),
+      }
+    }),
+  }))
+  const saved = await saveRoutine({ ...routine, days: nextDays })
+  const savedDay = findDay(saved, dayId)
+  const savedEx = savedDay?.exercises.find((e) => e.id === exerciseId)
+  if (!savedEx) throw new Error('Ejercicio no encontrado')
+  return savedEx
 }
 
 export interface RoutineAlternativeRow {
@@ -421,6 +460,194 @@ export interface RoutineAlternativeRow {
   exerciseId: string
   officialName: string
   alternative: ExerciseAlternative
+}
+
+export interface SharedAlternativeRow {
+  officialName: string
+  alternativeName: string
+  otherNames: string[]
+  days: Array<{
+    dayId: string
+    dayLabel: string
+    weekday: Weekday
+    exerciseId: string
+    alternativeId: string
+  }>
+  sessionCount: number
+}
+
+function alternativeGroupKey(officialName: string, altName: string): string {
+  return `${normalizeExerciseName(officialName)}::${normalizeExerciseName(altName)}`
+}
+
+/** Alternativas agrupadas: una fila por máquina real, no por cada día. */
+export async function listSharedAlternatives(
+  routineId?: string,
+): Promise<SharedAlternativeRow[]> {
+  const rows = await listRoutineAlternatives(routineId)
+  const sessions = await db.sessions
+    .where('status')
+    .equals('completed')
+    .toArray()
+
+  const sessionCountByKey = new Map<string, number>()
+  for (const session of sessions) {
+    const seen = new Set<string>()
+    for (const ex of session.exercises) {
+      const key = normalizeExerciseName(ex.name)
+      if (!key || seen.has(key)) continue
+      seen.add(key)
+      sessionCountByKey.set(key, (sessionCountByKey.get(key) ?? 0) + 1)
+    }
+  }
+
+  type Acc = {
+    officialName: string
+    names: Map<string, { name: string; count: number }>
+    days: SharedAlternativeRow['days']
+  }
+  const groups = new Map<string, Acc>()
+
+  for (const row of rows) {
+    const key = alternativeGroupKey(row.officialName, row.alternative.name)
+    const existing = groups.get(key)
+    const altKey = normalizeExerciseName(row.alternative.name)
+    const uses = sessionCountByKey.get(altKey) ?? 0
+    if (!existing) {
+      groups.set(key, {
+        officialName: row.officialName,
+        names: new Map([
+          [altKey, { name: row.alternative.name, count: uses }],
+        ]),
+        days: [
+          {
+            dayId: row.dayId,
+            dayLabel: row.dayLabel,
+            weekday: row.weekday,
+            exerciseId: row.exerciseId,
+            alternativeId: row.alternative.id,
+          },
+        ],
+      })
+      continue
+    }
+    const slot = existing.names.get(altKey)
+    if (!slot || uses > slot.count) {
+      existing.names.set(altKey, { name: row.alternative.name, count: uses })
+    }
+    existing.days.push({
+      dayId: row.dayId,
+      dayLabel: row.dayLabel,
+      weekday: row.weekday,
+      exerciseId: row.exerciseId,
+      alternativeId: row.alternative.id,
+    })
+  }
+
+  return [...groups.values()]
+    .map((group) => {
+      const ranked = [...group.names.values()].sort(
+        (a, b) => b.count - a.count || a.name.localeCompare(b.name, 'es'),
+      )
+      const alternativeName = ranked[0]?.name ?? ''
+      const altKey = normalizeExerciseName(alternativeName)
+      return {
+        officialName: group.officialName,
+        alternativeName,
+        otherNames: ranked.slice(1).map((n) => n.name),
+        days: group.days,
+        sessionCount: sessionCountByKey.get(altKey) ?? 0,
+      }
+    })
+    .sort((a, b) =>
+      a.alternativeName.localeCompare(b.alternativeName, 'es'),
+    )
+}
+
+/**
+ * Deja una sola alternativa por máquina en todos los días y une el historial
+ * de nombres parecidos (orden distinto, mayúsculas, etc.).
+ */
+export async function unifyAlternativeBank(routineId?: string): Promise<{
+  sessionsUpdated: number
+  copiesRemoved: number
+}> {
+  const groups = await listSharedAlternatives(routineId)
+  let sessionsUpdated = 0
+  for (const group of groups) {
+    for (const other of group.otherNames) {
+      if (sameMachineName(other, group.alternativeName) && other === group.alternativeName) {
+        continue
+      }
+      const result = await mergeExerciseNames(other, group.alternativeName)
+      sessionsUpdated += result.sessionsUpdated
+    }
+  }
+
+  const routine = await requireRoutine(routineId)
+  const before = JSON.stringify(routine.days)
+  const byOfficial = new Map<
+    string,
+    { officialName: string; alts: Map<string, ExerciseAlternative> }
+  >()
+
+  for (const day of routine.days) {
+    for (const ex of day.exercises) {
+      const officialKey = normalizeExerciseName(ex.name)
+      if (!officialKey) continue
+      const slot =
+        byOfficial.get(officialKey) ??
+        ({ officialName: ex.name, alts: new Map() } satisfies {
+          officialName: string
+          alts: Map<string, ExerciseAlternative>
+        })
+      if (!byOfficial.has(officialKey)) byOfficial.set(officialKey, slot)
+      for (const alt of ex.alternatives ?? []) {
+        const altKey = normalizeExerciseName(alt.name)
+        if (!altKey) continue
+        const match = groups.find(
+          (g) =>
+            normalizeExerciseName(g.officialName) === officialKey &&
+            normalizeExerciseName(g.alternativeName) === altKey,
+        )
+        const canonicalName = match?.alternativeName ?? alt.name
+        const prev = slot.alts.get(altKey)
+        if (!prev) {
+          slot.alts.set(altKey, { ...alt, name: canonicalName })
+        }
+      }
+    }
+  }
+
+  const nextDays = routine.days.map((day) => ({
+    ...day,
+    exercises: day.exercises.map((ex) => {
+      const slot = byOfficial.get(normalizeExerciseName(ex.name))
+      if (!slot) return ex
+      const nextAlts = [...slot.alts.values()].map((alt) => {
+        const local = (ex.alternatives ?? []).find((a) =>
+          sameMachineName(a.name, alt.name),
+        )
+        return {
+          id: local?.id ?? createId('alt'),
+          name: alt.name,
+          createdAt: local?.createdAt ?? alt.createdAt,
+        }
+      })
+      return { ...ex, alternatives: nextAlts }
+    }),
+  }))
+
+  const copiesRemoved = groups.reduce(
+    (sum, group) => sum + Math.max(0, group.days.length - 1) + group.otherNames.length,
+    0,
+  )
+
+  if (JSON.stringify(nextDays) !== before) {
+    await saveRoutine({ ...routine, days: nextDays })
+  }
+
+  return { sessionsUpdated, copiesRemoved }
 }
 
 /** Todas las alternativas de la rutina, para verlas y quitarlas sin abrir cada ejercicio. */
@@ -464,7 +691,7 @@ export async function renameExerciseAlternative(
 
   const trimmed = normalizeAltName(name)
   if (!trimmed) throw new Error('Ponle un nombre a la máquina alternativa')
-  if (trimmed.toLowerCase() === current.name.trim().toLowerCase()) {
+  if (sameMachineName(trimmed, current.name)) {
     throw new Error('La alternativa no puede llamarse igual que la máquina oficial')
   }
 
@@ -472,26 +699,34 @@ export async function renameExerciseAlternative(
   if (!alts.some((a) => a.id === alternativeId)) {
     throw new Error('Alternativa no encontrada')
   }
+  const target = alts.find((a) => a.id === alternativeId)!
   if (
     alts.some(
-      (a) =>
-        a.id !== alternativeId &&
-        a.name.trim().toLowerCase() === trimmed.toLowerCase(),
+      (a) => a.id !== alternativeId && sameMachineName(a.name, trimmed),
     )
   ) {
     throw new Error('Esa alternativa ya está en el banco')
   }
 
-  return updateExercise(
-    dayId,
-    exerciseId,
-    {
-      alternatives: alts.map((a) =>
-        a.id === alternativeId ? { ...a, name: trimmed } : a,
-      ),
-    },
-    routine.id,
-  )
+  const nextDays = routine.days.map((d) => ({
+    ...d,
+    exercises: d.exercises.map((ex) => {
+      if (!sameMachineName(ex.name, current.name)) return ex
+      return {
+        ...ex,
+        alternatives: (ex.alternatives ?? []).map((a) =>
+          a.id === alternativeId || sameMachineName(a.name, target.name)
+            ? { ...a, name: trimmed }
+            : a,
+        ),
+      }
+    }),
+  }))
+  const saved = await saveRoutine({ ...routine, days: nextDays })
+  const savedDay = findDay(saved, dayId)
+  const savedEx = savedDay?.exercises.find((e) => e.id === exerciseId)
+  if (!savedEx) throw new Error('Ejercicio no encontrado')
+  return savedEx
 }
 
 export async function setExerciseUnderMaintenance(
@@ -712,11 +947,39 @@ export async function getRoutineExerciseById(
   routineId?: string,
 ): Promise<RoutineExercise | undefined> {
   const found = await getRoutineDay(routineDayId, routineId)
-  return found?.day.exercises.find((e) => e.id === routineExerciseId)
+  const exercise = found?.day.exercises.find((e) => e.id === routineExerciseId)
+  if (!exercise || !found) return exercise
+
+  const missing: ExerciseAlternative[] = []
+  const have = new Set(
+    (exercise.alternatives ?? []).map((a) => normalizeExerciseName(a.name)),
+  )
+  for (const day of found.routine.days) {
+    for (const ex of day.exercises) {
+      if (!sameMachineName(ex.name, exercise.name)) continue
+      for (const alt of ex.alternatives ?? []) {
+        const key = normalizeExerciseName(alt.name)
+        if (!key || have.has(key)) continue
+        have.add(key)
+        missing.push({
+          id: createId('alt'),
+          name: alt.name,
+          createdAt: alt.createdAt,
+        })
+      }
+    }
+  }
+  if (missing.length === 0) return exercise
+  return updateExercise(
+    found.day.id,
+    exercise.id,
+    { alternatives: [...(exercise.alternatives ?? []), ...missing] },
+    found.routine.id,
+  )
 }
 
 function namesMatch(a: string, b: string): boolean {
-  return a.trim().toLowerCase() === b.trim().toLowerCase()
+  return sameMachineName(a, b)
 }
 
 /**
@@ -2295,11 +2558,7 @@ export interface ExercisePR {
 }
 
 function normalizeExerciseName(name: string): string {
-  return name
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
+  return machineIdentityKey(name)
 }
 
 function isBetterPR(

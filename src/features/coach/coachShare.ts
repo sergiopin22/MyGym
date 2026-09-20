@@ -9,6 +9,7 @@ import {
 import { getSupabase, isSupabaseConfigured } from '../../lib/supabase'
 import { getStoredDisplayName } from '../../utils/displayName'
 import { getStoredWeightUnit, type WeightUnit } from '../../utils/weight'
+import { machineIdentityKey } from '../../utils/machineName'
 
 export function isPublicCoachSharePath(pathname: string): boolean {
   return /^\/coach\/[^/]+\/?$/.test(pathname)
@@ -31,11 +32,7 @@ export interface CoachShareRecord {
 }
 
 function foldName(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
+  return machineIdentityKey(value)
 }
 
 function createShareToken(): string {

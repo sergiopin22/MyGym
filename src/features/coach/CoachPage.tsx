@@ -18,6 +18,7 @@ import {
   type WeightUnit,
 } from '../../utils/weight'
 import { getStoredDisplayName } from '../../utils/displayName'
+import { machineIdentityKey } from '../../utils/machineName'
 import {
   buildCoachSharePayload,
   fetchCoachSharePayload,
@@ -67,11 +68,7 @@ function matchesQuery(haystack: string, query: string): boolean {
 }
 
 function foldName(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{M}/gu, '')
+  return machineIdentityKey(value)
 }
 
 function sessionCountLabel(count: number): string {
