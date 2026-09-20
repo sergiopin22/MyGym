@@ -3194,15 +3194,35 @@ function rangeStartIso(range: ExerciseProgressRange): string | null {
   return d.toISOString().slice(0, 10)
 }
 
+type ProgressSessionSlice = {
+  id: string
+  date: string
+  startedAt?: number
+  exercises: Array<{
+    name: string
+    activeGripName?: string
+    sets: Array<{
+      completed: boolean
+      weight: number | null
+      reps: number | null
+      rir: number | null
+      withStraps?: boolean
+    }>
+  }>
+}
+
 /**
  * Historial de una máquina: mejor serie por sesión (peso; si empata, más reps).
  */
-export async function getExerciseProgressHistory(input: {
+export function computeExerciseProgressStats(input: {
   baseName: string
   gripName?: string | null
+  /** Si true, mezcla todos los agarres de esa máquina. */
+  anyGrip?: boolean
   withStraps: boolean
   range?: ExerciseProgressRange
-}): Promise<ExerciseProgressStats> {
+  sessions: ProgressSessionSlice[]
+}): ExerciseProgressStats {
   const baseName = input.baseName.trim()
   const gripName = input.gripName?.trim() || undefined
   const displayName = gripName ? `${baseName} · ${gripName}` : baseName
@@ -3211,14 +3231,10 @@ export async function getExerciseProgressHistory(input: {
   const wantKey = normalizeExerciseName(baseName)
   const wantGrip = (gripName ?? '').toLowerCase()
 
-  const sessions = await db.sessions
-    .where('status')
-    .equals('completed')
-    .toArray()
-
+  const sessions = [...input.sessions]
   sessions.sort((a, b) => {
     if (a.date !== b.date) return a.date.localeCompare(b.date)
-    return a.startedAt - b.startedAt
+    return (a.startedAt ?? 0) - (b.startedAt ?? 0)
   })
 
   const points: ExerciseProgressPoint[] = []
@@ -3234,7 +3250,7 @@ export async function getExerciseProgressHistory(input: {
     for (const ex of session.exercises) {
       if (normalizeExerciseName(ex.name) !== wantKey) continue
       const grip = (ex.activeGripName?.trim() || '').toLowerCase()
-      if (grip !== wantGrip) continue
+      if (!input.anyGrip && grip !== wantGrip) continue
 
       for (const set of ex.sets) {
         if (!set.completed || set.weight == null || set.reps == null) continue
@@ -3306,6 +3322,66 @@ export async function getExerciseProgressHistory(input: {
     sessionsCount: points.length,
     trend,
   }
+}
+
+export async function getExerciseProgressHistory(input: {
+  baseName: string
+  gripName?: string | null
+  anyGrip?: boolean
+  withStraps: boolean
+  range?: ExerciseProgressRange
+}): Promise<ExerciseProgressStats> {
+  const sessions = await db.sessions
+    .where('status')
+    .equals('completed')
+    .toArray()
+
+  return computeExerciseProgressStats({
+    ...input,
+    sessions: sessions.map((session) => ({
+      id: session.id,
+      date: session.date,
+      startedAt: session.startedAt,
+      exercises: session.exercises,
+    })),
+  })
+}
+
+/** Misma curva de Focus, pero desde el historial ya incluido en el enlace coach. */
+export function getExerciseProgressFromCoachHistory(
+  history: CoachMachineSession[],
+  input: {
+    baseName: string
+    withStraps: boolean
+    range?: ExerciseProgressRange
+  },
+): ExerciseProgressStats {
+  const bySession = new Map<string, ProgressSessionSlice>()
+  for (const row of history) {
+    const exercise = {
+      name: input.baseName,
+      activeGripName: row.activeGripName,
+      sets: row.sets,
+    }
+    const existing = bySession.get(row.sessionId)
+    if (existing) {
+      existing.exercises.push(exercise)
+      continue
+    }
+    bySession.set(row.sessionId, {
+      id: row.sessionId,
+      date: row.date,
+      exercises: [exercise],
+    })
+  }
+
+  return computeExerciseProgressStats({
+    baseName: input.baseName,
+    withStraps: input.withStraps,
+    range: input.range,
+    anyGrip: true,
+    sessions: [...bySession.values()],
+  })
 }
 
 /* ─── Caminadora (cardio aparte) ─── */

@@ -9,6 +9,8 @@ interface PageHeaderProps {
   back?: ReactNode
   action?: ReactNode
   className?: string
+  /** Fuerza tipografía Focus aunque el usuario esté en Clásico (vista coach). */
+  forceFocus?: boolean
 }
 
 export function PageHeader({
@@ -18,9 +20,10 @@ export function PageHeader({
   back,
   action,
   className = '',
+  forceFocus = false,
 }: PageHeaderProps) {
   const { uiLayout } = useTheme()
-  const isFocus = uiLayout === 'focus'
+  const isFocus = forceFocus || uiLayout === 'focus'
 
   return (
     <header

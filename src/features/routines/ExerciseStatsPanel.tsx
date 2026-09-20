@@ -3,12 +3,19 @@ import { Button } from '../../components/Button'
 import { useTheme } from '../../context/ThemeProvider'
 import { useWeightUnit } from '../../context/WeightUnitProvider'
 import {
+  getExerciseProgressFromCoachHistory,
   getExerciseProgressHistory,
+  type CoachMachineSession,
   type ExerciseProgressRange,
   type ExerciseProgressStats,
 } from '../../db/repository'
 import { formatStrapsLabel } from '../../utils/straps'
-import { formatWeightPair } from '../../utils/weight'
+import {
+  formatWeightPair,
+  lbToDisplay,
+  weightUnitLabel,
+  type WeightUnit,
+} from '../../utils/weight'
 import { WeightProgressChart } from './WeightProgressChart'
 
 function formatPrDate(iso: string): string {
@@ -42,13 +49,29 @@ export interface ExerciseStatsTarget {
 
 interface ExerciseStatsPanelProps {
   target: ExerciseStatsTarget
-  onClose: () => void
+  onClose?: () => void
+  /** Sin overlay: gráfica embebida (vista coach). */
+  embedded?: boolean
+  forceFocus?: boolean
+  unitOverride?: WeightUnit
+  /** Historial ya cargado (enlace público o payload local). */
+  historySource?: CoachMachineSession[]
 }
 
-export function ExerciseStatsPanel({ target, onClose }: ExerciseStatsPanelProps) {
+export function ExerciseStatsPanel({
+  target,
+  onClose,
+  embedded = false,
+  forceFocus = false,
+  unitOverride,
+  historySource,
+}: ExerciseStatsPanelProps) {
   const { uiLayout } = useTheme()
-  const { unit, toDisplay, label } = useWeightUnit()
-  const isFocus = uiLayout === 'focus'
+  const ctx = useWeightUnit()
+  const unit = unitOverride ?? ctx.unit
+  const label = weightUnitLabel(unit)
+  const toDisplay = (lb: number | null | undefined) => lbToDisplay(lb, unit)
+  const isFocus = forceFocus || uiLayout === 'focus'
   const [range, setRange] = useState<ExerciseProgressRange>('3m')
   const [withStraps, setWithStraps] = useState(Boolean(target.initialWithStraps))
   const [stats, setStats] = useState<ExerciseProgressStats | null>(null)
@@ -62,12 +85,21 @@ export function ExerciseStatsPanel({ target, onClose }: ExerciseStatsPanelProps)
   useEffect(() => {
     let alive = true
     setLoading(true)
-    getExerciseProgressHistory({
-      baseName: target.baseName,
-      gripName: target.gripName,
-      withStraps,
-      range,
-    })
+    const job = historySource
+      ? Promise.resolve(
+          getExerciseProgressFromCoachHistory(historySource, {
+            baseName: target.baseName,
+            withStraps,
+            range,
+          }),
+        )
+      : getExerciseProgressHistory({
+          baseName: target.baseName,
+          gripName: target.gripName,
+          withStraps,
+          range,
+        })
+    job
       .then((data) => {
         if (!alive) return
         setStats(data)
@@ -79,7 +111,13 @@ export function ExerciseStatsPanel({ target, onClose }: ExerciseStatsPanelProps)
     return () => {
       alive = false
     }
-  }, [target.baseName, target.gripName, withStraps, range])
+  }, [
+    historySource,
+    target.baseName,
+    target.gripName,
+    withStraps,
+    range,
+  ])
 
   const point =
     stats && selected != null ? (stats.points[selected] ?? null) : null
@@ -89,33 +127,41 @@ export function ExerciseStatsPanel({ target, onClose }: ExerciseStatsPanelProps)
 
   const body = (
     <>
-      <header className={isFocus ? 'pr-stats__chrome' : 'mb-3'}>
-        <div className="min-w-0 flex-1">
-          <p className={isFocus ? 'pr-stats__kicker' : 'text-xs font-semibold uppercase tracking-wide text-muted'}>
-            Estadística
-          </p>
-          <h2
-            className={
-              isFocus
-                ? 'pr-stats__title'
-                : 'font-display text-xl font-extrabold text-fg'
-            }
-          >
-            {target.displayName}
-          </h2>
-        </div>
-        <button
-          type="button"
-          onClick={onClose}
-          className={
-            isFocus
-              ? 'focus-pr-reel__close'
-              : 'rounded-xl bg-brand-soft px-3 py-2 text-sm font-bold text-fg'
-          }
-        >
-          Cerrar
-        </button>
-      </header>
+      {embedded ? (
+        <p className={isFocus ? 'pr-stats__kicker' : 'text-xs font-semibold uppercase tracking-wide text-muted'}>
+          Estadística
+        </p>
+      ) : (
+        <header className={isFocus ? 'pr-stats__chrome' : 'mb-3'}>
+          <div className="min-w-0 flex-1">
+            <p className={isFocus ? 'pr-stats__kicker' : 'text-xs font-semibold uppercase tracking-wide text-muted'}>
+              Estadística
+            </p>
+            <h2
+              className={
+                isFocus
+                  ? 'pr-stats__title'
+                  : 'font-display text-xl font-extrabold text-fg'
+              }
+            >
+              {target.displayName}
+            </h2>
+          </div>
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              className={
+                isFocus
+                  ? 'focus-pr-reel__close'
+                  : 'rounded-xl bg-brand-soft px-3 py-2 text-sm font-bold text-fg'
+              }
+            >
+              Cerrar
+            </button>
+          ) : null}
+        </header>
+      )}
 
       <div className={isFocus ? 'pr-stats__filters' : 'mb-3 flex flex-wrap gap-2'}>
         {RANGES.map((r) => (
@@ -221,6 +267,7 @@ export function ExerciseStatsPanel({ target, onClose }: ExerciseStatsPanelProps)
             points={stats.points}
             selectedIndex={selected}
             onSelect={setSelected}
+            unitOverride={unitOverride}
           />
 
           {point ? (
@@ -238,24 +285,36 @@ export function ExerciseStatsPanel({ target, onClose }: ExerciseStatsPanelProps)
         </>
       )}
 
-      <div className={isFocus ? 'pr-stats__footer' : 'mt-3'}>
-        <Button fullWidth variant={isFocus ? 'primary' : 'secondary'} onClick={onClose}>
-          Volver a PR
-        </Button>
-      </div>
+      {!embedded && onClose ? (
+        <div className={isFocus ? 'pr-stats__footer' : 'mt-3'}>
+          <Button fullWidth variant={isFocus ? 'primary' : 'secondary'} onClick={onClose}>
+            Volver a PR
+          </Button>
+        </div>
+      ) : null}
     </>
   )
 
   if (isFocus) {
     return (
-      <div className="pr-stats pr-stats--focus" role="dialog" aria-label="Estadística de ejercicio">
+      <div
+        className={[
+          'pr-stats pr-stats--focus',
+          embedded ? 'pr-stats--embedded' : '',
+        ].join(' ')}
+        role={embedded ? 'region' : 'dialog'}
+        aria-label="Estadística de ejercicio"
+      >
         {body}
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col overflow-y-auto" role="dialog">
+    <div
+      className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+      role={embedded ? 'region' : 'dialog'}
+    >
       {body}
     </div>
   )

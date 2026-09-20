@@ -22,7 +22,7 @@ const config: Record<
 }
 
 export function StatusBadge({ status }: { status: ExerciseStatus }) {
-  const c = config[status]
+  const c = config[status] ?? config.completed
   return (
     <span
       className={[

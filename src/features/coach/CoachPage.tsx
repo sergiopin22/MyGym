@@ -9,8 +9,8 @@ import type {
 } from '../../db/repository'
 import { PageHeader } from '../../ui/PageHeader'
 import { useAuth } from '../../context/AuthProvider'
-import { useTheme } from '../../context/ThemeProvider'
 import { useWeightUnit } from '../../context/WeightUnitProvider'
+import { ExerciseStatsPanel } from '../routines/ExerciseStatsPanel'
 import { formatStrapsLabel, formatStrapsSuffix } from '../../utils/straps'
 import {
   formatWeight,
@@ -102,9 +102,7 @@ export function CoachPage() {
   const { token } = useParams<{ token?: string }>()
   const isPublic = Boolean(token)
   const { user } = useAuth()
-  const { uiLayout } = useTheme()
   const { unit: localUnit } = useWeightUnit()
-  const isFocus = uiLayout === 'focus'
   const [tab, setTab] = useState<CoachTab>('machines')
   const [query, setQuery] = useState('')
   const [muscleFilter, setMuscleFilter] = useState<string | null>(null)
@@ -293,12 +291,12 @@ export function CoachPage() {
             loading={false}
             unit={unit}
             format={format}
-            isFocus={isFocus}
             onBack={() => setSelectedName(null)}
           />
         ) : (
           <>
             <PageHeader
+              forceFocus
               kicker={athleteName ? `Coach · ${athleteName}` : 'Coach'}
               title={
                 isPublic
@@ -528,7 +526,6 @@ function MachineHistoryView({
   loading,
   unit,
   format,
-  isFocus,
   onBack,
 }: {
   name: string
@@ -537,7 +534,6 @@ function MachineHistoryView({
   loading: boolean
   unit: WeightUnit
   format: (lb: number | null | undefined) => string
-  isFocus: boolean
   onBack: () => void
 }) {
   const title = machine?.name ?? name
@@ -553,6 +549,7 @@ function MachineHistoryView({
   return (
     <>
       <PageHeader
+        forceFocus
         kicker="Focus · Máquina"
         title={title}
         subtitle={subtitleParts.join(' · ')}
@@ -573,7 +570,7 @@ function MachineHistoryView({
         </p>
       ) : null}
 
-      <div className={isFocus ? 'mt-4 grid gap-2 sm:grid-cols-2' : 'mt-4 space-y-2'}>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
         <PrSummaryCard
           label={supportsStraps ? formatStrapsLabel(false) : 'PR actual'}
           pr={machine?.pr ?? null}
@@ -588,6 +585,22 @@ function MachineHistoryView({
         ) : null}
       </div>
 
+      {!loading && history.length > 0 ? (
+        <div className="mt-4">
+          <ExerciseStatsPanel
+            embedded
+            forceFocus
+            unitOverride={unit}
+            historySource={history}
+            target={{
+              baseName: title,
+              displayName: title,
+              supportsStraps,
+            }}
+          />
+        </div>
+      ) : null}
+
       {loading ? (
         <p className="py-8 text-center text-sm text-muted">Cargando entrenos…</p>
       ) : history.length === 0 ? (
@@ -595,7 +608,9 @@ function MachineHistoryView({
           <p className="text-sm text-muted">Sin entrenos en esta máquina.</p>
         </Card>
       ) : (
-        <ul className="mt-4 space-y-3">
+        <>
+          <p className="pr-stats__kicker mt-5">Historial</p>
+          <ul className="mt-2 space-y-3">
           {history.map((row) => (
             <li key={`${row.sessionId}-${row.name}-${row.activeGripName ?? ''}`}>
               <Card className="space-y-3">
@@ -662,6 +677,7 @@ function MachineHistoryView({
             </li>
           ))}
         </ul>
+        </>
       )}
     </>
   )

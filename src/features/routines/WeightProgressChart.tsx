@@ -1,11 +1,18 @@
 import { useId, useMemo, useState } from 'react'
 import { useWeightUnit } from '../../context/WeightUnitProvider'
 import type { ExerciseProgressPoint } from '../../db/repository'
+import {
+  formatWeight,
+  lbToDisplay,
+  weightUnitLabel,
+  type WeightUnit,
+} from '../../utils/weight'
 
 interface WeightProgressChartProps {
   points: ExerciseProgressPoint[]
   selectedIndex: number | null
   onSelect: (index: number) => void
+  unitOverride?: WeightUnit
 }
 
 function shortDate(iso: string): string {
@@ -59,8 +66,13 @@ export function WeightProgressChart({
   points,
   selectedIndex,
   onSelect,
+  unitOverride,
 }: WeightProgressChartProps) {
-  const { toDisplay, label, format } = useWeightUnit()
+  const ctx = useWeightUnit()
+  const unit = unitOverride ?? ctx.unit
+  const toDisplay = (lb: number | null | undefined) => lbToDisplay(lb, unit)
+  const label = weightUnitLabel(unit)
+  const format = (lb: number | null | undefined) => formatWeight(lb, unit)
   const [hover, setHover] = useState<number | null>(null)
   const gid = useId().replace(/:/g, '')
 
