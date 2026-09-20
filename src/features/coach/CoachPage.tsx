@@ -30,6 +30,14 @@ import { DisplayNamePrompt } from '../settings/DisplayNamePrompt'
 
 type CoachTab = 'machines' | 'prs'
 
+const COACH_MUSCLE_FILTERS = [
+  { id: 'pecho', label: 'Pecho' },
+  { id: 'hombro', label: 'Hombro' },
+  { id: 'triceps', label: 'Tríceps' },
+  { id: 'pierna', label: 'Pierna' },
+  { id: 'biceps', label: 'Bíceps' },
+] as const
+
 function formatCoachDate(iso: string): string {
   return new Date(iso + 'T12:00:00').toLocaleDateString('es-ES', {
     weekday: 'short',
@@ -69,6 +77,29 @@ function sessionCountLabel(count: number): string {
   return count === 1 ? '1 entreno' : `${count} entrenos`
 }
 
+function machineMatchesMuscle(
+  groups: string[] | undefined,
+  filterId: string | null,
+): boolean {
+  if (!filterId) return true
+  return (groups ?? []).some((group) => {
+    const n = foldName(group)
+    return n === filterId || n.startsWith(filterId)
+  })
+}
+
+function muscleLine(groups: string[] | undefined): string {
+  return (groups ?? []).join(' · ')
+}
+
+function MaintenanceTag() {
+  return (
+    <span className="inline-flex items-center rounded-full bg-danger/15 px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-danger">
+      En mantenimiento
+    </span>
+  )
+}
+
 export function CoachPage() {
   const { token } = useParams<{ token?: string }>()
   const isPublic = Boolean(token)
@@ -78,6 +109,7 @@ export function CoachPage() {
   const isFocus = uiLayout === 'focus'
   const [tab, setTab] = useState<CoachTab>('machines')
   const [query, setQuery] = useState('')
+  const [muscleFilter, setMuscleFilter] = useState<string | null>(null)
   const [payload, setPayload] = useState<CoachSharePayload | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -132,19 +164,33 @@ export function CoachPage() {
       : []
 
   const filteredMachines = useMemo(
-    () => machines.filter((row) => matchesQuery(row.name, query)),
-    [machines, query],
+    () =>
+      machines.filter(
+        (row) =>
+          matchesQuery(row.name, query) &&
+          machineMatchesMuscle(row.muscleGroups, muscleFilter),
+      ),
+    [machines, query, muscleFilter],
   )
 
   const filteredPrs = useMemo(
     () =>
-      prs.filter((pr) =>
-        matchesQuery(
-          `${pr.exerciseName} ${pr.gripName ?? ''} ${pr.withStraps ? 'straps' : ''}`,
-          query,
-        ),
-      ),
-    [prs, query],
+      prs.filter((pr) => {
+        if (
+          !matchesQuery(
+            `${pr.exerciseName} ${pr.gripName ?? ''} ${pr.withStraps ? 'straps' : ''}`,
+            query,
+          )
+        ) {
+          return false
+        }
+        if (!muscleFilter) return true
+        const machine = machines.find(
+          (row) => foldName(row.name) === foldName(prMachineName(pr)),
+        )
+        return machineMatchesMuscle(machine?.muscleGroups, muscleFilter)
+      }),
+    [prs, machines, query, muscleFilter],
   )
 
   const selectedMachine = machines.find(
@@ -197,6 +243,45 @@ export function CoachPage() {
       }
       className="input-ios-safe min-h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-fg"
     />
+  )
+
+  const muscleChips = (
+    <div
+      className="flex flex-wrap gap-2"
+      role="group"
+      aria-label="Filtrar por músculo"
+    >
+      <button
+        type="button"
+        onClick={() => setMuscleFilter(null)}
+        className={[
+          'min-h-11 rounded-full px-4 text-sm font-semibold transition active:scale-[0.98]',
+          muscleFilter === null
+            ? 'bg-chrome text-chrome-fg'
+            : 'bg-surface text-muted ring-1 ring-line hover:text-fg',
+        ].join(' ')}
+      >
+        Todos
+      </button>
+      {COACH_MUSCLE_FILTERS.map((group) => {
+        const active = muscleFilter === group.id
+        return (
+          <button
+            key={group.id}
+            type="button"
+            onClick={() => setMuscleFilter(active ? null : group.id)}
+            className={[
+              'min-h-11 rounded-full px-4 text-sm font-semibold transition active:scale-[0.98]',
+              active
+                ? 'bg-chrome text-chrome-fg'
+                : 'bg-surface text-muted ring-1 ring-line hover:text-fg',
+            ].join(' ')}
+          >
+            {group.label}
+          </button>
+        )
+      })}
+    </div>
   )
 
   return (
@@ -258,6 +343,7 @@ export function CoachPage() {
 
             <div className="mt-4 space-y-3">
               {tabBar}
+              {muscleChips}
               {search}
             </div>
 
@@ -268,8 +354,10 @@ export function CoachPage() {
                 rows={filteredMachines}
                 empty={
                   machines.length === 0
-                    ? 'Aún no hay entrenos completados para mostrar.'
-                    : 'Ninguna máquina con ese nombre.'
+                    ? 'Aún no hay máquinas en la rutina ni entrenos para mostrar.'
+                    : muscleFilter || query.trim()
+                      ? 'Ninguna máquina con ese filtro.'
+                      : 'Ninguna máquina con ese nombre.'
                 }
                 unit={unit}
                 onOpen={openMachine}
@@ -277,10 +365,13 @@ export function CoachPage() {
             ) : (
               <PrList
                 rows={filteredPrs}
+                machines={machines}
                 empty={
                   prs.length === 0
                     ? 'Todavía no hay PRs registrados.'
-                    : 'Ningún PR con ese nombre.'
+                    : muscleFilter || query.trim()
+                      ? 'Ningún PR con ese filtro.'
+                      : 'Ningún PR con ese nombre.'
                 }
                 unit={unit}
                 onOpen={openMachine}
@@ -329,13 +420,22 @@ function MachineList({
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="font-display text-lg font-bold text-fg">
-                    {row.name}
-                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-display text-lg font-bold text-fg">
+                      {row.name}
+                    </p>
+                    {row.underMaintenance ? <MaintenanceTag /> : null}
+                  </div>
                   <p className="mt-0.5 text-sm text-muted">
-                    {sessionCountLabel(row.sessionCount)} · último{' '}
-                    {formatCoachDate(row.lastDate)}
+                    {row.sessionCount > 0
+                      ? `${sessionCountLabel(row.sessionCount)} · último ${formatCoachDate(row.lastDate)}`
+                      : 'Aún sin entrenos'}
                   </p>
+                  {muscleLine(row.muscleGroups) ? (
+                    <p className="mt-0.5 text-xs font-medium text-muted">
+                      {muscleLine(row.muscleGroups)}
+                    </p>
+                  ) : null}
                 </div>
                 {best ? (
                   <span className="shrink-0 text-lg" aria-hidden>
@@ -360,11 +460,13 @@ function MachineList({
 
 function PrList({
   rows,
+  machines,
   empty,
   unit,
   onOpen,
 }: {
   rows: ExercisePR[]
+  machines: CoachMachineSummary[]
   empty: string
   unit: WeightUnit
   onOpen: (name: string) => void
@@ -379,7 +481,11 @@ function PrList({
 
   return (
     <ul className="mt-4 space-y-2">
-      {rows.map((pr) => (
+      {rows.map((pr) => {
+        const machine = machines.find(
+          (row) => foldName(row.name) === foldName(prMachineName(pr)),
+        )
+        return (
         <li key={`${pr.exerciseName}-${pr.withStraps ? 's' : 'f'}-${pr.sessionId}`}>
           <button
             type="button"
@@ -391,21 +497,28 @@ function PrList({
                 🏆
               </span>
               <div className="min-w-0 flex-1">
-                <p className="font-display text-lg font-bold text-fg">
-                  {pr.exerciseName}
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-display text-lg font-bold text-fg">
+                    {pr.exerciseName}
+                  </p>
+                  {machine?.underMaintenance ? <MaintenanceTag /> : null}
+                </div>
                 <p className="mt-1 text-sm font-semibold text-fg">
                   {formatPrLine(pr, unit)}
                 </p>
                 <p className="mt-0.5 text-xs text-muted">
                   {formatCoachDate(pr.date)}
                   {pr.withStraps ? ` · ${formatStrapsLabel(true)}` : ''}
+                  {muscleLine(machine?.muscleGroups)
+                    ? ` · ${muscleLine(machine?.muscleGroups)}`
+                    : ''}
                 </p>
               </div>
             </div>
           </button>
         </li>
-      ))}
+        )
+      })}
     </ul>
   )
 }
@@ -432,13 +545,19 @@ function MachineHistoryView({
   const title = machine?.name ?? name
   const supportsStraps = Boolean(machine?.prWithStraps) ||
     history.some((row) => row.sets.some((s) => s.withStraps))
+  const groups = muscleLine(machine?.muscleGroups)
+  const subtitleParts = [
+    sessionCountLabel(machine?.sessionCount ?? history.length),
+    groups,
+    'toca otro ejercicio desde la lista',
+  ].filter(Boolean)
 
   return (
     <>
       <PageHeader
         kicker="Focus · Máquina"
         title={title}
-        subtitle={`${sessionCountLabel(machine?.sessionCount ?? history.length)} · toca otro ejercicio desde la lista`}
+        subtitle={subtitleParts.join(' · ')}
         back={
           <button
             type="button"
@@ -449,6 +568,12 @@ function MachineHistoryView({
           </button>
         }
       />
+
+      {machine?.underMaintenance ? (
+        <p className="mt-3">
+          <MaintenanceTag />
+        </p>
+      ) : null}
 
       <div className={isFocus ? 'mt-4 grid gap-2 sm:grid-cols-2' : 'mt-4 space-y-2'}>
         <PrSummaryCard

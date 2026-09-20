@@ -2319,7 +2319,7 @@ function prBaseName(pr: ExercisePR): string {
   return pr.exerciseName.slice(0, -suffix.length).trim()
 }
 
-/** Máquina que el coach puede filtrar: todas las usadas en entrenos completados. */
+/** Máquina que el coach puede filtrar: rutina actual + usadas en entrenos. */
 export interface CoachMachineSummary {
   name: string
   sessionCount: number
@@ -2327,6 +2327,8 @@ export interface CoachMachineSummary {
   lastDayLabel: string
   pr: ExercisePR | null
   prWithStraps: ExercisePR | null
+  muscleGroups: string[]
+  underMaintenance: boolean
 }
 
 /** Un entreno de una máquina (todas las series de ese día). */
@@ -2343,7 +2345,7 @@ export interface CoachMachineSession {
   sets: SetLog[]
 }
 
-/** Catálogo de máquinas con conteo de entrenos y PR actual. */
+/** Catálogo de máquinas con conteo de entrenos, músculo y mantenimiento. */
 export async function listCoachMachines(): Promise<CoachMachineSummary[]> {
   const sessions = await db.sessions
     .where('status')
@@ -2356,8 +2358,32 @@ export async function listCoachMachines(): Promise<CoachMachineSummary[]> {
     lastDate: string
     lastStartedAt: number
     lastDayLabel: string
+    muscleGroups: Set<string>
   }
   const byKey = new Map<string, Acc>()
+  const maintenanceByKey = new Map<string, boolean>()
+
+  function addMuscles(acc: Acc, groups: string[] | undefined) {
+    for (const group of groups ?? []) {
+      const label = group.trim()
+      if (label) acc.muscleGroups.add(label)
+    }
+  }
+
+  function ensureAcc(key: string, name: string, dayLabel: string): Acc {
+    const existing = byKey.get(key)
+    if (existing) return existing
+    const created: Acc = {
+      name,
+      sessionIds: new Set(),
+      lastDate: '',
+      lastStartedAt: 0,
+      lastDayLabel: dayLabel,
+      muscleGroups: new Set(),
+    }
+    byKey.set(key, created)
+    return created
+  }
 
   for (const session of sessions) {
     for (const ex of session.exercises) {
@@ -2370,21 +2396,45 @@ export async function listCoachMachines(): Promise<CoachMachineSummary[]> {
         (session.startedAt === existing.lastStartedAt &&
           session.date > existing.lastDate)
       if (!existing) {
-        byKey.set(key, {
+        const acc: Acc = {
           name: ex.name,
           sessionIds: new Set([session.id]),
           lastDate: session.date,
           lastStartedAt: session.startedAt,
           lastDayLabel: session.dayLabel,
-        })
+          muscleGroups: new Set(),
+        }
+        addMuscles(acc, session.muscleGroups)
+        byKey.set(key, acc)
         continue
       }
       existing.sessionIds.add(session.id)
+      addMuscles(existing, session.muscleGroups)
       if (isNewer) {
         existing.name = ex.name
         existing.lastDate = session.date
         existing.lastStartedAt = session.startedAt
         existing.lastDayLabel = session.dayLabel
+      }
+    }
+  }
+
+  const routine = await getActiveRoutine()
+  if (routine) {
+    for (const day of routine.days) {
+      if (day.isRestDay) continue
+      for (const ex of day.exercises) {
+        const key = normalizeExerciseName(ex.name)
+        if (!key) continue
+        const acc = ensureAcc(key, ex.name, day.label)
+        addMuscles(acc, day.muscleGroups)
+        if (ex.underMaintenance) maintenanceByKey.set(key, true)
+        for (const alt of ex.alternatives ?? []) {
+          const altKey = normalizeExerciseName(alt.name)
+          if (!altKey) continue
+          const altAcc = byKey.get(altKey)
+          if (altAcc) addMuscles(altAcc, day.muscleGroups)
+        }
       }
     }
   }
@@ -2417,6 +2467,10 @@ export async function listCoachMachines(): Promise<CoachMachineSummary[]> {
         lastDayLabel: row.lastDayLabel,
         pr: marks?.pr ?? null,
         prWithStraps: marks?.prWithStraps ?? null,
+        muscleGroups: [...row.muscleGroups].sort((a, b) =>
+          a.localeCompare(b, 'es'),
+        ),
+        underMaintenance: Boolean(maintenanceByKey.get(key)),
       }
     })
     .sort((a, b) => a.name.localeCompare(b.name, 'es'))
