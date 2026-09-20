@@ -1,6 +1,7 @@
 import { db } from '../db/schema'
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase'
 import { uploadLocalToCloud } from './upload'
+import { refreshCoachShareIfActive } from '../features/coach/coachShare'
 
 const DEFAULT_DELAY_MS = 4000
 const MEDIA_DELAY_MS = 8000
@@ -67,6 +68,7 @@ async function runAutoSync() {
     await uploadLocalToCloud(session.user.id, () => undefined, {
       includeMedia: withMedia,
     })
+    await refreshCoachShareIfActive(session.user.id)
   } catch (err) {
     console.warn('[cloud auto-sync]', err)
     // Reintenta más tarde sin molestar

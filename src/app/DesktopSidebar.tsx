@@ -10,6 +10,7 @@ const LINKS: Array<{
   { to: '/', end: true, label: 'Inicio', hint: 'Hoy' },
   { to: '/rutinas', label: 'Rutinas', hint: 'Tu plan' },
   { to: '/historial', label: 'Historial', hint: 'Sesiones' },
+  { to: '/coach', label: 'Coach', hint: 'Solo lectura' },
   { to: '/caminadora', label: 'Caminadora', hint: 'Cardio' },
   { to: '/discos', label: 'Discos', hint: 'Calculadora' },
   { to: '/progreso', label: 'Ajustes', hint: 'Cuenta y temas' },

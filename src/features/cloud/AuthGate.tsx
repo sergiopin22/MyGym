@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthProvider'
 import { useWeightUnit } from '../../context/WeightUnitProvider'
 import {
@@ -8,13 +9,16 @@ import {
 import { hasPendingWeightOnboarding } from './LoginPage'
 import { LoginPage } from './LoginPage'
 import { WeightUnitOnboarding } from './WeightUnitOnboarding'
+import { isPublicCoachSharePath } from '../coach/coachShare'
 
 /**
- * Exige sesión. Tras crear cuenta, pide lb/kg (queda guardado por usuario).
+ * Exige sesión, excepto el enlace público del coach.
  */
 export function AuthGate({ children }: { children: ReactNode }) {
+  const location = useLocation()
   const { configured, loading, user } = useAuth()
   const { unit } = useWeightUnit()
+  const publicCoach = isPublicCoachSharePath(location.pathname)
 
   useEffect(() => {
     if (!user) return
@@ -22,6 +26,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
       markWeightUnitOnboardingNeeded(user.id)
     }
   }, [user])
+
+  if (publicCoach) return <>{children}</>
 
   if (!configured) return <>{children}</>
 

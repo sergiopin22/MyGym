@@ -17,7 +17,15 @@ export function HistoryPage() {
       <PageHeader
         kicker="Focus · Archivo"
         title="Historial"
-        subtitle="Entrenamientos guardados. Copia el resumen para enviarlo a tu coach."
+        subtitle="Entrenamientos guardados. Copia el resumen o ábrelo en vista coach."
+        action={
+          <Link
+            to="/coach"
+            className="inline-flex min-h-11 shrink-0 items-center rounded-xl bg-brand-soft px-3 py-2 text-sm font-bold text-fg"
+          >
+            Vista coach
+          </Link>
+        }
       />
 
       <HistoryList />

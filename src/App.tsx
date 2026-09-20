@@ -5,6 +5,7 @@ import { AccountSyncBootstrap } from './features/cloud/AccountSyncBootstrap'
 import { AuthGate } from './features/cloud/AuthGate'
 import { AppRouter } from './app/AppRouter'
 import { installCloudAutoSyncHooks } from './sync/autoSync'
+import { BrowserRouter } from 'react-router-dom'
 
 installCloudAutoSyncHooks()
 
@@ -13,10 +14,12 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <WeightUnitProvider>
-          <AuthGate>
-            <AccountSyncBootstrap />
-            <AppRouter />
-          </AuthGate>
+          <BrowserRouter>
+            <AuthGate>
+              <AccountSyncBootstrap />
+              <AppRouter />
+            </AuthGate>
+          </BrowserRouter>
         </WeightUnitProvider>
       </AuthProvider>
     </ThemeProvider>

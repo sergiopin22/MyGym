@@ -2312,6 +2312,154 @@ export async function getAllExercisePRs(
   )
 }
 
+function prBaseName(pr: ExercisePR): string {
+  if (!pr.gripName) return pr.exerciseName
+  const suffix = ` · ${pr.gripName}`
+  if (!pr.exerciseName.endsWith(suffix)) return pr.exerciseName
+  return pr.exerciseName.slice(0, -suffix.length).trim()
+}
+
+/** Máquina que el coach puede filtrar: todas las usadas en entrenos completados. */
+export interface CoachMachineSummary {
+  name: string
+  sessionCount: number
+  lastDate: string
+  lastDayLabel: string
+  pr: ExercisePR | null
+  prWithStraps: ExercisePR | null
+}
+
+/** Un entreno de una máquina (todas las series de ese día). */
+export interface CoachMachineSession {
+  sessionId: string
+  date: string
+  dayLabel: string
+  muscleGroups: string[]
+  name: string
+  plannedName?: string
+  activeGripName?: string
+  note?: string
+  status: ExerciseLog['status']
+  sets: SetLog[]
+}
+
+/** Catálogo de máquinas con conteo de entrenos y PR actual. */
+export async function listCoachMachines(): Promise<CoachMachineSummary[]> {
+  const sessions = await db.sessions
+    .where('status')
+    .equals('completed')
+    .toArray()
+
+  type Acc = {
+    name: string
+    sessionIds: Set<string>
+    lastDate: string
+    lastStartedAt: number
+    lastDayLabel: string
+  }
+  const byKey = new Map<string, Acc>()
+
+  for (const session of sessions) {
+    for (const ex of session.exercises) {
+      const key = normalizeExerciseName(ex.name)
+      if (!key) continue
+      const existing = byKey.get(key)
+      const isNewer =
+        !existing ||
+        session.startedAt > existing.lastStartedAt ||
+        (session.startedAt === existing.lastStartedAt &&
+          session.date > existing.lastDate)
+      if (!existing) {
+        byKey.set(key, {
+          name: ex.name,
+          sessionIds: new Set([session.id]),
+          lastDate: session.date,
+          lastStartedAt: session.startedAt,
+          lastDayLabel: session.dayLabel,
+        })
+        continue
+      }
+      existing.sessionIds.add(session.id)
+      if (isNewer) {
+        existing.name = ex.name
+        existing.lastDate = session.date
+        existing.lastStartedAt = session.startedAt
+        existing.lastDayLabel = session.dayLabel
+      }
+    }
+  }
+
+  const prs = await getAllExercisePRs()
+  const marksByKey = new Map<
+    string,
+    { pr: ExercisePR | null; prWithStraps: ExercisePR | null }
+  >()
+  for (const p of prs) {
+    const key = normalizeExerciseName(prBaseName(p))
+    const slot = marksByKey.get(key) ?? { pr: null, prWithStraps: null }
+    if (p.withStraps) {
+      if (!slot.prWithStraps || isBetterPR(p, slot.prWithStraps)) {
+        slot.prWithStraps = p
+      }
+    } else if (!slot.pr || isBetterPR(p, slot.pr)) {
+      slot.pr = p
+    }
+    marksByKey.set(key, slot)
+  }
+
+  return [...byKey.entries()]
+    .map(([key, row]) => {
+      const marks = marksByKey.get(key)
+      return {
+        name: row.name,
+        sessionCount: row.sessionIds.size,
+        lastDate: row.lastDate,
+        lastDayLabel: row.lastDayLabel,
+        pr: marks?.pr ?? null,
+        prWithStraps: marks?.prWithStraps ?? null,
+      }
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
+}
+
+/** Historial completo de una máquina, más reciente primero. */
+export async function getCoachMachineHistory(
+  exerciseName: string,
+): Promise<CoachMachineSession[]> {
+  const want = normalizeExerciseName(exerciseName)
+  if (!want) return []
+
+  const sessions = await db.sessions
+    .where('status')
+    .equals('completed')
+    .toArray()
+
+  sessions.sort((a, b) => {
+    if (a.date !== b.date) return b.date.localeCompare(a.date)
+    return b.startedAt - a.startedAt
+  })
+
+  const results: CoachMachineSession[] = []
+  for (const session of sessions) {
+    for (const ex of session.exercises) {
+      if (normalizeExerciseName(ex.name) !== want) continue
+      results.push({
+        sessionId: session.id,
+        date: session.date,
+        dayLabel: session.dayLabel,
+        muscleGroups: session.muscleGroups,
+        name: ex.name,
+        plannedName: ex.plannedName,
+        activeGripName: ex.activeGripName,
+        note: ex.note,
+        status: ex.status,
+        sets: ex.sets,
+      })
+    }
+  }
+  return results
+}
+
 export interface SessionNewPR {
   exerciseName: string
   weight: number

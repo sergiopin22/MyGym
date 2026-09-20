@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useAuth } from '../../context/AuthProvider'
 import { useWeightUnit } from '../../context/WeightUnitProvider'
 import { reconcileAccountOnLogin } from '../../sync/reconcile'
+import { isPublicCoachSharePath } from '../coach/coachShare'
 
 /**
  * Al haber sesión: trae (o sube) los datos de la cuenta sin pedir "Bajar".
@@ -12,8 +13,12 @@ export function AccountSyncBootstrap() {
   const { refreshFromStorage } = useWeightUnit()
   const [banner, setBanner] = useState<string | null>(null)
   const ranForUser = useRef<string | null>(null)
+  const publicCoach =
+    typeof window !== 'undefined' &&
+    isPublicCoachSharePath(window.location.pathname)
 
   useEffect(() => {
+    if (publicCoach) return
     if (loading || !user) {
       if (!user) ranForUser.current = null
       return
@@ -56,9 +61,9 @@ export function AccountSyncBootstrap() {
     return () => {
       cancelled = true
     }
-  }, [user, loading, refreshFromStorage])
+  }, [user, loading, refreshFromStorage, publicCoach])
 
-  if (!banner) return null
+  if (publicCoach || !banner) return null
 
   return (
     <div

@@ -4,6 +4,7 @@ import { Card } from '../../components/Card'
 import { useAuth } from '../../context/AuthProvider'
 import { downloadCloudToLocal } from '../../sync/download'
 import { uploadLocalToCloud } from '../../sync/upload'
+import { refreshCoachShareIfActive } from '../coach/coachShare'
 
 export function CloudPanel() {
   const { configured, user, signOut } = useAuth()
@@ -20,6 +21,7 @@ export function CloudPanel() {
     setStep(null)
     try {
       const stats = await uploadLocalToCloud(user.id, setStep)
+      await refreshCoachShareIfActive(user.id)
       setMessage(
         `Subido a la nube: ${stats.routines} rutina(s), ${stats.sessions} sesión(es), ${stats.goals} meta(s), ${stats.treadmill} caminadora(s), ${stats.media} archivo(s). Lo local no se borró.`,
       )

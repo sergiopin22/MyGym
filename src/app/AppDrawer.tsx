@@ -194,6 +194,13 @@ export function AppDrawer({
                   subtitle="Sesiones anteriores"
                   onNavigate={closeAll}
                 />
+                <DrawerNavItem
+                  to="/coach"
+                  icon="👀"
+                  label="Vista coach"
+                  subtitle="Máquinas, historial y PRs"
+                  onNavigate={closeAll}
+                />
               </ul>
 
               <p className="mb-2 mt-6 text-center text-xs font-semibold uppercase tracking-wide text-muted">
