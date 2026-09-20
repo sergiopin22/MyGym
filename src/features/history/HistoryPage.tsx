@@ -147,7 +147,12 @@ export function HistoryDetailPage() {
                 </button>
               </div>
               <ul className="space-y-1 text-sm">
-                {ex.sets.map((s) => (
+                {ex.status === 'skipped' && !ex.sets.some((s) => s.completed) ? (
+                  <li className="rounded-xl bg-surface px-3 py-2 text-sm text-muted">
+                    No se hizo este día. Se mantiene el último registro.
+                  </li>
+                ) : (
+                  ex.sets.map((s) => (
                   <li
                     key={s.id}
                     className="flex justify-between rounded-xl bg-surface px-3 py-2 text-muted"
@@ -158,7 +163,8 @@ export function HistoryDetailPage() {
                       {formatStrapsSuffix(s.withStraps)}
                     </span>
                   </li>
-                ))}
+                  ))
+                )}
               </ul>
               {ex.note ? (
                 <p className="rounded-xl bg-brand-soft px-3 py-2 text-sm text-fg">

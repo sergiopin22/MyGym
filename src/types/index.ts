@@ -1,7 +1,7 @@
 /** Identificador de día de la semana (igual que Date.getDay(): 0=domingo … 6=sábado) */
 export type Weekday = 0 | 1 | 2 | 3 | 4 | 5 | 6
 
-export type ExerciseStatus = 'pending' | 'in_progress' | 'completed'
+export type ExerciseStatus = 'pending' | 'in_progress' | 'completed' | 'skipped'
 export type SessionStatus = 'in_progress' | 'completed'
 
 export type ImprovementType =

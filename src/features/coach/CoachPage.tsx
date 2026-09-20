@@ -628,7 +628,13 @@ function MachineHistoryView({
                   <StatusBadge status={row.status} />
                 </div>
                 <ul className="space-y-1 text-sm">
-                  {row.sets.map((s) => {
+                  {row.status === 'skipped' &&
+                  !row.sets.some((s) => s.completed) ? (
+                    <li className="rounded-xl bg-surface px-3 py-2 text-sm text-muted">
+                      Omitido · se mantiene el último registro
+                    </li>
+                  ) : (
+                    row.sets.map((s) => {
                     const isMark =
                       s.completed &&
                       ((machine?.pr &&
@@ -655,7 +661,8 @@ function MachineHistoryView({
                         </span>
                       </li>
                     )
-                  })}
+                  })
+                  )}
                 </ul>
                 {row.note ? (
                   <p className="rounded-xl bg-brand-soft px-3 py-2 text-sm text-fg">

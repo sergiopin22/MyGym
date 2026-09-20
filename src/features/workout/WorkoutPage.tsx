@@ -7,11 +7,12 @@ import {
   completeSession,
   cancelSession,
   getSessionById,
+  skipLeftoverExercises,
   type SessionNewPR,
 } from '../../db/repository'
 import type { SessionSummary, WorkoutSession } from '../../types'
 import { formatDuration } from '../../utils/id'
-import { getIncompleteWorkoutParts } from '../../utils/workout'
+import { getIncompleteWorkoutParts, hasWorkingSets } from '../../utils/workout'
 import { getDailyMotivationQuote } from '../../utils/dailyMotivation'
 import { CopyCoachMessageButton } from '../history/CopyCoachMessageButton'
 import { DailyQuoteBar } from './DailyQuoteBar'
@@ -90,6 +91,8 @@ export function WorkoutPage() {
   )
 
   const completedCount = exercises.filter((e) => e.status === 'completed').length
+  const skippedCount = exercises.filter((e) => e.status === 'skipped').length
+  const resolvedCount = completedCount + skippedCount
 
   const dailyQuote = useMemo(() => {
     if (!session?.date) return null
@@ -99,28 +102,44 @@ export function WorkoutPage() {
   async function handleFinish() {
     if (!session) return
 
-    const leftover = getIncompleteWorkoutParts(session)
+    let current = session
+    const leftover = getIncompleteWorkoutParts(current)
     if (leftover.incompleteSets > 0) {
       const preview = leftover.details.slice(0, 4).join('\n')
       const more =
         leftover.details.length > 4
           ? `\n… y ${leftover.details.length - 4} más`
           : ''
-      setError(
-        `No puedes finalizar todavía. Faltan ${leftover.incompleteSets} serie(s) en ${leftover.incompleteExercises} ejercicio(s).`,
+      const okSkip = window.confirm(
+        `Faltan ${leftover.incompleteSets} serie(s) en ${leftover.incompleteExercises} ejercicio(s).\n\n${preview}${more}\n\n¿Guardar el entreno y omitir lo que falta?\nLo omitido no cuenta para PR ni para la última vez.`,
       )
+      if (!okSkip) return
+      try {
+        current = await skipLeftoverExercises(current.id)
+        setSession(current)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'No se pudo omitir')
+        return
+      }
+    } else {
+      const ok = window.confirm(
+        '¿Finalizar entrenamiento y guardarlo en el historial?',
+      )
+      if (!ok) return
+    }
+
+    if (!current.exercises.some(hasWorkingSets)) {
+      setError('No hay series hechas. Si no entrenaste, cancela el entrenamiento.')
       window.alert(
-        `Completa todos los ejercicios y sus series antes de finalizar.\n\n${preview}${more}`,
+        'No hay series hechas. Si no entrenaste, cancela el entrenamiento.',
       )
       return
     }
 
-    const ok = window.confirm('¿Finalizar entrenamiento y guardarlo en el historial?')
-    if (!ok) return
     setFinishing(true)
     setError(null)
     try {
-      const result = await completeSession(session.id)
+      const result = await completeSession(current.id)
       setSession(result.session)
       setSummary(result.summary)
       if (result.newPRs.length > 0) {
@@ -278,9 +297,11 @@ export function WorkoutPage() {
                 <span>
                   {ex.status === 'completed'
                     ? '✅'
-                    : ex.sets.some((s) => s.completed)
-                      ? '🟡'
-                      : '⏳'}
+                    : ex.status === 'skipped'
+                      ? '⏭'
+                      : ex.sets.some((s) => s.completed)
+                        ? '🟡'
+                        : '⏳'}
                 </span>
               </li>
             ))}
@@ -339,10 +360,11 @@ export function WorkoutPage() {
               ) : null}
               <p className="text-sm text-muted">
                 {completedCount} de {exercises.length} ejercicios completados
+                {skippedCount > 0 ? ` · ${skippedCount} omitido${skippedCount === 1 ? '' : 's'}` : ''}
               </p>
             </div>
           </div>
-          <ProgressBar value={completedCount} max={Math.max(exercises.length, 1)} />
+          <ProgressBar value={resolvedCount} max={Math.max(exercises.length, 1)} />
         </header>
       </div>
 
@@ -377,7 +399,9 @@ export function WorkoutPage() {
           {cancelling ? 'Cancelando…' : 'Cancelar entrenamiento'}
         </Button>
         <p className="text-center text-xs text-muted">
-          Se guarda en el historial al finalizar. Cancela si lo iniciaste por error.
+          Se guarda en el historial al finalizar. Si te tienes que ir, omite lo que
+          falte: no pisa el PR ni la última vez. Cancela solo si lo iniciaste por
+          error.
         </p>
       </div>
       </div>

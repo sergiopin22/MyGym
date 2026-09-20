@@ -213,7 +213,8 @@ export function HomePage() {
     []
 
   const completedCount = displayExercises.filter(
-    (e) => 'status' in e && e.status === 'completed',
+    (e) =>
+      'status' in e && (e.status === 'completed' || e.status === 'skipped'),
   ).length
   const totalCount = displayExercises.length
 
@@ -488,6 +489,8 @@ export function HomePage() {
                   const mark =
                     status === 'completed'
                       ? '✅'
+                      : status === 'skipped'
+                        ? '⏭'
                       : status === 'in_progress'
                         ? '🟡'
                         : '⏳'
@@ -644,6 +647,8 @@ export function HomePage() {
                           <span className="focus-runway__mark" aria-hidden>
                             {status === 'completed'
                               ? '●'
+                              : status === 'skipped'
+                                ? '✕'
                               : status === 'in_progress'
                                 ? '◐'
                                 : '○'}

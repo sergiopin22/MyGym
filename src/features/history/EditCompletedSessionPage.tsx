@@ -7,7 +7,7 @@ import {
   saveCompletedSessionEdits,
 } from '../../db/repository'
 import type { WorkoutSession } from '../../types'
-import { getIncompleteWorkoutParts } from '../../utils/workout'
+import { getUnstartedWorkoutParts } from '../../utils/workout'
 import { supportsStrapsTracking } from '../../utils/straps'
 import { WorkoutExerciseCard } from '../workout/WorkoutExerciseCard'
 import { PageHeader } from '../../ui/PageHeader'
@@ -67,7 +67,9 @@ export function EditCompletedSessionPage() {
     [draft],
   )
 
-  const completedCount = exercises.filter((e) => e.status === 'completed').length
+  const completedCount = exercises.filter(
+    (e) => e.status === 'completed' || e.status === 'skipped',
+  ).length
 
   const hasBackStrapsExercises = draft
     ? exercises.some((ex) =>
@@ -95,14 +97,14 @@ export function EditCompletedSessionPage() {
 
   async function handleSave() {
     if (!sessionId || !draft) return
-    const leftover = getIncompleteWorkoutParts(draft)
-    if (leftover.incompleteSets > 0) {
-      const preview = leftover.details.slice(0, 4).join('\n')
+    const leftover = getUnstartedWorkoutParts(draft)
+    if (leftover.unstartedExercises > 0) {
+      const preview = leftover.names.slice(0, 4).join('\n')
       setError(
-        `Completa todas las series antes de guardar. Faltan ${leftover.incompleteSets}.`,
+        `Omite o completa al menos una serie en: ${leftover.names.join(', ')}.`,
       )
       window.alert(
-        `Completa peso y reps en todas las series (o desmárcalas).\n\n${preview}`,
+        `Quedan ejercicios sin hacer ni omitir.\n\n${preview}`,
       )
       return
     }

@@ -33,7 +33,12 @@ import {
 import {
   buildExerciseLogFromRoutine,
   computeExerciseStatus,
-  getIncompleteWorkoutParts,
+  getUnstartedWorkoutParts,
+  hasWorkingSets,
+  isWorkingSet,
+  markExerciseSkipped,
+  skipUnstartedExercises,
+  unmarkExerciseSkipped,
 } from '../utils/workout'
 import { supportsStrapsTracking } from '../utils/straps'
 import { machineIdentityKey, sameMachineName } from '../utils/machineName'
@@ -1571,7 +1576,7 @@ export async function updateSet(
       } satisfies SetLog
     })
 
-    const status = computeExerciseStatus(sets)
+    const status = computeExerciseStatus(sets, ex.status)
     const wasCompleted = ex.status === 'completed'
     const nowCompleted = status === 'completed'
 
@@ -1668,8 +1673,9 @@ export async function applyPreviousWeights(
   )
   if (!last) throw new Error('No hay historial previo para este ejercicio')
 
-  const weights = last.sets.map((s) => s.weight)
-  const straps = last.sets.map((s) => s.withStraps)
+  const working = last.sets.filter(isWorkingSet)
+  const weights = (working.length ? working : last.sets).map((s) => s.weight)
+  const straps = (working.length ? working : last.sets).map((s) => s.withStraps)
   const sets = exercise.sets.map((s, index) => ({
     ...s,
     weight: weights[index] ?? weights[weights.length - 1] ?? null,
@@ -1689,6 +1695,53 @@ export async function applyPreviousWeights(
   return saveSession({ ...session, exercises })
 }
 
+export async function skipExercise(
+  sessionId: string,
+  exerciseLogId: string,
+): Promise<WorkoutSession> {
+  const session = await getSessionById(sessionId)
+  if (!session) throw new Error('Sesión no encontrada')
+  if (session.status !== 'in_progress') {
+    throw new Error('La sesión ya está finalizada')
+  }
+
+  const exercises = session.exercises.map((ex) =>
+    ex.id === exerciseLogId ? markExerciseSkipped(ex) : ex,
+  )
+  return saveSession({ ...session, exercises })
+}
+
+export async function unskipExercise(
+  sessionId: string,
+  exerciseLogId: string,
+): Promise<WorkoutSession> {
+  const session = await getSessionById(sessionId)
+  if (!session) throw new Error('Sesión no encontrada')
+  if (session.status !== 'in_progress') {
+    throw new Error('La sesión ya está finalizada')
+  }
+
+  const exercises = session.exercises.map((ex) =>
+    ex.id === exerciseLogId ? unmarkExerciseSkipped(ex) : ex,
+  )
+  return saveSession({ ...session, exercises })
+}
+
+export async function skipLeftoverExercises(
+  sessionId: string,
+): Promise<WorkoutSession> {
+  const session = await getSessionById(sessionId)
+  if (!session) throw new Error('Sesión no encontrada')
+  if (session.status !== 'in_progress') {
+    throw new Error('La sesión ya está finalizada')
+  }
+
+  return saveSession({
+    ...session,
+    exercises: skipUnstartedExercises(session.exercises),
+  })
+}
+
 export async function completeSession(sessionId: string): Promise<{
   session: WorkoutSession
   summary: SessionSummary
@@ -1704,10 +1757,16 @@ export async function completeSession(sessionId: string): Promise<{
     }
   }
 
-  const leftover = getIncompleteWorkoutParts(session)
-  if (leftover.incompleteSets > 0) {
+  const leftover = getUnstartedWorkoutParts(session)
+  if (leftover.unstartedExercises > 0) {
     throw new Error(
-      `Aún faltan ${leftover.incompleteSets} serie${leftover.incompleteSets === 1 ? '' : 's'} en ${leftover.incompleteExercises} ejercicio${leftover.incompleteExercises === 1 ? '' : 's'}. Completa todo antes de finalizar.`,
+      `Aún faltan ${leftover.unstartedExercises} ejercicio${leftover.unstartedExercises === 1 ? '' : 's'} sin hacer: ${leftover.names.join(', ')}. Omítelos o completa al menos una serie.`,
+    )
+  }
+
+  if (!session.exercises.some(hasWorkingSets)) {
+    throw new Error(
+      'No hay series hechas. Si no entrenaste, cancela el entrenamiento.',
     )
   }
 
@@ -1782,7 +1841,7 @@ export async function saveCompletedSessionEdits(
       } satisfies SetLog
     })
 
-    const status = computeExerciseStatus(sets)
+    const status = computeExerciseStatus(sets, draft.status)
     const plannedName =
       draft.plannedName?.trim() ||
       original.plannedName?.trim() ||
@@ -1804,13 +1863,13 @@ export async function saveCompletedSessionEdits(
     })
   }
 
-  const leftover = getIncompleteWorkoutParts({
+  const leftover = getUnstartedWorkoutParts({
     ...session,
     exercises: normalized,
   })
-  if (leftover.incompleteSets > 0) {
+  if (leftover.unstartedExercises > 0) {
     throw new Error(
-      `Quedan ${leftover.incompleteSets} serie(s) incompletas. Completa peso y reps o marca las series.`,
+      `Quedan ejercicios sin hacer: ${leftover.names.join(', ')}. Omítelos o completa al menos una serie.`,
     )
   }
 
@@ -1890,7 +1949,8 @@ export async function getLastExercisePerformance(
       return eg === grip
     })
     if (!match) continue
-    if (!match.sets.some((s) => s.completed)) continue
+    if (match.status === 'skipped' && !hasWorkingSets(match)) continue
+    if (!hasWorkingSets(match)) continue
 
     return {
       sessionId: session.id,
@@ -2056,7 +2116,9 @@ export async function getHomeDaySnapshot(weekday: Weekday): Promise<{
 
   const totalCount = found.day.exercises.length
   const completedCount = relevantSession
-    ? relevantSession.exercises.filter((e) => e.status === 'completed').length
+    ? relevantSession.exercises.filter(
+        (e) => e.status === 'completed' || e.status === 'skipped',
+      ).length
     : 0
 
   return {
@@ -2709,6 +2771,7 @@ export async function listCoachMachines(): Promise<CoachMachineSummary[]> {
 
   for (const session of sessions) {
     for (const ex of session.exercises) {
+      if (!hasWorkingSets(ex)) continue
       const key = normalizeExerciseName(ex.name)
       if (!key) continue
       const existing = byKey.get(key)

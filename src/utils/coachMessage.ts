@@ -78,10 +78,10 @@ export function formatWorkoutForCoach(
       .filter((line): line is string => line !== null)
     const note = ex.note?.trim()
 
-    if (setLines.length === 0 && !note) continue
+    if (setLines.length === 0 && !note && ex.status !== 'skipped') continue
 
     exerciseBlocks++
-    lines.push(ex.name)
+    lines.push(ex.status === 'skipped' ? `${ex.name} · omitido` : ex.name)
     lines.push(...setLines)
     if (note) {
       lines.push(`  📝 ${note}`)
@@ -100,9 +100,15 @@ export function formatWorkoutForCoach(
   )
   const completedExercises = session.exercises.filter((e) => e.status === 'completed').length
 
+  const skippedExercises = session.exercises.filter((e) => e.status === 'skipped').length
+
   lines.push(
     '──────────────────',
-    `Total: ${completedExercises} ejercicio${completedExercises === 1 ? '' : 's'} · ${completedSets} serie${completedSets === 1 ? '' : 's'} completada${completedSets === 1 ? '' : 's'}`,
+    `Total: ${completedExercises} ejercicio${completedExercises === 1 ? '' : 's'} · ${completedSets} serie${completedSets === 1 ? '' : 's'} completada${completedSets === 1 ? '' : 's'}${
+      skippedExercises > 0
+        ? ` · ${skippedExercises} omitido${skippedExercises === 1 ? '' : 's'}`
+        : ''
+    }`,
   )
 
   return lines.join('\n')

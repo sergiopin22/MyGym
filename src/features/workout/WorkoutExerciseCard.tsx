@@ -6,6 +6,8 @@ import { StatusBadge } from '../../components/StatusBadge'
 import { StrapsToggle } from '../../components/StrapsToggle'
 import {
   addExerciseAlternative,
+  skipExercise,
+  unskipExercise,
   applyPreviousWeights,
   evaluateLiveSetPR,
   getExercisePRsForName,
@@ -32,6 +34,8 @@ import {
   computeExerciseStatus,
   getPlannedExerciseName,
   isUsingAlternative,
+  markExerciseSkipped,
+  unmarkExerciseSkipped,
 } from '../../utils/workout'
 import { MachinePicker } from './MachinePicker'
 import { useWeightUnit } from '../../context/WeightUnitProvider'
@@ -74,7 +78,7 @@ function applyLocalSetPatch(
       }
       return next
     })
-    const status = computeExerciseStatus(sets)
+    const status = computeExerciseStatus(sets, ex.status === 'skipped' ? 'skipped' : undefined)
     return {
       ...ex,
       sets,
@@ -263,8 +267,12 @@ export function WorkoutExerciseCard({
             : last
         if (last === undefined) setLast(perf ?? null)
         if (!perf) throw new Error('No hay historial previo para este ejercicio')
-        const weights = perf.sets.map((s) => s.weight)
-        const straps = perf.sets.map((s) => s.withStraps)
+        const working = perf.sets.filter(
+          (s) => s.completed && (s.weight ?? 0) > 0 && (s.reps ?? 0) > 0,
+        )
+        const source = working.length ? working : perf.sets
+        const weights = source.map((s) => s.weight)
+        const straps = source.map((s) => s.withStraps)
         const exercises = session.exercises.map((ex) => {
           if (ex.id !== exercise.id) return ex
           const sets = ex.sets.map((s, index) => ({
@@ -292,6 +300,47 @@ export function WorkoutExerciseCard({
       if (last === undefined) await loadLast()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sin historial previo')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function toggleSkip() {
+    if (!canEdit) return
+    setBusy(true)
+    setError(null)
+    try {
+      if (exercise.status === 'skipped') {
+        if (editMode) {
+          onSessionChange({
+            ...session,
+            exercises: session.exercises.map((ex) =>
+              ex.id === exercise.id ? unmarkExerciseSkipped(ex) : ex,
+            ),
+          })
+          return
+        }
+        onSessionChange(await unskipExercise(session.id, exercise.id))
+        return
+      }
+
+      const ok = window.confirm(
+        `¿Omitir ${exercise.name}?\n\nNo cuenta para PR ni para la última vez. Puedes deshacerlo si te da tiempo.`,
+      )
+      if (!ok) return
+
+      if (editMode) {
+        onSessionChange({
+          ...session,
+          exercises: session.exercises.map((ex) =>
+            ex.id === exercise.id ? markExerciseSkipped(ex) : ex,
+          ),
+        })
+        return
+      }
+      onSessionChange(await skipExercise(session.id, exercise.id))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo omitir')
     } finally {
       setBusy(false)
     }
@@ -553,6 +602,16 @@ export function WorkoutExerciseCard({
             Usar peso anterior
           </Button>
         ) : null}
+        {canEdit ? (
+          <Button
+            variant={exercise.status === 'skipped' ? 'secondary' : 'ghost'}
+            className="min-h-11 px-3 text-sm"
+            disabled={busy}
+            onClick={() => void toggleSkip()}
+          >
+            {exercise.status === 'skipped' ? 'Sí lo voy a hacer' : 'No lo hice'}
+          </Button>
+        ) : null}
         {showStraps && canEdit ? (
           <>
             <Button
@@ -664,6 +723,12 @@ export function WorkoutExerciseCard({
         </div>
       ) : null}
 
+      {exercise.status === 'skipped' ? (
+        <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-fg">
+          Omitido. No entra en PR, gráfica ni última vez.
+        </p>
+      ) : null}
+
       {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
       {canEdit ? (
@@ -741,7 +806,7 @@ export function WorkoutExerciseCard({
                 step={step}
                 min={0}
                 value={toDisplay(set.weight)}
-                disabled={!canEdit}
+                disabled={!canEdit || exercise.status === 'skipped'}
                 onChange={(weight) =>
                   void patchSet(set.id, { weight: toStorage(weight) })
                 }
@@ -751,7 +816,7 @@ export function WorkoutExerciseCard({
                 step={1}
                 min={0}
                 value={set.reps}
-                disabled={!canEdit}
+                disabled={!canEdit || exercise.status === 'skipped'}
                 onChange={(reps) => void patchSet(set.id, { reps })}
               />
               <NumberStepper
@@ -760,12 +825,12 @@ export function WorkoutExerciseCard({
                 min={0}
                 max={10}
                 value={set.rir}
-                disabled={!canEdit}
+                disabled={!canEdit || exercise.status === 'skipped'}
                 onChange={(rir) => void patchSet(set.id, { rir })}
               />
             </div>
 
-            {canEdit ? (
+            {canEdit && exercise.status !== 'skipped' ? (
               <Button
                 fullWidth
                 variant={set.completed ? 'ghost' : 'primary'}

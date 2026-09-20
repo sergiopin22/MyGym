@@ -19,6 +19,11 @@ const config: Record<
     icon: '✅',
     className: 'bg-success-soft text-accent-strong',
   },
+  skipped: {
+    label: 'Omitido',
+    icon: '⏭',
+    className: 'bg-brand-soft text-muted',
+  },
 }
 
 export function StatusBadge({ status }: { status: ExerciseStatus }) {

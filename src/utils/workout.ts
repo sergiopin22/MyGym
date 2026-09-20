@@ -13,11 +13,58 @@ import type {
 
 const DEFAULT_IMAGE = '/exercises/default.svg'
 
-export function computeExerciseStatus(sets: SetLog[]): ExerciseStatus {
+/** Serie real: cuenta para PR, gráfica y “última vez”. */
+export function isWorkingSet(set: Pick<SetLog, 'completed' | 'weight' | 'reps'>): boolean {
+  return (
+    Boolean(set.completed) &&
+    set.weight != null &&
+    set.weight > 0 &&
+    set.reps != null &&
+    set.reps > 0
+  )
+}
+
+export function hasWorkingSets(exercise: Pick<ExerciseLog, 'sets'>): boolean {
+  return exercise.sets.some(isWorkingSet)
+}
+
+export function computeExerciseStatus(
+  sets: SetLog[],
+  previous?: ExerciseStatus,
+): ExerciseStatus {
   const completedCount = sets.filter((s) => s.completed).length
-  if (completedCount === 0) return 'pending'
+  if (completedCount === 0) {
+    return previous === 'skipped' ? 'skipped' : 'pending'
+  }
   if (completedCount >= sets.length) return 'completed'
   return 'in_progress'
+}
+
+export function markExerciseSkipped(exercise: ExerciseLog): ExerciseLog {
+  return {
+    ...exercise,
+    status: 'skipped',
+    completedAt: undefined,
+  }
+}
+
+export function unmarkExerciseSkipped(exercise: ExerciseLog): ExerciseLog {
+  const status = computeExerciseStatus(exercise.sets)
+  return {
+    ...exercise,
+    status,
+    completedAt:
+      status === 'completed' ? exercise.completedAt ?? Date.now() : undefined,
+  }
+}
+
+/** Ejercicios sin ninguna serie hecha → omitidos. Los que ya tienen series quedan como están. */
+export function skipUnstartedExercises(exercises: ExerciseLog[]): ExerciseLog[] {
+  return exercises.map((ex) => {
+    if (ex.status === 'skipped') return ex
+    if (ex.sets.some((s) => s.completed)) return ex
+    return markExerciseSkipped(ex)
+  })
 }
 
 export function emptySets(targetSets: number, createId: () => string): SetLog[] {
@@ -40,6 +87,7 @@ export function getIncompleteWorkoutParts(session: WorkoutSession): {
   let incompleteSets = 0
 
   for (const ex of [...session.exercises].sort((a, b) => a.order - b.order)) {
+    if (ex.status === 'skipped') continue
     const pending = ex.sets.filter((s) => !s.completed).length
     if (pending === 0) continue
     incompleteSets += pending
@@ -52,6 +100,25 @@ export function getIncompleteWorkoutParts(session: WorkoutSession): {
     incompleteExercises: details.length,
     incompleteSets,
     details,
+  }
+}
+
+/** Bloquea finalizar: ejercicios que no se hicieron ni se omitieron. */
+export function getUnstartedWorkoutParts(session: WorkoutSession): {
+  unstartedExercises: number
+  names: string[]
+} {
+  const names: string[] = []
+
+  for (const ex of [...session.exercises].sort((a, b) => a.order - b.order)) {
+    if (ex.status === 'skipped') continue
+    if (ex.sets.some((s) => s.completed)) continue
+    names.push(ex.name)
+  }
+
+  return {
+    unstartedExercises: names.length,
+    names,
   }
 }
 
