@@ -560,11 +560,6 @@ function MachineHistoryView({
       ) : null}
 
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <PrSummaryCard
-          label={supportsStraps ? formatStrapsLabel(false) : 'PR actual'}
-          pr={machine?.pr ?? null}
-          unit={unit}
-        />
         {supportsStraps ? (
           <PrSummaryCard
             label={formatStrapsLabel(true)}
@@ -572,6 +567,11 @@ function MachineHistoryView({
             unit={unit}
           />
         ) : null}
+        <PrSummaryCard
+          label={supportsStraps ? formatStrapsLabel(false) : 'PR actual'}
+          pr={machine?.pr ?? null}
+          unit={unit}
+        />
       </div>
 
       {!loading && history.length > 0 ? (
@@ -585,6 +585,7 @@ function MachineHistoryView({
               baseName: title,
               displayName: title,
               supportsStraps,
+              initialWithStraps: supportsStraps,
             }}
           />
         </div>

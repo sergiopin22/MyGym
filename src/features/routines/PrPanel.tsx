@@ -153,7 +153,7 @@ function toStatsTarget(row: RoutinePrRow): ExerciseStatsTarget {
     gripName: row.gripName,
     displayName: row.exerciseName,
     supportsStraps: row.supportsStraps,
-    initialWithStraps: Boolean(row.supportsStraps && !row.pr && row.prWithStraps),
+    initialWithStraps: row.supportsStraps,
   }
 }
 

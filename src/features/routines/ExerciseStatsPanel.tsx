@@ -32,11 +32,9 @@ const RANGES: Array<{ id: ExerciseProgressRange; label: string }> = [
   { id: 'all', label: 'Todo' },
 ]
 
-function trendLabel(trend: ExerciseProgressStats['trend']): string {
-  if (trend === 'up') return 'Subiendo'
-  if (trend === 'down') return 'Bajando'
-  if (trend === 'flat') return 'Estable'
-  return 'Sin tendencia'
+function defaultWithStraps(target: ExerciseStatsTarget): boolean {
+  if (!target.supportsStraps) return false
+  return target.initialWithStraps !== false
 }
 
 export interface ExerciseStatsTarget {
@@ -45,6 +43,11 @@ export interface ExerciseStatsTarget {
   displayName: string
   supportsStraps: boolean
   initialWithStraps?: boolean
+}
+
+function defaultWithStraps(target: ExerciseStatsTarget): boolean {
+  if (!target.supportsStraps) return false
+  return target.initialWithStraps !== false
 }
 
 interface ExerciseStatsPanelProps {
@@ -73,14 +76,14 @@ export function ExerciseStatsPanel({
   const toDisplay = (lb: number | null | undefined) => lbToDisplay(lb, unit)
   const isFocus = forceFocus || uiLayout === 'focus'
   const [range, setRange] = useState<ExerciseProgressRange>('3m')
-  const [withStraps, setWithStraps] = useState(Boolean(target.initialWithStraps))
+  const [withStraps, setWithStraps] = useState(() => defaultWithStraps(target))
   const [stats, setStats] = useState<ExerciseProgressStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<number | null>(null)
 
   useEffect(() => {
-    setWithStraps(Boolean(target.initialWithStraps))
-  }, [target.baseName, target.gripName, target.initialWithStraps])
+    setWithStraps(defaultWithStraps(target))
+  }, [target.baseName, target.gripName, target.initialWithStraps, target.supportsStraps])
 
   useEffect(() => {
     let alive = true
@@ -187,7 +190,7 @@ export function ExerciseStatsPanel({
 
       {target.supportsStraps ? (
         <div className={isFocus ? 'pr-stats__filters' : 'mb-3 flex flex-wrap gap-2'}>
-          {[false, true].map((mode) => (
+          {[true, false].map((mode) => (
             <button
               key={String(mode)}
               type="button"
