@@ -16,6 +16,7 @@ import {
   isWeightUnit,
   setStoredWeightUnit,
 } from '../utils/weight'
+import { setStoredDisplayName } from '../utils/displayName'
 
 export type ReconcileAction = 'noop' | 'downloaded' | 'uploaded' | 'cleared'
 
@@ -89,6 +90,19 @@ export async function pullAccountWeightUnit(userId: string): Promise<boolean> {
   return true
 }
 
+export async function pullAccountDisplayName(userId: string): Promise<boolean> {
+  const sb = getSupabase()
+  if (!sb) return false
+  const { data, error } = await sb
+    .from('profiles')
+    .select('display_name')
+    .eq('id', userId)
+    .maybeSingle()
+  if (error || !data?.display_name?.trim()) return false
+  setStoredDisplayName(data.display_name, userId)
+  return true
+}
+
 /**
  * Al iniciar sesión: la cuenta manda.
  * - Datos locales de OTRA cuenta → no se suben; se limpian o se reemplazan
@@ -115,6 +129,7 @@ async function reconcileAccountOnLoginInner(
   onProgress('Sincronizando cuenta…')
 
   const weightUnitApplied = await pullAccountWeightUnit(userId)
+  await pullAccountDisplayName(userId)
 
   const [localRoutines, localSessions, cloud] = await Promise.all([
     db.routines.count(),

@@ -5,6 +5,7 @@ import { db } from '../db/schema'
 import { getSupabase } from '../lib/supabase'
 import { getStoredThemeId } from '../themes/applyTheme'
 import { getStoredFocusAccent, getStoredUiLayout } from '../ui/layoutMode'
+import { getStoredDisplayName } from '../utils/displayName'
 import { getStoredWeightUnit } from '../utils/weight'
 import { setLocalDataOwner } from './localDataOwner'
 import { msToIso } from './time'
@@ -232,6 +233,21 @@ export async function uploadLocalToCloud(
       { onConflict: 'user_id' },
     )
     if (error) throw new Error(`preferencias: ${error.message}`)
+  }
+
+  {
+    const displayName = getStoredDisplayName(userId)
+    if (displayName) {
+      const { error } = await sb.from('profiles').upsert(
+        {
+          id: userId,
+          display_name: displayName,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' },
+      )
+      if (error) throw new Error(`perfil: ${error.message}`)
+    }
   }
 
   let mediaCount = 0

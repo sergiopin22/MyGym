@@ -71,6 +71,7 @@ export const SUPABASE_SYNC_INVENTORY = {
         'brandAvatarId',
         'avatarMode (preset/custom)',
         'weightUnit (lb/kg display; DB siempre lb)',
+        'display_name en profiles (nombre para el coach)',
       ],
     },
   ],

@@ -4,6 +4,7 @@ import { BackupPanel } from '../backup/BackupPanel'
 import { CloudPanel } from '../cloud/CloudPanel'
 import { ThemePicker } from '../settings/ThemePicker'
 import { WeightUnitSettings } from '../settings/WeightUnitSettings'
+import { DisplayNameSettings } from '../settings/DisplayNameSettings'
 import { PageHeader } from '../../ui/PageHeader'
 import { Card } from '../../components/Card'
 
@@ -51,6 +52,7 @@ export function ProgressPage() {
 
       <div className="grid gap-5 lg:grid-cols-2 lg:items-start">
         <div id="temas" className="space-y-5">
+          <DisplayNameSettings />
           <ThemePicker />
           <WeightUnitSettings />
         </div>

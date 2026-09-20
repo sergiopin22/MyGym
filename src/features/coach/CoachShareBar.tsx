@@ -4,6 +4,7 @@ import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { useAuth } from '../../context/AuthProvider'
 import { copyToClipboard } from '../../utils/clipboard'
+import { getStoredDisplayName } from '../../utils/displayName'
 import {
   coachShareWhatsAppText,
   getMyCoachShare,
@@ -75,7 +76,9 @@ export function CoachShareBar() {
         share ?? (await publishCoachShare(user.id, { rotateToken: false }))
       setShare(next)
       window.open(
-        `https://wa.me/?text=${encodeURIComponent(coachShareWhatsAppText(next.url))}`,
+        `https://wa.me/?text=${encodeURIComponent(
+          coachShareWhatsAppText(next.url, getStoredDisplayName(user.id)),
+        )}`,
         '_blank',
         'noopener,noreferrer',
       )

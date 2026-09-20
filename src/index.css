@@ -79,8 +79,40 @@
   html[data-theme='midnight'],
   html[data-theme='ippo'],
   html[data-theme='asta'],
-  html[data-theme='temach'] {
+  html[data-theme='temach'],
+  html[data-coach-view] {
     color-scheme: dark;
+  }
+
+  html[data-coach-view] {
+    --color-fg: #f5f5f5;
+    --color-fg-muted: #a3a3a3;
+    --color-chrome: #ef4444;
+    --color-chrome-fg: #ffffff;
+    --color-chrome-soft: #b91c1c;
+    --color-surface: #0a0a0a;
+    --color-surface-elevated: #141414;
+    --color-line: #2b2b2b;
+    --color-brand: #ef4444;
+    --color-brand-soft: #2a1212;
+    --color-brand-strong: #dc2626;
+    --color-accent: #ef4444;
+    --color-accent-strong: #b91c1c;
+    --color-accent-fg: #ffffff;
+    --color-progress: #f87171;
+    --color-success-soft: #1f1515;
+    --color-progress-soft: #1a1212;
+    --color-danger: #f87171;
+    --color-danger-strong: #ef4444;
+    --color-danger-fg: #0a0a0a;
+    --color-overlay: rgba(0, 0, 0, 0.72);
+    --color-ink: #f5f5f5;
+    --color-ink-soft: #1c1c1c;
+    --color-muted: #a3a3a3;
+    --body-background:
+      radial-gradient(900px 480px at 0% -10%, rgba(239, 68, 68, 0.28) 0%, transparent 55%),
+      radial-gradient(700px 420px at 100% 0%, rgba(127, 29, 29, 0.4) 0%, transparent 50%),
+      linear-gradient(180deg, #050505 0%, #0a0a0a 45%, #0f0f0f 100%);
   }
 
   body {

@@ -7,6 +7,7 @@ import {
   type ExercisePR,
 } from '../../db/repository'
 import { getSupabase, isSupabaseConfigured } from '../../lib/supabase'
+import { getStoredDisplayName } from '../../utils/displayName'
 import { getStoredWeightUnit, type WeightUnit } from '../../utils/weight'
 
 export function isPublicCoachSharePath(pathname: string): boolean {
@@ -17,6 +18,7 @@ export interface CoachSharePayload {
   version: 1
   publishedAt: number
   unit: WeightUnit
+  athleteName?: string
   machines: CoachMachineSummary[]
   prs: ExercisePR[]
   historyByMachine: Record<string, CoachMachineSession[]>
@@ -67,7 +69,11 @@ export function coachShareUrl(token: string): string {
   return `${publicAppOrigin()}/coach/${token}`
 }
 
-export function coachShareWhatsAppText(url: string): string {
+export function coachShareWhatsAppText(url: string, athleteName?: string): string {
+  const who = athleteName?.trim()
+  if (who) {
+    return `Hola, aquí está el historial de ${who} (máquinas y PRs, solo lectura):\n${url}`
+  }
   return `Hola, aquí está el historial de mis máquinas y PRs (solo lectura):\n${url}`
 }
 
@@ -87,6 +93,7 @@ export async function buildCoachSharePayload(
     version: 1,
     publishedAt: Date.now(),
     unit: getStoredWeightUnit(userId),
+    athleteName: getStoredDisplayName(userId) || undefined,
     machines,
     prs,
     historyByMachine,

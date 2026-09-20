@@ -16,6 +16,7 @@ import {
   isWeightUnit,
   setStoredWeightUnit,
 } from '../utils/weight'
+import { setStoredDisplayName } from '../utils/displayName'
 import { setLocalDataOwner } from './localDataOwner'
 import type {
   BodyCheckIn,
@@ -400,6 +401,19 @@ async function downloadCloudToLocalInner(
     }
     if (prefs.weight_unit && isWeightUnit(prefs.weight_unit)) {
       setStoredWeightUnit(prefs.weight_unit, true, userId)
+      restoredPreferences = true
+    }
+  }
+
+  const sb = getSupabase()
+  if (sb) {
+    const { data: profile } = await sb
+      .from('profiles')
+      .select('display_name')
+      .eq('id', userId)
+      .maybeSingle()
+    if (profile?.display_name?.trim()) {
+      setStoredDisplayName(profile.display_name, userId)
       restoredPreferences = true
     }
   }

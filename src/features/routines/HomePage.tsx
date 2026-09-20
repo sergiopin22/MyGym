@@ -16,6 +16,7 @@ import { BrandAvatarButton } from './BrandAvatarButton'
 import { FocusGymHeatmap } from './FocusGymHeatmap'
 import { RestDayToggle } from './RestDayToggle'
 import { BackupReminderCard } from '../backup/BackupReminderCard'
+import { DisplayNamePrompt } from '../settings/DisplayNamePrompt'
 import { useTheme } from '../../context/ThemeProvider'
 
 function sortDays(days: RoutineDay[]): RoutineDay[] {
@@ -596,6 +597,10 @@ export function HomePage() {
             </div>
 
             <div className="focus-section-pad">
+              <DisplayNamePrompt />
+            </div>
+
+            <div className="focus-section-pad">
               <BackupReminderCard />
             </div>
 
@@ -819,6 +824,8 @@ export function HomePage() {
         </div>
         <BrandAvatarButton />
       </header>
+
+      <DisplayNamePrompt />
 
       <BackupReminderCard />
 

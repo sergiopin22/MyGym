@@ -17,13 +17,16 @@ import {
   formatWeightPair,
   type WeightUnit,
 } from '../../utils/weight'
+import { getStoredDisplayName } from '../../utils/displayName'
 import {
   buildCoachSharePayload,
   fetchCoachSharePayload,
   historyKey,
   type CoachSharePayload,
 } from './coachShare'
+import { applyCoachViewSkin, clearCoachViewSkin } from './coachTheme'
 import { CoachShareBar } from './CoachShareBar'
+import { DisplayNamePrompt } from '../settings/DisplayNamePrompt'
 
 type CoachTab = 'machines' | 'prs'
 
@@ -80,8 +83,19 @@ export function CoachPage() {
   const [loadError, setLoadError] = useState<string | null>(null)
   const [selectedName, setSelectedName] = useState<string | null>(null)
 
+  const [nameTick, setNameTick] = useState(0)
+  const athleteName = useMemo(() => {
+    if (isPublic) return payload?.athleteName?.trim() || ''
+    return getStoredDisplayName(user?.id)
+  }, [isPublic, payload?.athleteName, user?.id, nameTick])
+
   const unit = payload?.unit ?? localUnit
   const format = (lb: number | null | undefined) => formatWeight(lb, unit)
+
+  useEffect(() => {
+    applyCoachViewSkin()
+    return () => clearCoachViewSkin()
+  }, [])
 
   useEffect(() => {
     let alive = true
@@ -202,11 +216,17 @@ export function CoachPage() {
         ) : (
           <>
             <PageHeader
-              kicker="Focus · Coach"
-              title={isPublic ? 'Historial del atleta' : 'Vista coach'}
+              kicker={athleteName ? `Coach · ${athleteName}` : 'Coach'}
+              title={
+                isPublic
+                  ? athleteName || 'Historial del atleta'
+                  : 'Vista coach'
+              }
               subtitle={
                 isPublic
-                  ? 'Solo lectura. Filtra por máquina o mira todos los PRs.'
+                  ? athleteName
+                    ? `Historial y PRs de ${athleteName}. Solo lectura.`
+                    : 'Solo lectura. Filtra por máquina o mira todos los PRs.'
                   : 'Crea un enlace para tu coach. Él lo abre en su celular, sin cuenta.'
               }
               back={
@@ -221,7 +241,14 @@ export function CoachPage() {
               }
             />
 
-            {isPublic ? null : <CoachShareBar />}
+            {isPublic ? null : (
+              <>
+                <div className="mt-3">
+                  <DisplayNamePrompt onSaved={() => setNameTick((n) => n + 1)} />
+                </div>
+                <CoachShareBar />
+              </>
+            )}
 
             {loadError ? (
               <p className="mt-4 rounded-2xl bg-surface px-3 py-3 text-sm font-medium text-danger ring-1 ring-line">
