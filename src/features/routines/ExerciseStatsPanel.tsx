@@ -32,9 +32,11 @@ const RANGES: Array<{ id: ExerciseProgressRange; label: string }> = [
   { id: 'all', label: 'Todo' },
 ]
 
-function defaultWithStraps(target: ExerciseStatsTarget): boolean {
-  if (!target.supportsStraps) return false
-  return target.initialWithStraps !== false
+function trendLabel(trend: ExerciseProgressStats['trend']): string {
+  if (trend === 'up') return 'Subiendo'
+  if (trend === 'down') return 'Bajando'
+  if (trend === 'flat') return 'Estable'
+  return 'Sin tendencia'
 }
 
 export interface ExerciseStatsTarget {
