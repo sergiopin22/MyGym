@@ -7,6 +7,7 @@ import {
   type ExercisePR,
 } from '../../db/repository'
 import { getSupabase, isSupabaseConfigured } from '../../lib/supabase'
+import { getStoredCoachName } from '../../utils/coachName'
 import { getStoredDisplayName } from '../../utils/displayName'
 import { getStoredWeightUnit, type WeightUnit } from '../../utils/weight'
 import { machineIdentityKey } from '../../utils/machineName'
@@ -20,6 +21,8 @@ export interface CoachSharePayload {
   publishedAt: number
   unit: WeightUnit
   athleteName?: string
+  /** Nombre del coach, lo pone el atleta en Ajustes. */
+  coachName?: string
   machines: CoachMachineSummary[]
   prs: ExercisePR[]
   historyByMachine: Record<string, CoachMachineSession[]>
@@ -91,6 +94,7 @@ export async function buildCoachSharePayload(
     publishedAt: Date.now(),
     unit: getStoredWeightUnit(userId),
     athleteName: getStoredDisplayName(userId) || undefined,
+    coachName: getStoredCoachName(userId) || undefined,
     machines,
     prs,
     historyByMachine,

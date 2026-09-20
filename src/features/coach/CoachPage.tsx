@@ -17,6 +17,7 @@ import {
   formatWeightPair,
   type WeightUnit,
 } from '../../utils/weight'
+import { getStoredCoachName } from '../../utils/coachName'
 import { getStoredDisplayName } from '../../utils/displayName'
 import { machineIdentityKey } from '../../utils/machineName'
 import {
@@ -27,6 +28,7 @@ import {
 } from './coachShare'
 import { applyCoachViewSkin, clearCoachViewSkin } from './coachTheme'
 import { CoachShareBar } from './CoachShareBar'
+import { CoachNamePrompt } from '../settings/CoachNamePrompt'
 import { DisplayNamePrompt } from '../settings/DisplayNamePrompt'
 
 type CoachTab = 'machines' | 'prs'
@@ -116,6 +118,11 @@ export function CoachPage() {
     if (isPublic) return payload?.athleteName?.trim() || ''
     return getStoredDisplayName(user?.id)
   }, [isPublic, payload?.athleteName, user?.id, nameTick])
+
+  const coachName = useMemo(() => {
+    if (isPublic) return payload?.coachName?.trim() || ''
+    return getStoredCoachName(user?.id)
+  }, [isPublic, payload?.coachName, user?.id, nameTick])
 
   const unit = payload?.unit ?? localUnit
   const format = (lb: number | null | undefined) => formatWeight(lb, unit)
@@ -297,7 +304,7 @@ export function CoachPage() {
           <>
             <PageHeader
               forceFocus
-              kicker={athleteName ? `Coach · ${athleteName}` : 'Coach'}
+              kicker={coachName ? `Coach · ${coachName}` : 'Coach'}
               title={
                 isPublic
                   ? athleteName || 'Historial del atleta'
@@ -324,8 +331,9 @@ export function CoachPage() {
 
             {isPublic ? null : (
               <>
-                <div className="mt-3">
+                <div className="mt-3 space-y-3">
                   <DisplayNamePrompt onSaved={() => setNameTick((n) => n + 1)} />
+                  <CoachNamePrompt onSaved={() => setNameTick((n) => n + 1)} />
                 </div>
                 <CoachShareBar />
               </>
