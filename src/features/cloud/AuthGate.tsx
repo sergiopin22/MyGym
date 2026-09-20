@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthProvider'
 import { useWeightUnit } from '../../context/WeightUnitProvider'
@@ -19,6 +19,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const { configured, loading, user } = useAuth()
   const { unit } = useWeightUnit()
   const publicCoach = isPublicCoachSharePath(location.pathname)
+  const [slow, setSlow] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -27,16 +28,40 @@ export function AuthGate({ children }: { children: ReactNode }) {
     }
   }, [user])
 
+  useEffect(() => {
+    if (!loading) {
+      setSlow(false)
+      return
+    }
+    const t = window.setTimeout(() => setSlow(true), 7000)
+    return () => window.clearTimeout(t)
+  }, [loading])
+
   if (publicCoach) return <>{children}</>
 
   if (!configured) return <>{children}</>
 
   if (loading) {
     return (
-      <div className="flex min-h-dvh items-center justify-center px-5">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 px-5">
         <p className="font-display text-sm font-semibold text-muted">
           Cargando Mi Gym…
         </p>
+        {slow ? (
+          <>
+            <p className="max-w-sm text-center text-sm text-muted">
+              La nube está tardando. Recarga; si sigue igual, cierra la app y
+              ábrela de nuevo.
+            </p>
+            <button
+              type="button"
+              className="min-h-11 rounded-xl bg-chrome px-5 text-sm font-semibold text-chrome-fg"
+              onClick={() => window.location.reload()}
+            >
+              Recargar
+            </button>
+          </>
+        ) : null}
       </div>
     )
   }

@@ -54,21 +54,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     let alive = true
-    void sb.auth.getSession().then(({ data }) => {
+    const finish = (next?: Session | null) => {
       if (!alive) return
-      setSession(data.session)
+      if (next !== undefined) setSession(next)
       setLoading(false)
-    })
+    }
+
+    const timeout = window.setTimeout(() => {
+      console.warn('La sesión de la nube tardó demasiado; se muestra la app igual.')
+      finish()
+    }, 8000)
+
+    void sb.auth
+      .getSession()
+      .then(({ data, error }) => {
+        window.clearTimeout(timeout)
+        if (error) {
+          console.warn('getSession:', error.message)
+          finish(null)
+          return
+        }
+        finish(data.session)
+      })
+      .catch((err: unknown) => {
+        window.clearTimeout(timeout)
+        console.warn('getSession falló:', err)
+        finish(null)
+      })
 
     const {
       data: { subscription },
     } = sb.auth.onAuthStateChange((_event, next) => {
-      setSession(next)
-      setLoading(false)
+      finish(next)
     })
 
     return () => {
       alive = false
+      window.clearTimeout(timeout)
       subscription.unsubscribe()
     }
   }, [configured])
