@@ -25,12 +25,12 @@ const RULES = [
   'Cada entrenamiento que finalices suma +1 a tu meta.',
   'Si fallas 1 día de gym en la semana, no pasa nada.',
   'Si fallas 2 días netos en la semana (sin recuperar), el domingo a las 23:59 debes donar $30 USD a Helen (penitencia).',
-  'Todo el domingo puedes recuperar 1 día; la penitencia solo se aplica después de las 23:59 (o el lunes).',
+  'Hasta el domingo 23:59 puedes recuperar 1 día; la penitencia solo se aplica después de las 23:59 (o el lunes).',
   'Los días anteriores a crear la meta no cuentan como fallo ni penitencia.',
   'Si fallas 3 días netos en la misma semana, el progreso de la meta vuelve a 0.',
   'Los días de descanso no cuentan como fallo.',
-  'Sábado o domingo puedes recuperar 1 día perdido (máx. una vez). Ese día deja de contar como fallo.',
-  'Ejemplo: fallaste 2 y recuperaste 1 el domingo → solo fallaste 1 → no hay penitencia ni reinicio.',
+  'Cualquier día puedes recuperar 1 día perdido de esta semana (máx. una vez). Ese día deja de contar como fallo.',
+  'Ejemplo: fallaste martes, el miércoles recuperas espalda → el martes ya no es fallo. El de hoy queda pendiente si no lo haces.',
 ]
 
 interface ConstancyGoalCardProps {
@@ -570,11 +570,12 @@ export function ConstancyGoalCard({
           {canRecover && missedDays.length > 0 ? (
             <div className="space-y-2 rounded-2xl bg-brand-soft px-3 py-3">
               <p className="text-sm font-semibold text-fg">
-                Recuperar día perdido (fin de semana)
+                Recuperar día perdido
               </p>
               <p className="text-xs text-muted">
-                Elige el día que te faltó. Si recuperas 1 de 2 fallos, te salvas
-                de la penitencia.
+                Elige el día que te faltó. Puedes recuperarlo cualquier día de
+                esta semana (1 vez). Si recuperas 1 de 2 fallos, te salvas de la
+                penitencia.
               </p>
               <div className="flex flex-wrap gap-2">
                 {missedDays.map((day) => {

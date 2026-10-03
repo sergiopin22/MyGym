@@ -61,6 +61,7 @@ function GoldenTrophy() {
 type RoutinePrRow = {
   exerciseName: string
   baseName: string
+  machineId?: string
   gripName?: string
   dayLabels: string[]
   muscleGroups: string[]
@@ -150,6 +151,7 @@ function emptyPrMessage(
 function toStatsTarget(row: RoutinePrRow): ExerciseStatsTarget {
   return {
     baseName: row.baseName,
+    machineId: row.machineId,
     gripName: row.gripName,
     displayName: row.exerciseName,
     supportsStraps: row.supportsStraps,

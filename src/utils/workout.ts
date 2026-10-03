@@ -130,6 +130,7 @@ export function buildExerciseLogFromRoutine(
   return {
     id: createId(),
     routineExerciseId: exercise.id,
+    machineId: exercise.machineId,
     name: plannedName,
     plannedName,
     targetSets: exercise.targetSets,

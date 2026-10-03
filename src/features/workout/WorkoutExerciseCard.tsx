@@ -202,11 +202,13 @@ export function WorkoutExerciseCard({
           exercise.name,
           session.id,
           exercise.activeGripName,
+          exercise.machineId,
         ),
         getExercisePRsForName(
           exercise.name,
           exercise.activeGripName,
           session.id,
+          exercise.machineId,
         ),
       ])
       setLast(perf ?? null)
@@ -263,6 +265,7 @@ export function WorkoutExerciseCard({
                 exercise.name,
                 session.id,
                 exercise.activeGripName,
+                exercise.machineId,
               )
             : last
         if (last === undefined) setLast(perf ?? null)
@@ -394,10 +397,17 @@ export function WorkoutExerciseCard({
         const planned = getPlannedExerciseName(exercise)
         let nextName = planned
         let activeAlternativeId: string | undefined
+        let nextMachineId = exercise.machineId
 
         if (choice.type === 'original') {
           nextName = planned
           activeAlternativeId = undefined
+          const routineEx = await getRoutineExerciseById(
+            exercise.routineExerciseId,
+            session.routineDayId,
+            session.routineId,
+          )
+          nextMachineId = routineEx?.machineId ?? exercise.machineId
         } else {
           const routineEx = await getRoutineExerciseById(
             exercise.routineExerciseId,
@@ -413,6 +423,7 @@ export function WorkoutExerciseCard({
             if (!alt) throw new Error('Alternativa no encontrada')
             nextName = alt.name
             activeAlternativeId = alt.id
+            nextMachineId = alt.machineId
           } else {
             const updated = await addExerciseAlternative(
               session.routineDayId,
@@ -427,6 +438,7 @@ export function WorkoutExerciseCard({
             if (!created) throw new Error('No se pudo crear la alternativa')
             nextName = created.name
             activeAlternativeId = created.id
+            nextMachineId = created.machineId
           }
         }
 
@@ -439,6 +451,7 @@ export function WorkoutExerciseCard({
                   plannedName: planned,
                   name: nextName,
                   activeAlternativeId,
+                  machineId: nextMachineId,
                 }
               : ex,
           ),

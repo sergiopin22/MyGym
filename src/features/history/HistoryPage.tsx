@@ -19,12 +19,20 @@ export function HistoryPage() {
         title="Historial"
         subtitle="Entrenamientos guardados. Copia el resumen o ábrelo en vista coach."
         action={
-          <Link
-            to="/coach"
-            className="inline-flex min-h-11 shrink-0 items-center rounded-xl bg-brand-soft px-3 py-2 text-sm font-bold text-fg"
-          >
-            Vista coach
-          </Link>
+          <div className="flex shrink-0 flex-col items-end gap-2">
+            <Link
+              to="/historial/cargar"
+              className="inline-flex min-h-11 items-center rounded-xl bg-chrome px-3 py-2 text-sm font-bold text-chrome-fg"
+            >
+              Cargar a mano
+            </Link>
+            <Link
+              to="/coach"
+              className="inline-flex min-h-11 items-center rounded-xl bg-brand-soft px-3 py-2 text-sm font-bold text-fg"
+            >
+              Vista coach
+            </Link>
+          </div>
         }
       />
 
@@ -87,7 +95,7 @@ export function HistoryDetailPage() {
           weekday: 'long',
           day: 'numeric',
           month: 'long',
-        })}${session.durationMs != null ? ` · ${formatDuration(session.durationMs)}` : ''}`}
+        })}${session.durationMs ? ` · ${formatDuration(session.durationMs)}` : ''}`}
         back={
           <Link
             to="/historial"
@@ -104,6 +112,11 @@ export function HistoryDetailPage() {
               {session.recoveredDayLabel
                 ? ` · rutina del ${session.recoveredDayLabel}`
                 : ''}
+            </span>
+          ) : null}
+          {session.isManualEntry ? (
+            <span className="inline-flex rounded-full bg-brand-soft px-3 py-1 text-xs font-bold text-fg">
+              Cargado a mano
             </span>
           ) : null}
           {session.editedAt ? (

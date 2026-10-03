@@ -41,6 +41,7 @@ function trendLabel(trend: ExerciseProgressStats['trend']): string {
 
 export interface ExerciseStatsTarget {
   baseName: string
+  machineId?: string
   gripName?: string
   displayName: string
   supportsStraps: boolean
@@ -94,12 +95,14 @@ export function ExerciseStatsPanel({
       ? Promise.resolve(
           getExerciseProgressFromCoachHistory(historySource, {
             baseName: target.baseName,
+            machineId: target.machineId,
             withStraps,
             range,
           }),
         )
       : getExerciseProgressHistory({
           baseName: target.baseName,
+          machineId: target.machineId,
           gripName: target.gripName,
           withStraps,
           range,

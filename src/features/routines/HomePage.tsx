@@ -7,10 +7,11 @@ import {
   ensureDefaultRoutine,
   getActiveSession,
   getCompletedSessionToday,
+  getRecoverableMissedDays,
   startSession,
 } from '../../db/repository'
 import type { Routine, RoutineDay, Weekday, WorkoutSession } from '../../types'
-import { isWeekend, weekdayLabel } from '../../utils/id'
+import { weekdayLabel } from '../../utils/id'
 import { ConstancyGoalCard } from './ConstancyGoalCard'
 import { BrandAvatarButton } from './BrandAvatarButton'
 import { FocusGymHeatmap } from './FocusGymHeatmap'
@@ -109,6 +110,7 @@ export function HomePage() {
   const [error, setError] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
   const [recoveryDay, setRecoveryDay] = useState<RoutineDay | null>(null)
+  const [missedDays, setMissedDays] = useState<RoutineDay[]>([])
   const [goalRefresh, setGoalRefresh] = useState(0)
   const [locateToday, setLocateToday] = useState(false)
   const [focusDeck, setFocusDeck] = useState<'hoy' | 'semana' | 'meta'>('hoy')
@@ -171,6 +173,21 @@ export function HomePage() {
     }
   }, [loading, routine])
 
+  useEffect(() => {
+    if (loading) return
+    let alive = true
+    getRecoverableMissedDays()
+      .then((days) => {
+        if (alive) setMissedDays(days)
+      })
+      .catch(() => {
+        if (alive) setMissedDays([])
+      })
+    return () => {
+      alive = false
+    }
+  }, [loading, goalRefresh, todayWeekday, completedToday?.id])
+
   const days = useMemo(
     () => (routine ? sortDays(routine.days) : []),
     [routine],
@@ -186,7 +203,7 @@ export function HomePage() {
     [days, todayWeekday],
   )
 
-  const isRecoveryMode = Boolean(recoveryDay) && isWeekend(todayWeekday)
+  const isRecoveryMode = Boolean(recoveryDay)
   const isTodaySelected = recoveryDay
     ? false
     : selectedWeekday === todayWeekday
@@ -412,6 +429,72 @@ export function HomePage() {
     </>
   )
 
+  const recoveryBanner =
+    missedDays.length > 0 || isRecoveryMode ? (
+      <div className="space-y-2 rounded-2xl bg-brand-soft px-3 py-3">
+        <p className="text-sm font-semibold text-fg">
+          {isRecoveryMode
+            ? `Vas a recuperar el ${weekdayLabel(recoveryDay!.weekday)}`
+            : 'Recuperar un día que te faltó'}
+        </p>
+        <p className="text-xs text-muted">
+          {isRecoveryMode
+            ? 'Al comenzar verás esa rutina (peso, reps y RIR). El de hoy queda pendiente si no lo haces después.'
+            : 'Cualquier día puedes recuperar 1 fallo de esta semana. Elige el día y empieza ese entrenamiento.'}
+        </p>
+        {missedDays.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {missedDays.map((day) => {
+              const selected = recoveryDay?.id === day.id
+              return (
+                <button
+                  key={day.id}
+                  type="button"
+                  onClick={() =>
+                    selected
+                      ? handleClearRecovery()
+                      : handleSelectRecoveryDay(day)
+                  }
+                  className={[
+                    'min-h-11 rounded-xl px-3 text-sm font-semibold ring-1 transition',
+                    selected
+                      ? 'bg-chrome text-chrome-fg ring-chrome'
+                      : 'bg-surface text-fg ring-line',
+                  ].join(' ')}
+                >
+                  {weekdayLabel(day.weekday)}
+                  {selected ? ' · seleccionado' : ''}
+                </button>
+              )
+            })}
+          </div>
+        ) : null}
+        {isRecoveryMode ? (
+          <button
+            type="button"
+            className="text-xs font-semibold text-brand underline"
+            onClick={handleClearRecovery}
+          >
+            Cancelar recuperación
+          </button>
+        ) : null}
+        <Link
+          to="/historial/cargar"
+          className="block text-xs font-semibold text-brand underline"
+        >
+          ¿Ya lo hiciste y no quedó registrado? Cárgalo a mano
+        </Link>
+      </div>
+    ) : (
+      <p className="text-xs text-muted">
+        Si un día entrenaste y la app no guardó nada,{' '}
+        <Link to="/historial/cargar" className="font-semibold text-brand underline">
+          carga el entreno a mano
+        </Link>
+        .
+      </p>
+    )
+
   const sessionBody = (
     <>
       {isRestDay && !sessionForSelected && !completedTodayForSelected ? (
@@ -459,9 +542,9 @@ export function HomePage() {
             </p>
           ) : !isTodaySelected ? (
             <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-fg">
-              Estás viendo la rutina del {weekdayLabel(selectedWeekday)}. Solo puedes
-              comenzar el entrenamiento del día de hoy (
-              {weekdayLabel(todayWeekday)}).
+              Estás viendo la rutina del {weekdayLabel(selectedWeekday)}. Para
+              entrenar usa el día de hoy ({weekdayLabel(todayWeekday)}) o
+              recupera un día que te faltó.
             </p>
           ) : null}
 
@@ -607,6 +690,8 @@ export function HomePage() {
               <BackupReminderCard />
             </div>
 
+            <div className="focus-section-pad">{recoveryBanner}</div>
+
             {selectedDay && routine && isTodaySelected ? (
               <div className="focus-section-pad">
                 <RestDayToggle
@@ -689,7 +774,8 @@ export function HomePage() {
                   : 'Tu semana en escalera'}
               </h2>
               <p className="focus-page-sub">
-                Toca un día para abrirlo. Hoy es el único que puedes entrenar.
+                Toca un día para abrirlo. Puedes entrenar el de hoy o recuperar
+                un día que te faltó esta semana.
               </p>
             </header>
 
@@ -834,6 +920,14 @@ export function HomePage() {
 
       <BackupReminderCard />
 
+      <p className="text-sm text-muted">
+        Si entrenaste y la app no lo guardó,{' '}
+        <Link to="/historial/cargar" className="font-semibold text-brand underline">
+          carga el entreno a mano
+        </Link>
+        .
+      </p>
+
       <ConstancyGoalCard
         recoveryDayId={recoveryDay?.id ?? null}
         onSelectRecoveryDay={handleSelectRecoveryDay}
@@ -845,7 +939,7 @@ export function HomePage() {
         <p className="text-sm font-semibold text-muted">
           {isRecoveryMode
             ? `Recuperando ${weekdayLabel(recoveryDay!.weekday)} — verás su rutina abajo`
-            : 'Ver rutina de la semana (solo puedes entrenar hoy)'}
+            : 'Ver rutina de la semana (hoy, o un día a recuperar)'}
         </p>
         {dayStrip}
       </div>

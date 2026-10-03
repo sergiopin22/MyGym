@@ -191,7 +191,7 @@ export function AppDrawer({
                   to="/historial"
                   icon="🕐"
                   label="Historial"
-                  subtitle="Sesiones anteriores"
+                  subtitle="Sesiones y carga a mano"
                   onNavigate={closeAll}
                 />
                 <DrawerNavItem
@@ -207,6 +207,12 @@ export function AppDrawer({
                 Más
               </p>
               <ul className="space-y-2">
+                <DrawerActionItem
+                  icon="📝"
+                  label="Cargar entreno"
+                  subtitle="Un día pasado desde tus notas"
+                  onClick={() => go('/historial/cargar')}
+                />
                 <DrawerActionItem
                   icon="🏃"
                   label="Caminadora"

@@ -41,8 +41,11 @@ export function HistoryList({ onNavigate }: HistoryListProps) {
     return (
       <Card>
         <p className="text-sm text-muted">
-          Aún no hay sesiones completadas. Finaliza un entrenamiento para verlo
-          aquí.
+          Aún no hay sesiones completadas. Finaliza un entrenamiento o{' '}
+          <Link to="/historial/cargar" className="font-semibold text-brand underline">
+            carga uno a mano
+          </Link>
+          .
         </p>
       </Card>
     )
@@ -71,8 +74,10 @@ export function HistoryList({ onNavigate }: HistoryListProps) {
                 </h2>
                 <p className="mt-1 text-sm text-muted">
                   {item.completedExercises}/{item.totalExercises} ejercicios ·{' '}
-                  {item.totalSetsCompleted} series ·{' '}
-                  {formatDuration(item.durationMs)}
+                  {item.totalSetsCompleted} series
+                  {item.durationMs > 0
+                    ? ` · ${formatDuration(item.durationMs)}`
+                    : ''}
                 </p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {item.isRecovery ? (
@@ -81,6 +86,11 @@ export function HistoryList({ onNavigate }: HistoryListProps) {
                       {item.recoveredDayLabel
                         ? ` · ${item.recoveredDayLabel}`
                         : ''}
+                    </span>
+                  ) : null}
+                  {item.isManualEntry ? (
+                    <span className="inline-flex rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-fg">
+                      Cargado a mano
                     </span>
                   ) : null}
                   {item.editedAt ? (
@@ -132,6 +142,11 @@ export function HistoryList({ onNavigate }: HistoryListProps) {
                           : ''}
                       </span>
                     ) : null}
+                    {item.isManualEntry ? (
+                      <span className="inline-flex rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-fg">
+                        Cargado a mano
+                      </span>
+                    ) : null}
                     {item.editedAt ? (
                       <span className="inline-flex rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-fg">
                         Editado
@@ -140,8 +155,10 @@ export function HistoryList({ onNavigate }: HistoryListProps) {
                   </div>
                   <p className="mt-1 text-sm text-muted">
                     {item.completedExercises}/{item.totalExercises} ejercicios ·{' '}
-                    {item.totalSetsCompleted} series ·{' '}
-                    {formatDuration(item.durationMs)}
+                    {item.totalSetsCompleted} series
+                    {item.durationMs > 0
+                      ? ` · ${formatDuration(item.durationMs)}`
+                      : ''}
                   </p>
                 </div>
                 <span className="text-2xl text-muted" aria-hidden>

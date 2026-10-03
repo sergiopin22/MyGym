@@ -19,6 +19,8 @@ export interface ExerciseAlternative {
   id: string
   name: string
   createdAt: number
+  /** Identidad estable de ESTA máquina alternativa (no el nombre). */
+  machineId?: string
 }
 
 /** Variante de agarre (ej. barra multi / barra recta en jalón al pecho) */
@@ -31,6 +33,8 @@ export interface ExerciseGrip {
 /** Ejercicio dentro de un día de rutina (plantilla) */
 export interface RoutineExercise {
   id: string
+  /** Identidad estable de la máquina oficial. El nombre solo es etiqueta. */
+  machineId?: string
   name: string
   targetSets: number
   targetReps: RepRange
@@ -87,7 +91,9 @@ export interface SetLog {
 export interface ExerciseLog {
   id: string
   routineExerciseId: string
-  /** Máquina que estás usando hoy (oficial o alternativa). Clave de PR/historial. */
+  /** Máquina activa hoy (oficial o alternativa). */
+  machineId?: string
+  /** Máquina que estás usando hoy (oficial o alternativa). Etiqueta; el id manda. */
   name: string
   /**
    * Nombre oficial de la rutina.
@@ -127,13 +133,15 @@ export interface WorkoutSession {
   finishedAt?: number
   durationMs?: number
   exercises: ExerciseLog[]
-  /** true = entreno de recuperación (fin de semana) */
+  /** true = entreno de recuperación (cualquier día, máx. 1 por semana) */
   isRecovery?: boolean
   /** Día de la rutina que se está recuperando */
   recoveredWeekday?: Weekday
   recoveredDayLabel?: string
   /** Si se corrigió después de completar (historial) */
   editedAt?: number
+  /** true = se cargó a mano después (notas, app caída, etc.) */
+  isManualEntry?: boolean
 }
 
 export type PrizePresetId =
@@ -239,6 +247,7 @@ export interface SessionSummary {
   isRecovery?: boolean
   recoveredDayLabel?: string
   editedAt?: number
+  isManualEntry?: boolean
 }
 
 export type BodyPhotoAngle = 'front' | 'side' | 'back'

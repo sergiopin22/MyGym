@@ -5,6 +5,7 @@ import { RoutinesPage } from '../features/routines/RoutinesPage'
 import { RoutineDayPage } from '../features/routines/RoutineDayPage'
 import { HistoryDetailPage, HistoryPage } from '../features/history/HistoryPage'
 import { EditCompletedSessionPage } from '../features/history/EditCompletedSessionPage'
+import { ManualLogPage } from '../features/history/ManualLogPage'
 import { ProgressPage } from '../features/progress/ProgressPage'
 import { WorkoutPage } from '../features/workout/WorkoutPage'
 import { TreadmillPage } from '../features/cardio/TreadmillPage'
@@ -18,6 +19,10 @@ export function AppRouter() {
       <Route path="coach/:token" element={<CoachPage />} />
       <Route path="coach" element={<CoachPage />} />
       <Route path="caminadora" element={<TreadmillPage />} />
+      <Route
+        path="historial/cargar"
+        element={<ManualLogPage />}
+      />
       <Route
         path="historial/:sessionId/editar"
         element={<EditCompletedSessionPage />}

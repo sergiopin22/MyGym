@@ -583,6 +583,7 @@ function MachineHistoryView({
             historySource={history}
             target={{
               baseName: title,
+              machineId: history[0]?.machineId,
               displayName: title,
               supportsStraps,
               initialWithStraps: supportsStraps,

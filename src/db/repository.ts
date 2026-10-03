@@ -23,7 +23,6 @@ import {
   addDaysISO,
   createId,
   isoWeekKey,
-  isWeekend,
   parseISODate,
   startOfWeekMonday,
   todayISODate,
@@ -42,6 +41,15 @@ import {
 } from '../utils/workout'
 import { supportsStrapsTracking } from '../utils/straps'
 import { machineIdentityKey, sameMachineName } from '../utils/machineName'
+import {
+  alternativeMachineIdForName,
+  ensureRoutineMachineIds,
+  machineIdsByName,
+  newMachineId,
+  officialMachineIdForName,
+  prMachineKey,
+  sameMachineLog,
+} from '../utils/machineId'
 
 const DEFAULT_IMAGE = '/exercises/default.svg'
 const DEFAULT_ROUTINE_NAME = 'Mi rutina semanal'
@@ -127,14 +135,42 @@ function normalizeRoutine(routine: Routine): { routine: Routine; changed: boolea
   return changed ? { routine: { ...routine, days }, changed: true } : { routine, changed: false }
 }
 
-async function loadRoutineNormalized(routine: Routine): Promise<Routine> {
-  const { routine: normalized, changed } = normalizeRoutine(routine)
-  if (changed) return saveRoutine(normalized)
-  return normalized
+async function persistRoutine(routine: Routine): Promise<Routine> {
+  const { routine: withIds } = ensureRoutineMachineIds(routine)
+  const next = touch(withIds)
+  await db.routines.put(next)
+  return next
 }
 
 function touch(routine: Routine): Routine {
   return { ...routine, updatedAt: Date.now() }
+}
+
+async function stampSessionMachineIds(routine: Routine): Promise<void> {
+  const byName = machineIdsByName(routine)
+  if (byName.size === 0) return
+  const sessions = await db.sessions.toArray()
+  for (const session of sessions) {
+    let changed = false
+    const exercises = session.exercises.map((ex) => {
+      if (ex.machineId) return ex
+      const id = byName.get(machineIdentityKey(ex.name))
+      if (!id) return ex
+      changed = true
+      return { ...ex, machineId: id }
+    })
+    if (changed) {
+      await db.sessions.put({ ...session, exercises })
+    }
+  }
+}
+
+async function hydrateRoutine(routine: Routine): Promise<Routine> {
+  const rest = normalizeRoutine(routine)
+  const ids = ensureRoutineMachineIds(rest.routine)
+  const next = ids.changed || rest.changed ? await persistRoutine(ids.routine) : ids.routine
+  await stampSessionMachineIds(next)
+  return next
 }
 
 function sortExercises(exercises: RoutineExercise[]): RoutineExercise[] {
@@ -156,7 +192,7 @@ function replaceDay(routine: Routine, day: RoutineDay): Routine {
 
 export async function ensureDefaultRoutine(): Promise<Routine> {
   const existing = await db.routines.orderBy('updatedAt').reverse().first()
-  if (existing) return loadRoutineNormalized(existing)
+  if (existing) return hydrateRoutine(existing)
 
   const now = Date.now()
   const routine: Routine = {
@@ -173,9 +209,7 @@ export async function ensureDefaultRoutine(): Promise<Routine> {
 export async function getActiveRoutine(): Promise<Routine | undefined> {
   const routine = await db.routines.orderBy('updatedAt').reverse().first()
   if (!routine) return undefined
-  const { routine: normalized, changed } = normalizeRoutine(routine)
-  if (changed) return saveRoutine(normalized)
-  return normalized
+  return hydrateRoutine(routine)
 }
 
 export async function getRoutineById(id: string): Promise<Routine | undefined> {
@@ -183,9 +217,7 @@ export async function getRoutineById(id: string): Promise<Routine | undefined> {
 }
 
 export async function saveRoutine(routine: Routine): Promise<Routine> {
-  const next = touch(routine)
-  await db.routines.put(next)
-  return next
+  return persistRoutine(routine)
 }
 
 export async function updateRoutineName(id: string, name: string): Promise<Routine> {
@@ -196,7 +228,7 @@ export async function updateRoutineName(id: string, name: string): Promise<Routi
 async function requireRoutine(id?: string): Promise<Routine> {
   const routine = id ? await getRoutineById(id) : await ensureDefaultRoutine()
   if (!routine) throw new Error('No hay rutina disponible')
-  return routine
+  return hydrateRoutine(routine)
 }
 
 export async function getRoutineDay(
@@ -284,6 +316,7 @@ export async function addExerciseToDay(
 
   const exercise: RoutineExercise = {
     id: createId('ex'),
+    machineId: officialMachineIdForName(routine, validated.name) ?? newMachineId(),
     name: validated.name,
     targetSets: validated.targetSets,
     targetReps: validated.targetReps,
@@ -406,6 +439,8 @@ function shareAlternativeOnOfficialMachine(
   altName: string,
 ): RoutineDay[] {
   const trimmed = normalizeAltName(altName)
+  const machineId =
+    alternativeMachineIdForName(routine, officialName, trimmed) ?? newMachineId()
   return routine.days.map((day) => ({
     ...day,
     exercises: day.exercises.map((ex) => {
@@ -416,7 +451,7 @@ function shareAlternativeOnOfficialMachine(
         ...ex,
         alternatives: [
           ...existing,
-          { id: createId('alt'), name: trimmed, createdAt: Date.now() },
+          { id: createId('alt'), name: trimmed, createdAt: Date.now(), machineId },
         ],
       }
     }),
@@ -637,6 +672,7 @@ export async function unifyAlternativeBank(routineId?: string): Promise<{
           id: local?.id ?? createId('alt'),
           name: alt.name,
           createdAt: local?.createdAt ?? alt.createdAt,
+          machineId: local?.machineId ?? alt.machineId ?? newMachineId(),
         }
       })
       return { ...ex, alternatives: nextAlts }
@@ -867,18 +903,20 @@ export async function setSessionExerciseMachine(
   const plannedName = exercise.plannedName?.trim() || exercise.name
   let nextName = plannedName
   let activeAlternativeId: string | undefined
+  let nextMachineId = exercise.machineId
   let routineUpdated = false
+
+  const found = await getRoutineDay(session.routineDayId, session.routineId)
+  const routineEx = found?.day.exercises.find(
+    (e) => e.id === exercise.routineExerciseId,
+  )
 
   if (choice.type === 'original') {
     nextName = plannedName
     activeAlternativeId = undefined
+    nextMachineId = routineEx?.machineId ?? exercise.machineId
   } else {
-    const found = await getRoutineDay(session.routineDayId, session.routineId)
-    if (!found) throw new Error('Día de rutina no encontrado')
-    const routineEx = found.day.exercises.find(
-      (e) => e.id === exercise.routineExerciseId,
-    )
-    if (!routineEx) throw new Error('Ejercicio de rutina no encontrado')
+    if (!found || !routineEx) throw new Error('Ejercicio de rutina no encontrado')
 
     if (choice.type === 'alternative') {
       const alt = (routineEx.alternatives ?? []).find(
@@ -887,6 +925,7 @@ export async function setSessionExerciseMachine(
       if (!alt) throw new Error('Alternativa no encontrada')
       nextName = alt.name
       activeAlternativeId = alt.id
+      nextMachineId = alt.machineId
     } else {
       const updated = await addExerciseAlternative(
         found.day.id,
@@ -903,6 +942,7 @@ export async function setSessionExerciseMachine(
       if (!created) throw new Error('No se pudo crear la alternativa')
       nextName = created.name
       activeAlternativeId = created.id
+      nextMachineId = created.machineId
     }
     void routineUpdated
   }
@@ -914,6 +954,7 @@ export async function setSessionExerciseMachine(
           plannedName,
           name: nextName,
           activeAlternativeId,
+          machineId: nextMachineId,
         }
       : ex,
   )
@@ -970,6 +1011,7 @@ export async function getRoutineExerciseById(
           id: createId('alt'),
           name: alt.name,
           createdAt: alt.createdAt,
+          machineId: alt.machineId ?? newMachineId(),
         })
       }
     }
@@ -1167,6 +1209,7 @@ export async function copyExercisesFromDay(
   const startOrder = mode === 'append' ? toDay.exercises.length : 0
   const clones: RoutineExercise[] = source.map((ex, index) => ({
     id: createId('ex'),
+    machineId: ex.machineId ?? newMachineId(),
     name: ex.name,
     targetSets: ex.targetSets,
     targetReps: { ...ex.targetReps },
@@ -1179,6 +1222,7 @@ export async function copyExercisesFromDay(
       id: createId('alt'),
       name: alt.name,
       createdAt: alt.createdAt,
+      machineId: alt.machineId ?? newMachineId(),
     })),
     grips: (ex.grips ?? []).map((g) => ({
       id: createId('grip'),
@@ -1303,9 +1347,6 @@ export async function startSession(
   const todayWeekday = new Date().getDay() as Weekday
 
   if (recovery) {
-    if (!isWeekend(todayWeekday)) {
-      throw new Error('Solo puedes recuperar un día perdido el sábado o domingo.')
-    }
     const eligible = await getRecoverableMissedDays()
     if (!eligible.some((d) => d.id === day.id)) {
       throw new Error('Ese día no está disponible para recuperar esta semana.')
@@ -1670,6 +1711,7 @@ export async function applyPreviousWeights(
     exercise.name,
     session.id,
     exercise.activeGripName,
+    exercise.machineId,
   )
   if (!last) throw new Error('No hay historial previo para este ejercicio')
 
@@ -1787,26 +1829,31 @@ export async function completeSession(sessionId: string): Promise<{
   }
 }
 
-/**
- * Corrige peso/reps/RIR de una sesión ya completada.
- * No toca la meta de constancia ni el día de la rutina.
- * Los PRs se recalculan solos al leer el historial.
- */
-export async function saveCompletedSessionEdits(
-  sessionId: string,
-  nextExercises: ExerciseLog[],
-): Promise<WorkoutSession> {
-  const session = await getSessionById(sessionId)
-  if (!session) throw new Error('Sesión no encontrada')
-  if (session.status !== 'completed') {
-    throw new Error('Solo se pueden editar entrenamientos ya completados.')
+function assertIsoDate(date: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new Error('Fecha inválida.')
   }
+  const parsed = parseISODate(date)
+  if (Number.isNaN(parsed.getTime()) || todayISODate(parsed) !== date) {
+    throw new Error('Fecha inválida.')
+  }
+  return date
+}
 
-  if (nextExercises.length !== session.exercises.length) {
+function isoDateForWeekdayInWeek(weekStart: string, weekday: Weekday): string {
+  const offset = weekday === 0 ? 6 : weekday - 1
+  return addDaysISO(weekStart, offset)
+}
+
+function normalizeEditedExercises(
+  originalExercises: ExerciseLog[],
+  nextExercises: ExerciseLog[],
+): ExerciseLog[] {
+  if (nextExercises.length !== originalExercises.length) {
     throw new Error('No se puede cambiar la lista de ejercicios de esta sesión.')
   }
 
-  const byId = new Map(session.exercises.map((e) => [e.id, e]))
+  const byId = new Map(originalExercises.map((e) => [e.id, e]))
   const normalized: ExerciseLog[] = []
 
   for (const draft of nextExercises) {
@@ -1853,6 +1900,7 @@ export async function saveCompletedSessionEdits(
       activeAlternativeId: draft.activeAlternativeId,
       activeGripId: draft.activeGripId,
       activeGripName: draft.activeGripName,
+      machineId: draft.machineId ?? original.machineId,
       note: draft.note,
       sets,
       status,
@@ -1863,6 +1911,25 @@ export async function saveCompletedSessionEdits(
     })
   }
 
+  return normalized
+}
+
+/**
+ * Corrige peso/reps/RIR de una sesión ya completada.
+ * No toca la meta de constancia ni el día de la rutina.
+ * Los PRs se recalculan solos al leer el historial.
+ */
+export async function saveCompletedSessionEdits(
+  sessionId: string,
+  nextExercises: ExerciseLog[],
+): Promise<WorkoutSession> {
+  const session = await getSessionById(sessionId)
+  if (!session) throw new Error('Sesión no encontrada')
+  if (session.status !== 'completed') {
+    throw new Error('Solo se pueden editar entrenamientos ya completados.')
+  }
+
+  const normalized = normalizeEditedExercises(session.exercises, nextExercises)
   const leftover = getUnstartedWorkoutParts({
     ...session,
     exercises: normalized,
@@ -1880,6 +1947,183 @@ export async function saveCompletedSessionEdits(
   }
   await saveSession(updated)
   return updated
+}
+
+function gymWeekBounds(date: string): { weekStart: string; weekEnd: string } {
+  const weekStart = todayISODate(startOfWeekMonday(parseISODate(date)))
+  return { weekStart, weekEnd: addDaysISO(weekStart, 6) }
+}
+
+/** Días de gym que se pueden cargar a mano (no descanso, con ejercicios). */
+export async function getManualLogDayOptions(): Promise<RoutineDay[]> {
+  const routine = await getActiveRoutine()
+  if (!routine) return []
+  const order = [1, 2, 3, 4, 5, 6, 0]
+  return [...routine.days]
+    .filter((d) => !d.isRestDay && d.exercises.length > 0)
+    .sort((a, b) => order.indexOf(a.weekday) - order.indexOf(b.weekday))
+}
+
+/**
+ * Arma un borrador (sin guardar) para cargar un entreno pasado.
+ * Si la rutina no coincide con el weekday de la fecha, queda como recuperación.
+ */
+export async function buildManualSessionDraft(
+  routineDayId: string,
+  date: string,
+): Promise<WorkoutSession> {
+  const iso = assertIsoDate(date)
+  const today = todayISODate()
+  if (iso > today) throw new Error('No puedes cargar un día futuro.')
+
+  const found = await getRoutineDay(routineDayId)
+  if (!found) throw new Error('Día de rutina no encontrado')
+  const { routine, day } = found
+  if (day.isRestDay) {
+    throw new Error('Ese día está marcado como descanso.')
+  }
+  if (day.exercises.length === 0) {
+    throw new Error('Este día no tiene ejercicios. Agrégalos en Rutinas.')
+  }
+
+  const dateWeekday = weekdayFromISO(iso) as Weekday
+  const recovery = day.weekday !== dateWeekday
+  if (recovery) {
+    const { weekStart } = gymWeekBounds(iso)
+    const missedDate = isoDateForWeekdayInWeek(weekStart, day.weekday)
+    if (missedDate >= iso) {
+      throw new Error(
+        'Solo puedes cargar como recuperación un día de esa semana que ya haya pasado.',
+      )
+    }
+  }
+
+  return {
+    id: createId('session'),
+    routineId: routine.id,
+    routineDayId: day.id,
+    dayLabel: recovery
+      ? `${day.label} (Recuperado · ${weekdayLabel(day.weekday)})`
+      : day.label,
+    muscleGroups: [...day.muscleGroups],
+    date: iso,
+    status: 'completed',
+    startedAt: parseISODate(iso).getTime(),
+    exercises: sortExercises(day.exercises).map((ex) =>
+      buildExerciseLogFromRoutine(ex, () => createId('elog')),
+    ),
+    isRecovery: recovery || undefined,
+    recoveredWeekday: recovery ? day.weekday : undefined,
+    recoveredDayLabel: recovery ? weekdayLabel(day.weekday) : undefined,
+    isManualEntry: true,
+  }
+}
+
+/**
+ * Guarda un entreno pasado cargado a mano (peso, reps, RIR).
+ * Cuenta para historial, PR y constancia como si lo hubieras registrado ese día.
+ */
+export async function insertManualCompletedSession(
+  draft: WorkoutSession,
+): Promise<{ session: WorkoutSession; newPRs: SessionNewPR[] }> {
+  if (!draft.isManualEntry) {
+    throw new Error('Esta sesión no es una carga manual.')
+  }
+  const iso = assertIsoDate(draft.date)
+  const today = todayISODate()
+  if (iso > today) throw new Error('No puedes cargar un día futuro.')
+  if (await getSessionById(draft.id)) {
+    throw new Error('Esa sesión ya existe. Recarga e inténtalo de nuevo.')
+  }
+
+  const found = await getRoutineDay(draft.routineDayId, draft.routineId)
+  if (!found) throw new Error('Día de rutina no encontrado')
+  const { day } = found
+  if (day.isRestDay) throw new Error('Ese día está marcado como descanso.')
+
+  const dateWeekday = weekdayFromISO(iso) as Weekday
+  const recovery = Boolean(draft.isRecovery) || day.weekday !== dateWeekday
+  if (recovery && day.weekday === dateWeekday) {
+    throw new Error('Si la fecha es ese mismo día de rutina, no es una recuperación.')
+  }
+  if (!recovery && day.weekday !== dateWeekday) {
+    throw new Error(
+      `Esa fecha fue ${weekdayLabel(dateWeekday)}. Elige esa rutina o cárgala como recuperación.`,
+    )
+  }
+
+  if (recovery) {
+    const { weekStart } = gymWeekBounds(iso)
+    const missedDate = isoDateForWeekdayInWeek(weekStart, day.weekday)
+    if (missedDate >= iso) {
+      throw new Error(
+        'Solo puedes cargar como recuperación un día de esa semana que ya haya pasado.',
+      )
+    }
+    if (await gymDayFulfilled(missedDate, day)) {
+      throw new Error('Ese día ya está cubierto (entrenado o recuperado).')
+    }
+    const weekEnd = addDaysISO(weekStart, 6)
+    const alreadyRecovered = await db.sessions
+      .where('date')
+      .between(weekStart, weekEnd, true, true)
+      .filter((s) => s.status === 'completed' && Boolean(s.isRecovery))
+      .count()
+    if (alreadyRecovered > 0) {
+      throw new Error('Esa semana ya tiene una recuperación.')
+    }
+  } else if (await gymDayFulfilled(iso, day)) {
+    throw new Error('Ese día ya está en el historial (entrenado o recuperado).')
+  }
+
+  const routineById = new Map(day.exercises.map((ex) => [ex.id, ex]))
+  if (draft.exercises.length !== day.exercises.length) {
+    throw new Error('La lista de ejercicios no coincide con la rutina de ese día.')
+  }
+  for (const ex of draft.exercises) {
+    if (!routineById.has(ex.routineExerciseId)) {
+      throw new Error(`El ejercicio ${ex.name} no pertenece a esa rutina.`)
+    }
+  }
+
+  const normalized = normalizeEditedExercises(draft.exercises, draft.exercises)
+  const leftover = getUnstartedWorkoutParts({
+    ...draft,
+    date: iso,
+    exercises: normalized,
+  })
+  if (leftover.unstartedExercises > 0) {
+    throw new Error(
+      `Quedan ejercicios sin hacer: ${leftover.names.join(', ')}. Omítelos o completa al menos una serie.`,
+    )
+  }
+
+  const prepared: WorkoutSession = {
+    ...draft,
+    date: iso,
+    status: 'completed',
+    exercises: normalized,
+    isRecovery: recovery || undefined,
+    recoveredWeekday: recovery ? day.weekday : undefined,
+    recoveredDayLabel: recovery ? weekdayLabel(day.weekday) : undefined,
+    isManualEntry: true,
+    finishedAt: Date.now(),
+    durationMs: undefined,
+  }
+
+  if (!prepared.exercises.some(hasWorkingSets)) {
+    throw new Error(
+      'No hay series hechas. Completa peso y reps o cancela la carga.',
+    )
+  }
+
+  await db.sessions.add(prepared)
+  await onWorkoutCompletedForConstancy(prepared)
+
+  return {
+    session: prepared,
+    newPRs: await detectNewPRsInSession(prepared),
+  }
 }
 
 function toSummary(session: WorkoutSession): SessionSummary {
@@ -1902,6 +2146,7 @@ function toSummary(session: WorkoutSession): SessionSummary {
     isRecovery: session.isRecovery,
     recoveredDayLabel: session.recoveredDayLabel,
     editedAt: session.editedAt,
+    isManualEntry: session.isManualEntry,
   }
 }
 
@@ -1933,18 +2178,20 @@ export async function getLastExercisePerformance(
   exerciseName: string,
   excludeSessionId?: string,
   gripName?: string | null,
+  machineId?: string | null,
 ): Promise<LastExercisePerformance | undefined> {
-  const name = exerciseName.trim().toLowerCase()
   const grip = gripName?.trim().toLowerCase() || ''
   const sessions = await db.sessions
     .where('status')
     .equals('completed')
     .sortBy('startedAt')
 
+  const want = { name: exerciseName, machineId: machineId || undefined }
+
   for (const session of sessions.reverse()) {
     if (excludeSessionId && session.id === excludeSessionId) continue
     const match = session.exercises.find((e) => {
-      if (e.name.trim().toLowerCase() !== name) return false
+      if (!sameMachineLog(e, want)) return false
       const eg = e.activeGripName?.trim().toLowerCase() || ''
       return eg === grip
     })
@@ -1975,10 +2222,11 @@ export async function getExercisePRsForName(
   exerciseName: string,
   gripName?: string | null,
   excludeSessionId?: string,
+  machineId?: string | null,
 ): Promise<{ pr: ExercisePR | null; prWithStraps: ExercisePR | null }> {
   const wantName = normalizeExerciseName(exerciseName)
   const wantGrip = (gripName ?? '').trim().toLowerCase()
-  if (!wantName) return { pr: null, prWithStraps: null }
+  if (!wantName && !machineId) return { pr: null, prWithStraps: null }
 
   const all = await getAllExercisePRs(excludeSessionId)
   let pr: ExercisePR | null = null
@@ -1993,7 +2241,14 @@ export async function getExercisePRsForName(
           )
           .trim()
       : p.exerciseName
-    if (normalizeExerciseName(baseName) !== wantName) continue
+    if (
+      !sameMachineLog(
+        { name: baseName, machineId: p.machineId },
+        { name: exerciseName, machineId: machineId || undefined },
+      )
+    ) {
+      continue
+    }
     if ((p.gripName ?? '').trim().toLowerCase() !== wantGrip) continue
     if (p.withStraps) prWithStraps = p
     else pr = p
@@ -2022,6 +2277,7 @@ export async function evaluateLiveSetPR(
     ex.name,
     ex.activeGripName,
     session.id,
+    ex.machineId,
   )
   const prev = withStraps ? prWithStraps : pr
   const cand = { weight: set.weight, reps: set.reps, rir: set.rir }
@@ -2551,10 +2807,8 @@ async function onWorkoutCompletedForConstancy(
   await db.constancyGoals.put(updated)
 }
 
-/** Días de gym de esta semana que faltaron (para recuperar en sáb/dom) */
+/** Días de gym de esta semana que faltaron (se pueden recuperar cualquier día). */
 export async function getRecoverableMissedDays(): Promise<RoutineDay[]> {
-  if (!isWeekend()) return []
-
   const weekKey = isoWeekKey()
   const goal = await db.constancyGoals.where('status').equals('active').first()
   if (goal?.recoveryWeekKey === weekKey) return []
@@ -2598,7 +2852,6 @@ export async function getRecoverableMissedDays(): Promise<RoutineDay[]> {
 }
 
 export async function canUseRecoveryThisWeek(): Promise<boolean> {
-  if (!isWeekend()) return false
   const missed = await getRecoverableMissedDays()
   return missed.length > 0
 }
@@ -2607,6 +2860,7 @@ export async function canUseRecoveryThisWeek(): Promise<boolean> {
 
 export interface ExercisePR {
   exerciseName: string
+  machineId?: string
   /** Agarre si aplica (para listados) */
   gripName?: string
   weight: number
@@ -2636,12 +2890,12 @@ function isBetterPR(
 }
 
 function prStorageKey(
-  exerciseName: string,
+  exercise: { name: string; machineId?: string },
   withStraps: boolean,
   gripName?: string | null,
 ): string {
   const grip = gripName?.trim().toLowerCase() || ''
-  return `${normalizeExerciseName(exerciseName)}::${grip}::${withStraps ? 'straps' : 'free'}`
+  return `${prMachineKey(exercise)}::${grip}::${withStraps ? 'straps' : 'free'}`
 }
 
 function exerciseLogPrLabel(ex: {
@@ -2673,12 +2927,13 @@ export async function getAllExercisePRs(
         if (!set.completed || set.weight == null || set.reps == null) continue
         if (set.weight <= 0 || set.reps <= 0) continue
         const withStraps = Boolean(set.withStraps)
-        const key = prStorageKey(ex.name, withStraps, gripName)
+        const key = prStorageKey(ex, withStraps, gripName)
         const prev = best.get(key) ?? null
         const cand = { weight: set.weight, reps: set.reps }
         if (!isBetterPR(cand, prev)) continue
         best.set(key, {
           exerciseName: exerciseLogPrLabel(ex),
+          machineId: ex.machineId,
           gripName,
           weight: set.weight,
           reps: set.reps,
@@ -2723,6 +2978,7 @@ export interface CoachMachineSession {
   muscleGroups: string[]
   name: string
   plannedName?: string
+  machineId?: string
   activeGripName?: string
   note?: string
   status: ExerciseLog['status']
@@ -2894,6 +3150,7 @@ export async function getCoachMachineHistory(
         muscleGroups: session.muscleGroups,
         name: ex.name,
         plannedName: ex.plannedName,
+        machineId: ex.machineId,
         activeGripName: ex.activeGripName,
         note: ex.note,
         status: ex.status,
@@ -2926,7 +3183,14 @@ export async function detectNewPRsInSession(
           .slice(0, Math.max(0, p.exerciseName.length - ` · ${p.gripName}`.length))
           .trim()
       : p.exerciseName
-    priorMap.set(prStorageKey(baseName, Boolean(p.withStraps), p.gripName), p)
+    priorMap.set(
+      prStorageKey(
+        { name: baseName, machineId: p.machineId },
+        Boolean(p.withStraps),
+        p.gripName,
+      ),
+      p,
+    )
   }
 
   const found: SessionNewPR[] = []
@@ -2962,7 +3226,7 @@ export async function detectNewPRsInSession(
       if (!bestInSession) continue
 
       const prev =
-        priorMap.get(prStorageKey(ex.name, withStraps, gripName)) ?? null
+        priorMap.get(prStorageKey(ex, withStraps, gripName)) ?? null
       if (!isBetterPR(bestInSession, prev)) continue
 
       found.push({
@@ -2990,6 +3254,7 @@ export async function getRoutineExercisePRs(): Promise<
   Array<{
     exerciseName: string
     baseName: string
+    machineId?: string
     gripName?: string
     dayLabels: string[]
     muscleGroups: string[]
@@ -3010,7 +3275,14 @@ export async function getRoutineExercisePRs(): Promise<
           )
           .trim()
       : p.exerciseName
-    prByKey.set(prStorageKey(baseName, Boolean(p.withStraps), p.gripName), p)
+    prByKey.set(
+      prStorageKey(
+        { name: baseName, machineId: p.machineId },
+        Boolean(p.withStraps),
+        p.gripName,
+      ),
+      p,
+    )
   }
 
   const byKey = new Map<
@@ -3018,6 +3290,7 @@ export async function getRoutineExercisePRs(): Promise<
     {
       exerciseName: string
       baseName: string
+      machineId?: string
       gripName?: string
       dayLabels: string[]
       muscleGroups: string[]
@@ -3041,9 +3314,10 @@ export async function getRoutineExercisePRs(): Promise<
     supportsStraps: boolean,
     gripName?: string,
     muscleGroups: string[] = [],
+    machineId?: string,
   ) {
-    const listKey = `${normalizeExerciseName(exerciseName)}::${(gripName ?? '').toLowerCase()}`
-    if (!normalizeExerciseName(exerciseName)) return
+    const listKey = `${prMachineKey({ name: exerciseName, machineId })}::${(gripName ?? '').toLowerCase()}`
+    if (!prMachineKey({ name: exerciseName, machineId })) return
     const label = gripName ? `${exerciseName} · ${gripName}` : exerciseName
     const existing = byKey.get(listKey)
     if (existing) {
@@ -3054,15 +3328,17 @@ export async function getRoutineExercisePRs(): Promise<
       addMuscles(existing.muscleGroups, muscleGroups)
       return
     }
+    const machine = { name: exerciseName, machineId }
     byKey.set(listKey, {
       exerciseName: label,
       baseName: exerciseName,
+      machineId,
       gripName,
       dayLabels: dayLabel ? [dayLabel] : [],
       muscleGroups: [...muscleGroups],
-      pr: prByKey.get(prStorageKey(exerciseName, false, gripName)) ?? null,
+      pr: prByKey.get(prStorageKey(machine, false, gripName)) ?? null,
       prWithStraps: supportsStraps
-        ? prByKey.get(prStorageKey(exerciseName, true, gripName)) ?? null
+        ? prByKey.get(prStorageKey(machine, true, gripName)) ?? null
         : null,
       supportsStraps,
     })
@@ -3080,7 +3356,7 @@ export async function getRoutineExercisePRs(): Promise<
               ? [...day.muscleGroups]
               : []
         const supportsStraps = supportsStrapsTracking(ex.name, day.muscleGroups)
-        upsertEntry(ex.name, day.label, supportsStraps, undefined, machineGroups)
+        upsertEntry(ex.name, day.label, supportsStraps, undefined, machineGroups, ex.machineId)
         for (const grip of ex.grips ?? []) {
           upsertEntry(
             ex.name,
@@ -3088,6 +3364,7 @@ export async function getRoutineExercisePRs(): Promise<
             supportsStraps,
             grip.name,
             machineGroups,
+            ex.machineId,
           )
         }
       }
@@ -3109,6 +3386,7 @@ export async function getRoutineExercisePRs(): Promise<
       byKey.set(listKey, {
         exerciseName: pr.exerciseName,
         baseName,
+        machineId: pr.machineId,
         gripName: pr.gripName,
         dayLabels: [],
         muscleGroups: [],
@@ -3290,6 +3568,7 @@ type ProgressSessionSlice = {
   startedAt?: number
   exercises: Array<{
     name: string
+    machineId?: string
     activeGripName?: string
     sets: Array<{
       completed: boolean
@@ -3306,6 +3585,7 @@ type ProgressSessionSlice = {
  */
 export function computeExerciseProgressStats(input: {
   baseName: string
+  machineId?: string
   gripName?: string | null
   /** Si true, mezcla todos los agarres de esa máquina. */
   anyGrip?: boolean
@@ -3318,7 +3598,6 @@ export function computeExerciseProgressStats(input: {
   const displayName = gripName ? `${baseName} · ${gripName}` : baseName
   const range = input.range ?? '3m'
   const start = rangeStartIso(range)
-  const wantKey = normalizeExerciseName(baseName)
   const wantGrip = (gripName ?? '').toLowerCase()
 
   const sessions = [...input.sessions]
@@ -3338,7 +3617,14 @@ export function computeExerciseProgressStats(input: {
     } | null = null
 
     for (const ex of session.exercises) {
-      if (normalizeExerciseName(ex.name) !== wantKey) continue
+      if (
+        !sameMachineLog(ex, {
+          name: input.baseName,
+          machineId: input.machineId,
+        })
+      ) {
+        continue
+      }
       const grip = (ex.activeGripName?.trim() || '').toLowerCase()
       if (!input.anyGrip && grip !== wantGrip) continue
 
@@ -3416,6 +3702,7 @@ export function computeExerciseProgressStats(input: {
 
 export async function getExerciseProgressHistory(input: {
   baseName: string
+  machineId?: string
   gripName?: string | null
   anyGrip?: boolean
   withStraps: boolean
@@ -3442,6 +3729,7 @@ export function getExerciseProgressFromCoachHistory(
   history: CoachMachineSession[],
   input: {
     baseName: string
+    machineId?: string
     withStraps: boolean
     range?: ExerciseProgressRange
   },
@@ -3450,6 +3738,7 @@ export function getExerciseProgressFromCoachHistory(
   for (const row of history) {
     const exercise = {
       name: input.baseName,
+      machineId: row.machineId ?? input.machineId,
       activeGripName: row.activeGripName,
       sets: row.sets,
     }
@@ -3467,6 +3756,7 @@ export function getExerciseProgressFromCoachHistory(
 
   return computeExerciseProgressStats({
     baseName: input.baseName,
+    machineId: input.machineId,
     withStraps: input.withStraps,
     range: input.range,
     anyGrip: true,
