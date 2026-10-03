@@ -19,6 +19,8 @@ export function muscleMatchesFilter(
   if (!filterId) return true
   return (groups ?? []).some((group) => {
     const n = machineIdentityKey(group)
-    return n === filterId || n.startsWith(filterId)
+    if (!n) return false
+    if (n === filterId || n.startsWith(`${filterId} `)) return true
+    return n.split(' ').includes(filterId)
   })
 }

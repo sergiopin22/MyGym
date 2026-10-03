@@ -3305,11 +3305,7 @@ export async function getRoutineExercisePRs(): Promise<
       for (const ex of day.exercises) {
         const tagged = sanitizeMuscleGroups(ex.muscleGroups)
         const machineGroups =
-          tagged.length > 0
-            ? tagged
-            : day.muscleGroups.length === 1
-              ? [...day.muscleGroups]
-              : []
+          tagged.length > 0 ? tagged : [...day.muscleGroups]
         const supportsStraps = supportsStrapsTracking(ex.name, day.muscleGroups)
         upsertEntry(ex.name, day.label, supportsStraps, undefined, machineGroups, ex.machineId)
         for (const grip of ex.grips ?? []) {

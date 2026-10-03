@@ -410,13 +410,18 @@ export function PrPanel({
             Todas las máquinas de tu rutina. Abre la estadística de cada una.
           </p>
 
-          <div className="focus-pr-reel__body">
+          <div className="focus-pr-reel__toolbar">
             <input
-              type="search"
+              type="text"
+              inputMode="search"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Buscar ejercicio…"
               className="focus-pr-reel__search input-ios-safe"
+              aria-label="Buscar ejercicio"
             />
 
             <MuscleFilterChips
@@ -424,7 +429,9 @@ export function PrPanel({
               value={muscleFilter}
               onChange={setMuscleFilter}
             />
+          </div>
 
+          <div className="focus-pr-reel__body">
             {loading ? (
               <p className="focus-pr-reel__loading">Cargando PRs…</p>
             ) : filtered.length === 0 ? (

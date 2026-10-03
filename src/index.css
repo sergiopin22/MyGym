@@ -2188,14 +2188,16 @@ html[data-ui-layout='focus'] .focus-prs-sheet--reel {
 html[data-ui-layout='focus'] .focus-prs-sheet__scrim {
   position: absolute;
   inset: 0;
+  z-index: 0;
   border: 0;
+  pointer-events: none;
   background: color-mix(in srgb, var(--color-overlay) 95%, transparent);
   backdrop-filter: blur(12px);
 }
 
 html[data-ui-layout='focus'] .focus-prs-sheet__panel--reel {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   display: flex;
   width: 100%;
   max-width: none;
@@ -2205,6 +2207,7 @@ html[data-ui-layout='focus'] .focus-prs-sheet__panel--reel {
   overflow: hidden;
   margin: 0;
   border-radius: 0;
+  transform: none;
   background:
     radial-gradient(120% 70% at 100% 0%, color-mix(in srgb, var(--color-brand) 18%, transparent), transparent 55%),
     linear-gradient(180deg, var(--color-surface) 0%, color-mix(in srgb, var(--color-surface-elevated) 86%, black) 100%);
@@ -2280,13 +2283,23 @@ html[data-ui-layout='focus'] .focus-pr-reel__search {
   display: block;
   width: calc(100% - 1.7rem);
   margin: 0 0.85rem 0.45rem;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   border-radius: 0.85rem;
   border: 1px solid var(--color-line);
   background: var(--color-surface);
   padding: 0 0.85rem;
   color: var(--color-fg);
-  font-size: 0.9rem;
+  font-size: 16px;
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__toolbar {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 6;
+  pointer-events: auto;
 }
 
 html[data-ui-layout='focus'] .focus-pr-reel__muscles {
@@ -2294,6 +2307,15 @@ html[data-ui-layout='focus'] .focus-pr-reel__muscles {
   flex-wrap: wrap;
   gap: 0.4rem;
   margin: 0 0.85rem 0.65rem;
+  pointer-events: auto;
+  position: relative;
+  z-index: 2;
+}
+
+html[data-ui-layout='focus'] .focus-pr-reel__muscles .pr-stats__chip {
+  min-height: 2.75rem;
+  padding: 0.45rem 0.9rem;
+  pointer-events: auto;
 }
 
 html[data-ui-layout='focus'] .focus-pr-bill__days {
@@ -2360,6 +2382,8 @@ html[data-ui-layout='focus'] .focus-pr-reel__lede {
 html[data-ui-layout='focus'] .focus-pr-reel__body {
   min-height: 0;
   flex: 1;
+  display: flex;
+  flex-direction: column;
   overflow: hidden;
 }
 
@@ -2379,7 +2403,8 @@ html[data-ui-layout='focus'] .focus-pr-reel__footer {
 }
 
 html[data-ui-layout='focus'] .focus-pr-reel__track {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   scroll-snap-type: y mandatory;
@@ -2687,11 +2712,9 @@ html[data-ui-layout='focus'] .focus-pr-script__weight small {
 @keyframes focus-pr-panel-in {
   from {
     opacity: 0;
-    transform: translateY(18px) scale(0.985);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
   }
 }
 
