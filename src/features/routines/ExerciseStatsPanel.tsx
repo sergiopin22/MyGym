@@ -67,7 +67,6 @@ export function ExerciseStatsPanel({
   target,
   onClose,
   embedded = false,
-  forceFocus = false,
   unitOverride,
   historySource,
 }: ExerciseStatsPanelProps) {

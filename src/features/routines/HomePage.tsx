@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '../../components/Button'
-import { Card } from '../../components/Card'
 import { ProgressBar } from '../../components/ProgressBar'
 import {
   ensureDefaultRoutine,
@@ -109,7 +108,6 @@ export function HomePage() {
   const [recoveryDay, setRecoveryDay] = useState<RoutineDay | null>(null)
   const [missedDays, setMissedDays] = useState<RoutineDay[]>([])
   const [goalRefresh, setGoalRefresh] = useState(0)
-  const [locateToday, setLocateToday] = useState(false)
   const [focusDeck, setFocusDeck] = useState<'hoy' | 'semana' | 'meta'>('hoy')
   const [weekExpanded, setWeekExpanded] = useState<Weekday | null>(todayWeekday)
   const [posterEnterKey, setPosterEnterKey] = useState(0)
@@ -153,20 +151,14 @@ export function HomePage() {
     todayLocatePlayedRef.current = true
     // Espera al paint del chip "Hoy" para scroll + animación
     const frame = window.requestAnimationFrame(() => {
-      setLocateToday(true)
       todayChipRef.current?.scrollIntoView({
         behavior: 'smooth',
         inline: 'center',
         block: 'nearest',
       })
     })
-    const clearMs = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      ? 0
-      : 2600
-    const timer = window.setTimeout(() => setLocateToday(false), clearMs)
     return () => {
       window.cancelAnimationFrame(frame)
-      window.clearTimeout(timer)
     }
   }, [loading, routine])
 
@@ -236,8 +228,6 @@ export function HomePage() {
     Boolean(completedToday) &&
     !completedToday?.isRecovery &&
     (!todayDay || completedToday?.routineDayId === todayDay.id)
-
-  const today = new Date()
 
   function handleDayUpdated(updated: RoutineDay) {
     setRoutine((prev) =>
@@ -323,45 +313,6 @@ export function HomePage() {
   }
 
   if (loading) return <p className="pt-8 text-muted focus-section-pad">Cargando tu gimnasio…</p>
-
-  const dayStrip = (
-    <div className="focus-day-strip">
-      {days.map((day) => {
-        const active = day.weekday === (recoveryDay?.weekday ?? selectedWeekday)
-        const isToday = day.weekday === todayWeekday
-        const rest = Boolean(day.isRestDay)
-        const recovering = recoveryDay?.id === day.id
-        const short = weekdayLabel(day.weekday).slice(0, 3)
-        return (
-          <button
-            key={day.id}
-            ref={isToday ? todayChipRef : undefined}
-            type="button"
-            onClick={() => {
-              if (recoveryDay && day.id !== recoveryDay.id) {
-                handleClearRecovery()
-              }
-              setSelectedWeekday(day.weekday)
-            }}
-            className={[
-              'transition active:scale-[0.97]',
-              active
-                ? 'bg-chrome text-chrome-fg'
-                : rest
-                  ? 'bg-brand-soft/80 text-muted ring-1 ring-line'
-                  : 'bg-surface-elevated text-muted ring-1 ring-line',
-              isToday && locateToday ? 'today-chip-locate' : '',
-            ].join(' ')}
-          >
-            <span>{short}</span>
-            {isToday ? <span className="text-[0.58rem] opacity-90">Hoy</span> : null}
-            {rest ? <span className="text-[0.58rem] opacity-80">Desc</span> : null}
-            {recovering ? <span className="text-[0.58rem] opacity-80">Rec</span> : null}
-          </button>
-        )
-      })}
-    </div>
-  )
 
   const sessionActions = (
     <>
