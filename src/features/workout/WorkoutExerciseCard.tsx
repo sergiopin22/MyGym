@@ -514,6 +514,93 @@ export function WorkoutExerciseCard({
     session.muscleGroups,
   )
 
+  const setsList = (
+    <ul className="space-y-4">
+      {exercise.sets.map((set) => (
+        <li
+          key={set.id}
+          className={[
+            'space-y-3 rounded-2xl border p-3',
+            set.completed
+              ? 'border-accent/40 bg-success-soft/60'
+              : 'border-line bg-surface',
+          ].join(' ')}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <p className="font-display font-bold">Serie {set.setNumber}</p>
+            <div className="flex items-center gap-2">
+              {showStraps && canEdit ? (
+                <StrapsToggle
+                  active={Boolean(set.withStraps)}
+                  onToggle={() =>
+                    void patchSet(set.id, { withStraps: !set.withStraps })
+                  }
+                />
+              ) : showStraps && set.withStraps ? (
+                <span className="text-xs font-bold uppercase tracking-wide text-brand">
+                  Con straps
+                </span>
+              ) : null}
+              {set.completed ? (
+                <span className="text-sm font-semibold text-accent-strong">
+                  Completada
+                </span>
+              ) : null}
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <NumberStepper
+              label="Peso"
+              suffix={label}
+              step={step}
+              min={0}
+              value={toDisplay(set.weight)}
+              disabled={!canEdit || exercise.status === 'skipped'}
+              onChange={(weight) =>
+                void patchSet(set.id, { weight: toStorage(weight) })
+              }
+            />
+            <NumberStepper
+              label="Reps"
+              step={1}
+              min={0}
+              value={set.reps}
+              disabled={!canEdit || exercise.status === 'skipped'}
+              onChange={(reps) => void patchSet(set.id, { reps })}
+            />
+            <NumberStepper
+              label="RIR"
+              step={1}
+              min={0}
+              max={10}
+              value={set.rir}
+              disabled={!canEdit || exercise.status === 'skipped'}
+              onChange={(rir) => void patchSet(set.id, { rir })}
+            />
+          </div>
+
+          {canEdit && exercise.status !== 'skipped' ? (
+            <Button
+              fullWidth
+              variant={set.completed ? 'ghost' : 'primary'}
+              disabled={!set.completed && !setHasData(set)}
+              onClick={() =>
+                void patchSet(set.id, { completed: !set.completed })
+              }
+            >
+              {set.completed
+                ? 'Desmarcar serie'
+                : setHasData(set)
+                  ? 'Marcar serie completada'
+                  : 'Coloca peso y reps'}
+            </Button>
+          ) : null}
+        </li>
+      ))}
+    </ul>
+  )
+
   return (
     <article className="space-y-3 rounded-3xl border border-line bg-surface-elevated p-4 shadow-[0_10px_30px_-20px_rgba(12,26,20,0.45)]">
       <div className="flex gap-3">
@@ -577,6 +664,16 @@ export function WorkoutExerciseCard({
           </div>
         </div>
       ) : null}
+
+      {exercise.status === 'skipped' ? (
+        <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-fg">
+          Omitido. No entra en PR, gráfica ni última vez.
+        </p>
+      ) : null}
+
+      {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
+
+      {editMode ? setsList : null}
 
       <div className="flex flex-wrap gap-2">
         {canEdit ? (
@@ -736,14 +833,6 @@ export function WorkoutExerciseCard({
         </div>
       ) : null}
 
-      {exercise.status === 'skipped' ? (
-        <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-fg">
-          Omitido. No entra en PR, gráfica ni última vez.
-        </p>
-      ) : null}
-
-      {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
-
       {canEdit ? (
         <div className="space-y-2">
           {!noteOpen && !noteDraft ? (
@@ -778,90 +867,7 @@ export function WorkoutExerciseCard({
         </p>
       ) : null}
 
-      <ul className="space-y-4">
-        {exercise.sets.map((set) => (
-          <li
-            key={set.id}
-            className={[
-              'space-y-3 rounded-2xl border p-3',
-              set.completed
-                ? 'border-accent/40 bg-success-soft/60'
-                : 'border-line bg-surface',
-            ].join(' ')}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <p className="font-display font-bold">Serie {set.setNumber}</p>
-              <div className="flex items-center gap-2">
-                {showStraps && canEdit ? (
-                  <StrapsToggle
-                    active={Boolean(set.withStraps)}
-                    onToggle={() =>
-                      void patchSet(set.id, { withStraps: !set.withStraps })
-                    }
-                  />
-                ) : showStraps && set.withStraps ? (
-                  <span className="text-xs font-bold uppercase tracking-wide text-brand">
-                    Con straps
-                  </span>
-                ) : null}
-                {set.completed ? (
-                  <span className="text-sm font-semibold text-accent-strong">
-                    Completada
-                  </span>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <NumberStepper
-                label="Peso"
-                suffix={label}
-                step={step}
-                min={0}
-                value={toDisplay(set.weight)}
-                disabled={!canEdit || exercise.status === 'skipped'}
-                onChange={(weight) =>
-                  void patchSet(set.id, { weight: toStorage(weight) })
-                }
-              />
-              <NumberStepper
-                label="Reps"
-                step={1}
-                min={0}
-                value={set.reps}
-                disabled={!canEdit || exercise.status === 'skipped'}
-                onChange={(reps) => void patchSet(set.id, { reps })}
-              />
-              <NumberStepper
-                label="RIR"
-                step={1}
-                min={0}
-                max={10}
-                value={set.rir}
-                disabled={!canEdit || exercise.status === 'skipped'}
-                onChange={(rir) => void patchSet(set.id, { rir })}
-              />
-            </div>
-
-            {canEdit && exercise.status !== 'skipped' ? (
-              <Button
-                fullWidth
-                variant={set.completed ? 'ghost' : 'primary'}
-                disabled={!set.completed && !setHasData(set)}
-                onClick={() =>
-                  void patchSet(set.id, { completed: !set.completed })
-                }
-              >
-                {set.completed
-                  ? 'Desmarcar serie'
-                  : setHasData(set)
-                    ? 'Marcar serie completada'
-                    : 'Coloca peso y reps'}
-              </Button>
-            ) : null}
-          </li>
-        ))}
-      </ul>
+      {editMode ? null : setsList}
 
       {machinePickerOpen ? (
         <MachinePicker

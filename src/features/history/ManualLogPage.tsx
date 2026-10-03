@@ -185,160 +185,98 @@ export function ManualLogPage() {
     }
   }
 
+  const dateLabel = new Date(date + 'T12:00:00').toLocaleDateString('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'short',
+  })
+
+  function handleChangeDate() {
+    if (!confirmResetDraft()) return
+    setDraft(null)
+  }
+
   return (
     <div className="app-safe-top mx-auto flex h-full max-h-full w-full max-w-lg lg:max-w-4xl flex-col overflow-hidden px-4">
-      <header className="focus-sticky-bar shrink-0 space-y-3 border-b border-line py-3">
-        <PageHeader
-          kicker="Focus · Cargar"
-          title="Cargar entreno a mano"
-          subtitle="Anota un día que sí entrenaste. No gasta la recuperación de la semana."
-          back={
+      {draft ? (
+        <header className="focus-sticky-bar shrink-0 space-y-2 border-b border-line py-2">
+          <div className="flex items-center justify-between gap-3">
             <Link
               to="/historial"
               className="text-sm font-semibold text-muted hover:text-ink"
             >
               ← Historial
             </Link>
-          }
-        />
-
-        <div className="space-y-3">
-          <label className="block space-y-1">
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted">
-              Fecha en que entrenaste
-            </span>
-            <input
-              type="date"
-              max={today}
-              value={date}
+            <button
+              type="button"
+              className="text-xs font-semibold text-brand underline"
               disabled={saving}
-              onChange={(e) => {
-                const next = e.target.value
-                if (!next) return
-                if (draft && !confirmResetDraft()) return
-                setDate(next)
-                setDraft(null)
-                const weekday = weekdayFromISO(next)
-                const match = days.find((d) => d.weekday === weekday)
-                setDayId(match?.id ?? '')
-              }}
-              className="min-h-12 w-full rounded-2xl bg-surface px-3 text-base text-fg ring-1 ring-line"
-            />
-          </label>
-
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-              Rutina que hiciste
-            </p>
-            {loadingDays ? (
-              <p className="text-sm text-muted">Cargando días…</p>
-            ) : days.length === 0 ? (
-              <p className="text-sm text-muted">
-                No hay días con ejercicios. Agrégalos en Rutinas.
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {days.map((day) => {
-                  const selected = day.id === dayId
-                  return (
-                    <button
-                      key={day.id}
-                      type="button"
-                      disabled={saving}
-                      onClick={() => {
-                        if (day.id === dayId) return
-                        if (draft && !confirmResetDraft()) return
-                        setDate(lastDateForWeekday(day.weekday, today))
-                        setDayId(day.id)
-                        setDraft(null)
-                      }}
-                      className={[
-                        'min-h-11 rounded-xl px-3 text-sm font-semibold ring-1 transition',
-                        selected
-                          ? 'bg-chrome text-chrome-fg ring-chrome'
-                          : 'bg-surface text-fg ring-line',
-                      ].join(' ')}
-                    >
-                      {weekdayLabel(day.weekday)}
-                    </button>
-                  )
-                })}
-              </div>
-            )}
+              onClick={handleChangeDate}
+            >
+              Cambiar fecha
+            </button>
           </div>
-
-          {isRestDate ? (
+          <div>
+            <h1 className="font-display text-xl font-extrabold tracking-tight text-fg">
+              {selectedDay ? weekdayLabel(selectedDay.weekday) : draft.dayLabel}
+            </h1>
             <p className="text-xs text-muted">
-              Esa fecha fue {weekdayLabel(dateWeekday)} y está de descanso. Elige
-              un día en el que sí hayas entrenado. Esto no es una recuperación.
+              {dateLabel} · {completedCount}/{exercises.length} ejercicios
             </p>
-          ) : selectedDay ? (
-            <p className="text-xs text-muted">
-              Se guarda como el entrenamiento de{' '}
-              {weekdayLabel(selectedDay.weekday)} en esa fecha. No cuenta como
-              recuperación.
-            </p>
-          ) : null}
-
-          <Button
-            fullWidth
-            variant={draft ? 'secondary' : 'primary'}
-            disabled={
-              loadingDraft ||
-              saving ||
-              !matchingDay ||
-              days.length === 0
+          </div>
+          <ProgressBar
+            value={completedCount}
+            max={Math.max(exercises.length, 1)}
+          />
+        </header>
+      ) : (
+        <header className="focus-sticky-bar shrink-0 space-y-3 border-b border-line py-3">
+          <PageHeader
+            kicker="Focus · Cargar"
+            title="Cargar entreno a mano"
+            subtitle="Anota un día que sí entrenaste. No gasta la recuperación de la semana."
+            back={
+              <Link
+                to="/historial"
+                className="text-sm font-semibold text-muted hover:text-ink"
+              >
+                ← Historial
+              </Link>
             }
-            onClick={() => void handleBuildDraft()}
-          >
-            {loadingDraft
-              ? 'Armando…'
-              : draft
-                ? 'Rehacer lista de ejercicios'
-                : 'Cargar ejercicios de ese día'}
-          </Button>
-        </div>
-
-        {draft ? (
-          <>
-            <ProgressBar
-              value={completedCount}
-              max={Math.max(exercises.length, 1)}
-            />
-            <p className="rounded-2xl bg-brand-soft px-3 py-2 text-xs text-fg">
-              Anota peso, reps y RIR de cada serie (como en tus notas). Omite lo
-              que no hayas hecho.
-            </p>
-            {hasBackStrapsExercises ? (
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="secondary"
-                  className="min-h-10 px-3 text-sm"
-                  disabled={saving}
-                  onClick={() => setStrapsForAllBack(true)}
-                >
-                  Marcar espalda con straps
-                </Button>
-                <Button
-                  variant="ghost"
-                  className="min-h-10 px-3 text-sm"
-                  disabled={saving}
-                  onClick={() => setStrapsForAllBack(false)}
-                >
-                  Quitar straps en espalda
-                </Button>
-              </div>
-            ) : null}
-          </>
-        ) : null}
-      </header>
+          />
+        </header>
+      )}
 
       <div
-        className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4"
-        style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+        className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-3"
+        style={{
+          paddingBottom: draft
+            ? '0.75rem'
+            : 'max(1.5rem, env(safe-area-inset-bottom))',
+        }}
       >
         {draft ? (
           <div className="space-y-4">
+            {hasBackStrapsExercises ? (
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className="min-h-9 rounded-xl bg-chrome px-3 text-xs font-semibold text-chrome-fg"
+                  disabled={saving}
+                  onClick={() => setStrapsForAllBack(true)}
+                >
+                  Espalda con straps
+                </button>
+                <button
+                  type="button"
+                  className="min-h-9 rounded-xl bg-surface px-3 text-xs font-semibold text-fg ring-1 ring-line"
+                  disabled={saving}
+                  onClick={() => setStrapsForAllBack(false)}
+                >
+                  Sin straps
+                </button>
+              </div>
+            ) : null}
             {exercises.map((exercise) => (
               <WorkoutExerciseCard
                 key={exercise.id}
@@ -348,34 +286,114 @@ export function ManualLogPage() {
                 onSessionChange={setDraft}
               />
             ))}
+            {error ? (
+              <p className="text-sm font-medium text-danger">{error}</p>
+            ) : null}
           </div>
         ) : (
-          <p className="text-sm text-muted">
-            Elige fecha y rutina, carga los ejercicios y pasa tus series desde
-            las notas.
-          </p>
-        )}
+          <div className="space-y-3">
+            <label className="block space-y-1">
+              <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+                Fecha en que entrenaste
+              </span>
+              <input
+                type="date"
+                max={today}
+                value={date}
+                disabled={saving}
+                onChange={(e) => {
+                  const next = e.target.value
+                  if (!next) return
+                  setDate(next)
+                  const weekday = weekdayFromISO(next)
+                  const match = days.find((d) => d.weekday === weekday)
+                  setDayId(match?.id ?? '')
+                }}
+                className="min-h-12 w-full rounded-2xl bg-surface px-3 text-base text-fg ring-1 ring-line"
+              />
+            </label>
 
-        {error ? (
-          <p className="mt-4 text-sm font-medium text-danger">{error}</p>
-        ) : null}
+            <div className="space-y-1">
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
+                Rutina que hiciste
+              </p>
+              {loadingDays ? (
+                <p className="text-sm text-muted">Cargando días…</p>
+              ) : days.length === 0 ? (
+                <p className="text-sm text-muted">
+                  No hay días con ejercicios. Agrégalos en Rutinas.
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {days.map((day) => {
+                    const selected = day.id === dayId
+                    return (
+                      <button
+                        key={day.id}
+                        type="button"
+                        disabled={saving}
+                        onClick={() => {
+                          if (day.id === dayId) return
+                          setDate(lastDateForWeekday(day.weekday, today))
+                          setDayId(day.id)
+                        }}
+                        className={[
+                          'min-h-11 rounded-xl px-3 text-sm font-semibold ring-1 transition',
+                          selected
+                            ? 'bg-chrome text-chrome-fg ring-chrome'
+                            : 'bg-surface text-fg ring-line',
+                        ].join(' ')}
+                      >
+                        {weekdayLabel(day.weekday)}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
 
-        {draft ? (
-          <div className="mt-6 space-y-2">
-            <Button fullWidth disabled={saving} onClick={() => void handleSave()}>
-              {saving ? 'Guardando…' : 'Guardar entrenamiento'}
-            </Button>
+            {isRestDate ? (
+              <p className="text-xs text-muted">
+                Esa fecha fue {weekdayLabel(dateWeekday)} y está de descanso.
+                Elige un día en el que sí hayas entrenado.
+              </p>
+            ) : selectedDay ? (
+              <p className="text-xs text-muted">
+                Se guarda como el entrenamiento de{' '}
+                {weekdayLabel(selectedDay.weekday)} en esa fecha. No cuenta como
+                recuperación.
+              </p>
+            ) : null}
+
+            {error ? (
+              <p className="text-sm font-medium text-danger">{error}</p>
+            ) : null}
+
             <Button
               fullWidth
-              variant="ghost"
-              disabled={saving}
-              onClick={() => navigate('/historial')}
+              disabled={
+                loadingDraft || saving || !matchingDay || days.length === 0
+              }
+              onClick={() => void handleBuildDraft()}
             >
-              Cancelar
+              {loadingDraft ? 'Armando…' : 'Cargar ejercicios de ese día'}
             </Button>
           </div>
-        ) : null}
+        )}
       </div>
+
+      {draft ? (
+        <div
+          className="shrink-0 border-t border-line pt-3"
+          style={{
+            paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
+          }}
+        >
+          <Button fullWidth disabled={saving} onClick={() => void handleSave()}>
+            {saving ? 'Guardando…' : 'Guardar entrenamiento'}
+          </Button>
+        </div>
+      ) : null}
     </div>
   )
 }
