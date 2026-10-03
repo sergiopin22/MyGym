@@ -5,7 +5,6 @@ import { getHistory } from '../../db/repository'
 import type { SessionSummary } from '../../types'
 import { formatDuration } from '../../utils/id'
 import { CopyCoachMessageButton } from './CopyCoachMessageButton'
-import { useTheme } from '../../context/ThemeProvider'
 
 interface HistoryListProps {
   onNavigate?: () => void
@@ -14,8 +13,6 @@ interface HistoryListProps {
 export function HistoryList({ onNavigate }: HistoryListProps) {
   const [items, setItems] = useState<SessionSummary[]>([])
   const [loading, setLoading] = useState(true)
-  const { uiLayout } = useTheme()
-  const isFocus = uiLayout === 'focus'
 
   useEffect(() => {
     let alive = true
@@ -51,8 +48,7 @@ export function HistoryList({ onNavigate }: HistoryListProps) {
     )
   }
 
-  if (isFocus) {
-    return (
+  return (
       <ul className="focus-journal">
         {items.map((item) => (
           <li key={item.sessionId} className="focus-journal__item">
@@ -106,70 +102,4 @@ export function HistoryList({ onNavigate }: HistoryListProps) {
         ))}
       </ul>
     )
-  }
-
-  return (
-    <ul className="space-y-3">
-      {items.map((item) => (
-        <li key={item.sessionId}>
-          <Card className="space-y-3">
-            <Link
-              to={`/historial/${item.sessionId}`}
-              className="block"
-              onClick={onNavigate}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-muted">
-                    {new Date(item.date + 'T12:00:00').toLocaleDateString(
-                      'es-ES',
-                      {
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'short',
-                      },
-                    )}
-                  </p>
-                  <h2 className="font-display text-lg font-bold">
-                    {item.dayLabel}
-                  </h2>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {item.isRecovery ? (
-                      <span className="inline-flex rounded-full bg-progress-soft px-2.5 py-1 text-xs font-bold text-progress">
-                        Recuperado
-                        {item.recoveredDayLabel
-                          ? ` · ${item.recoveredDayLabel}`
-                          : ''}
-                      </span>
-                    ) : null}
-                    {item.isManualEntry ? (
-                      <span className="inline-flex rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-fg">
-                        Cargado a mano
-                      </span>
-                    ) : null}
-                    {item.editedAt ? (
-                      <span className="inline-flex rounded-full bg-brand-soft px-2.5 py-1 text-xs font-bold text-fg">
-                        Editado
-                      </span>
-                    ) : null}
-                  </div>
-                  <p className="mt-1 text-sm text-muted">
-                    {item.completedExercises}/{item.totalExercises} ejercicios ·{' '}
-                    {item.totalSetsCompleted} series
-                    {item.durationMs > 0
-                      ? ` · ${formatDuration(item.durationMs)}`
-                      : ''}
-                  </p>
-                </div>
-                <span className="text-2xl text-muted" aria-hidden>
-                  ›
-                </span>
-              </div>
-            </Link>
-            <CopyCoachMessageButton summary={item} fullWidth />
-          </Card>
-        </li>
-      ))}
-    </ul>
-  )
 }

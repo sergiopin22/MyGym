@@ -66,7 +66,7 @@ export const SUPABASE_SYNC_INVENTORY = {
       cloud: 'user_preferences',
       includes: [
         'themeId',
-        'uiLayout (classic/focus)',
+        'uiLayout (focus)',
         'focusAccent',
         'brandAvatarId',
         'avatarMode (preset/custom)',

@@ -18,7 +18,6 @@ import { FocusGymHeatmap } from './FocusGymHeatmap'
 import { RestDayToggle } from './RestDayToggle'
 import { BackupReminderCard } from '../backup/BackupReminderCard'
 import { DisplayNamePrompt } from '../settings/DisplayNamePrompt'
-import { useTheme } from '../../context/ThemeProvider'
 
 function sortDays(days: RoutineDay[]): RoutineDay[] {
   const order = [1, 2, 3, 4, 5, 6, 0]
@@ -99,8 +98,6 @@ function FocusPosterHero({
 
 export function HomePage() {
   const navigate = useNavigate()
-  const { uiLayout } = useTheme()
-  const isFocus = uiLayout === 'focus'
   const todayWeekday = new Date().getDay() as Weekday
   const [routine, setRoutine] = useState<Routine | null>(null)
   const [activeSession, setActiveSession] = useState<WorkoutSession | undefined>()
@@ -328,13 +325,7 @@ export function HomePage() {
   if (loading) return <p className="pt-8 text-muted focus-section-pad">Cargando tu gimnasio…</p>
 
   const dayStrip = (
-    <div
-      className={[
-        isFocus
-          ? 'focus-day-strip'
-          : '-mx-1 flex gap-2 overflow-x-auto px-1 pb-1',
-      ].join(' ')}
-    >
+    <div className="focus-day-strip">
       {days.map((day) => {
         const active = day.weekday === (recoveryDay?.weekday ?? selectedWeekday)
         const isToday = day.weekday === todayWeekday
@@ -353,9 +344,7 @@ export function HomePage() {
               setSelectedWeekday(day.weekday)
             }}
             className={[
-              isFocus
-                ? 'transition active:scale-[0.97]'
-                : 'min-h-12 shrink-0 rounded-2xl px-4 text-sm font-semibold transition active:scale-[0.98]',
+              'transition active:scale-[0.97]',
               active
                 ? 'bg-chrome text-chrome-fg'
                 : rest
@@ -364,21 +353,10 @@ export function HomePage() {
               isToday && locateToday ? 'today-chip-locate' : '',
             ].join(' ')}
           >
-            {isFocus ? (
-              <>
-                <span>{short}</span>
-                {isToday ? <span className="text-[0.58rem] opacity-90">Hoy</span> : null}
-                {rest ? <span className="text-[0.58rem] opacity-80">Desc</span> : null}
-                {recovering ? <span className="text-[0.58rem] opacity-80">Rec</span> : null}
-              </>
-            ) : (
-              <>
-                {short}
-                {rest ? ' · 😴' : ''}
-                {isToday ? ' · Hoy' : ''}
-                {recovering ? ' · Recup.' : ''}
-              </>
-            )}
+            <span>{short}</span>
+            {isToday ? <span className="text-[0.58rem] opacity-90">Hoy</span> : null}
+            {rest ? <span className="text-[0.58rem] opacity-80">Desc</span> : null}
+            {recovering ? <span className="text-[0.58rem] opacity-80">Rec</span> : null}
           </button>
         )
       })}
@@ -580,10 +558,7 @@ export function HomePage() {
                   return (
                     <li
                       key={ex.id}
-                      className={[
-                        'flex items-center justify-between gap-2 rounded-2xl bg-surface px-3 py-2.5 text-sm',
-                        isFocus ? 'focus-list-row' : '',
-                      ].join(' ')}
+                      className="focus-list-row flex items-center justify-between gap-2 rounded-2xl bg-surface px-3 py-2.5 text-sm"
                     >
                       <span className="truncate font-medium">{ex.name}</span>
                       <span aria-hidden>{mark}</span>
@@ -618,7 +593,6 @@ export function HomePage() {
     </>
   )
 
-  if (isFocus) {
     const progressPct =
       totalCount <= 0
         ? 0
@@ -892,75 +866,4 @@ export function HomePage() {
       </div>
       </>
     )
-  }
-
-  return (
-    <>
-      <div className="space-y-6">
-      <header className="mt-2 flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-1">
-          <p className="font-display text-sm font-semibold uppercase tracking-[0.18em] text-brand">
-            Mi Gym
-          </p>
-          <h1 className="font-display text-3xl font-extrabold tracking-tight text-fg">
-            {weekdayLabel(todayWeekday)}
-          </h1>
-          <p className="text-muted">
-            {today.toLocaleDateString('es-ES', {
-              day: 'numeric',
-              month: 'long',
-              year: 'numeric',
-            })}
-          </p>
-        </div>
-        <BrandAvatarButton />
-      </header>
-
-      <DisplayNamePrompt />
-
-      <BackupReminderCard />
-
-      <p className="text-sm text-muted">
-        Si entrenaste y la app no lo guardó,{' '}
-        <Link to="/historial/cargar" className="font-semibold text-brand underline">
-          carga el entreno a mano
-        </Link>
-        .
-      </p>
-
-      <ConstancyGoalCard
-        recoveryDayId={recoveryDay?.id ?? null}
-        onSelectRecoveryDay={handleSelectRecoveryDay}
-        onClearRecovery={handleClearRecovery}
-        refreshKey={goalRefresh}
-      />
-
-      <div className="space-y-2">
-        <p className="text-sm font-semibold text-muted">
-          {isRecoveryMode
-            ? `Recuperando ${weekdayLabel(recoveryDay!.weekday)} — verás su rutina abajo`
-            : 'Ver rutina de la semana (hoy, o un día a recuperar)'}
-        </p>
-        {dayStrip}
-      </div>
-
-      {selectedDay && routine && isTodaySelected ? (
-        <RestDayToggle
-          day={selectedDay}
-          routineId={routine.id}
-          compact
-          disabled={todayDone}
-          disabledReason={
-            todayDone
-              ? 'Ya entrenaste hoy: no puedes marcarlo como descanso.'
-              : undefined
-          }
-          onChange={handleDayUpdated}
-        />
-      ) : null}
-
-      <Card className="space-y-4">{sessionBody}</Card>
-      </div>
-    </>
-  )
 }

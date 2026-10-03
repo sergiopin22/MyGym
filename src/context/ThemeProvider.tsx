@@ -11,7 +11,6 @@ import { applyFocusAccent, applyUiLayout } from '../ui/applyUiLayout'
 import {
   FOCUS_ACCENTS,
   getStoredFocusAccent,
-  getStoredUiLayout,
   type FocusAccentId,
   type UiLayoutId,
 } from '../ui/layoutMode'
@@ -30,9 +29,6 @@ const ThemeContext = createContext<ThemeContextValue | null>(null)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [themeId, setThemeIdState] = useState<ThemeId>(() => getStoredThemeId())
-  const [uiLayout, setUiLayoutState] = useState<UiLayoutId>(() =>
-    getStoredUiLayout(),
-  )
   const [focusAccent, setFocusAccentState] = useState<FocusAccentId>(() =>
     getStoredFocusAccent(),
   )
@@ -41,38 +37,24 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     () => ({
       themeId,
       setThemeId: (id: ThemeId) => {
-        if (uiLayout === 'focus') {
-          // En Focus la paleta propia manda; igual guardamos preferencia clásica
-          applyTheme(id)
-          applyFocusAccent(focusAccent)
-        } else {
-          applyTheme(id)
-        }
+        applyTheme(id)
+        applyFocusAccent(focusAccent)
         setThemeIdState(id)
         scheduleCloudSync({ delayMs: 2500 })
       },
-      uiLayout,
-      setUiLayout: (id: UiLayoutId) => {
-        applyUiLayout(id, focusAccent)
-        setUiLayoutState(id)
+      uiLayout: 'focus' as const,
+      setUiLayout: (_id: UiLayoutId) => {
+        applyUiLayout('focus', focusAccent)
         scheduleCloudSync({ delayMs: 2500 })
       },
       focusAccent,
       setFocusAccent: (id: FocusAccentId) => {
         setFocusAccentState(id)
-        if (uiLayout === 'focus') {
-          applyFocusAccent(id)
-        } else {
-          try {
-            localStorage.setItem('mi-gym-focus-accent', id)
-          } catch {
-            /* ignore */
-          }
-        }
+        applyFocusAccent(id)
         scheduleCloudSync({ delayMs: 2500 })
       },
     }),
-    [themeId, uiLayout, focusAccent],
+    [themeId, focusAccent],
   )
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>

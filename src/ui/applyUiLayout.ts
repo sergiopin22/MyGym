@@ -1,4 +1,3 @@
-import { applyTheme, getStoredThemeId } from '../themes/applyTheme'
 import {
   FOCUS_ACCENTS,
   getStoredFocusAccent,
@@ -30,22 +29,13 @@ export function applyFocusAccent(accent: FocusAccentId) {
   }
 }
 
-export function applyUiLayout(layout: UiLayoutId, accent = getStoredFocusAccent()) {
-  const root = document.documentElement
+export function applyUiLayout(_layout: UiLayoutId, accent = getStoredFocusAccent()) {
   try {
-    localStorage.setItem(UI_LAYOUT_STORAGE_KEY, layout)
+    localStorage.setItem(UI_LAYOUT_STORAGE_KEY, 'focus')
   } catch {
     /* ignore */
   }
-
-  if (layout === 'focus') {
-    applyFocusAccent(accent)
-    return
-  }
-
-  root.dataset.uiLayout = 'classic'
-  delete root.dataset.focusAccent
-  applyTheme(getStoredThemeId())
+  applyFocusAccent(accent)
 }
 
 export function initUiLayout() {

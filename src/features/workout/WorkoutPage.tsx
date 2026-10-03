@@ -25,13 +25,10 @@ import {
 import { WorkoutExerciseCard } from './WorkoutExerciseCard'
 import { WorkoutPlateFab } from './WorkoutPlateFab'
 import { PageHeader } from '../../ui/PageHeader'
-import { useTheme } from '../../context/ThemeProvider'
 
 export function WorkoutPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
   const navigate = useNavigate()
-  const { uiLayout } = useTheme()
-  const isFocus = uiLayout === 'focus'
   const [session, setSession] = useState<WorkoutSession | null>(null)
   const [summary, setSummary] = useState<SessionSummary | null>(null)
   const [loading, setLoading] = useState(true)
@@ -244,41 +241,25 @@ export function WorkoutPage() {
           ) : null}
 
           <Card className="space-y-4">
-            <div className={isFocus ? 'focus-stat-grid' : 'space-y-4'}>
-              {isFocus ? (
-                <>
-                  <div className="focus-stat">
-                    <span className="focus-stat__label">Duración</span>
-                    <span className="focus-stat__value">
-                      {formatDuration(summary.durationMs)}
-                    </span>
-                  </div>
-                  <div className="focus-stat">
-                    <span className="focus-stat__label">Ejercicios</span>
-                    <span className="focus-stat__value">
-                      {summary.completedExercises}/{summary.totalExercises}
-                    </span>
-                  </div>
-                  <div className="focus-stat">
-                    <span className="focus-stat__label">Series</span>
-                    <span className="focus-stat__value">
-                      {summary.totalSetsCompleted}
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <Stat label="Duración" value={formatDuration(summary.durationMs)} />
-                  <Stat
-                    label="Ejercicios"
-                    value={`${summary.completedExercises} de ${summary.totalExercises}`}
-                  />
-                  <Stat
-                    label="Series completadas"
-                    value={String(summary.totalSetsCompleted)}
-                  />
-                </>
-              )}
+            <div className="focus-stat-grid">
+              <div className="focus-stat">
+                <span className="focus-stat__label">Duración</span>
+                <span className="focus-stat__value">
+                  {formatDuration(summary.durationMs)}
+                </span>
+              </div>
+              <div className="focus-stat">
+                <span className="focus-stat__label">Ejercicios</span>
+                <span className="focus-stat__value">
+                  {summary.completedExercises}/{summary.totalExercises}
+                </span>
+              </div>
+              <div className="focus-stat">
+                <span className="focus-stat__label">Series</span>
+                <span className="focus-stat__value">
+                  {summary.totalSetsCompleted}
+                </span>
+              </div>
             </div>
             {summary.muscleGroups.length ? (
               <p className="text-sm text-muted">{summary.muscleGroups.join(' · ')}</p>
@@ -328,12 +309,7 @@ export function WorkoutPage() {
           onClose={() => setLivePrPop(null)}
         />
       ) : null}
-      <div
-        className={[
-          'sticky top-0 z-20 -mx-4 shrink-0 bg-surface-elevated px-4 shadow-sm shadow-black/5',
-          isFocus ? 'focus-sticky-bar' : '',
-        ].join(' ')}
-      >
+      <div className="focus-sticky-bar sticky top-0 z-20 -mx-4 shrink-0 bg-surface-elevated px-4 shadow-sm shadow-black/5">
         {dailyQuote ? <DailyQuoteBar quote={dailyQuote} /> : null}
         <header className="space-y-3 border-b border-line py-3">
           <div className="flex items-start justify-between gap-3">
@@ -341,13 +317,8 @@ export function WorkoutPage() {
               <Link to="/" className="text-sm font-semibold text-muted hover:text-ink">
                 ← Inicio
               </Link>
-              {isFocus ? <p className="focus-page-kicker mt-1">Focus · Gym</p> : null}
-              <h1
-                className={[
-                  'font-display font-extrabold tracking-tight',
-                  isFocus ? 'focus-page-title text-[1.85rem]' : 'text-2xl',
-                ].join(' ')}
-              >
+              <p className="focus-page-kicker mt-1">Focus · Gym</p>
+              <h1 className="focus-page-title font-display text-[1.85rem] font-extrabold tracking-tight">
                 {session.dayLabel}
               </h1>
               {session.isRecovery ? (
@@ -406,15 +377,6 @@ export function WorkoutPage() {
       </div>
       </div>
       <WorkoutPlateFab />
-    </div>
-  )
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="text-sm text-muted">{label}</span>
-      <span className="font-display text-xl font-bold">{value}</span>
     </div>
   )
 }

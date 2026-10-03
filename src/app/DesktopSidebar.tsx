@@ -1,5 +1,4 @@
 import { NavLink, useNavigate } from 'react-router-dom'
-import { useTheme } from '../context/ThemeProvider'
 
 const LINKS: Array<{
   to: string
@@ -20,19 +19,12 @@ interface DesktopSidebarProps {
   showBackupBadge?: boolean
 }
 
-/** Solo visible en PC (lg+). Mobile sigue con FAB / menú inferior. */
+/** Solo visible en PC (lg+). Mobile sigue con FAB. */
 export function DesktopSidebar({ showBackupBadge = false }: DesktopSidebarProps) {
-  const { uiLayout } = useTheme()
   const navigate = useNavigate()
-  const isFocus = uiLayout === 'focus'
 
   return (
-    <aside
-      className={[
-        'desktop-sidebar hidden h-full w-56 shrink-0 flex-col border-r border-line lg:flex',
-        isFocus ? 'desktop-sidebar--focus' : 'bg-surface-elevated',
-      ].join(' ')}
-    >
+    <aside className="desktop-sidebar desktop-sidebar--focus hidden h-full w-56 shrink-0 flex-col border-r border-line lg:flex">
       <div className="desktop-sidebar__brand flex items-center gap-3 border-b border-line px-4 py-5">
         <img
           src="/brand/my-gym-logo.png"
@@ -43,9 +35,7 @@ export function DesktopSidebar({ showBackupBadge = false }: DesktopSidebarProps)
           <p className="font-display text-sm font-extrabold tracking-tight text-fg">
             Mi Gym
           </p>
-          <p className="truncate text-xs text-muted">
-            {isFocus ? 'Focus · PC' : 'Escritorio'}
-          </p>
+          <p className="truncate text-xs text-muted">Focus · PC</p>
         </div>
       </div>
 
@@ -59,9 +49,7 @@ export function DesktopSidebar({ showBackupBadge = false }: DesktopSidebarProps)
               [
                 'rounded-2xl px-3 py-2.5 transition',
                 isActive
-                  ? isFocus
-                    ? 'bg-brand text-chrome-fg shadow-sm'
-                    : 'bg-chrome text-chrome-fg'
+                  ? 'bg-brand text-chrome-fg shadow-sm'
                   : 'text-fg hover:bg-brand-soft',
               ].join(' ')
             }

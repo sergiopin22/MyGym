@@ -15,7 +15,7 @@ export type FocusAccentId = (typeof FOCUS_ACCENT_IDS)[number]
 export const UI_LAYOUT_STORAGE_KEY = 'mi-gym-ui-layout'
 export const FOCUS_ACCENT_STORAGE_KEY = 'mi-gym-focus-accent'
 
-export const DEFAULT_UI_LAYOUT: UiLayoutId = 'classic'
+export const DEFAULT_UI_LAYOUT: UiLayoutId = 'focus'
 export const DEFAULT_FOCUS_ACCENT: FocusAccentId = 'green'
 
 export function isUiLayoutId(value: string): value is UiLayoutId {
@@ -29,11 +29,13 @@ export function isFocusAccentId(value: string): value is FocusAccentId {
 export function getStoredUiLayout(): UiLayoutId {
   try {
     const raw = localStorage.getItem(UI_LAYOUT_STORAGE_KEY)
-    if (raw && isUiLayoutId(raw)) return raw
+    if (raw === 'classic') {
+      localStorage.setItem(UI_LAYOUT_STORAGE_KEY, 'focus')
+    }
   } catch {
     /* ignore */
   }
-  return DEFAULT_UI_LAYOUT
+  return 'focus'
 }
 
 export function getStoredFocusAccent(): FocusAccentId {

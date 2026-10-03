@@ -6,12 +6,7 @@ import { getSupabase } from '../lib/supabase'
 import { applyTheme } from '../themes/applyTheme'
 import { isThemeId } from '../themes/presets'
 import { applyUiLayout } from '../ui/applyUiLayout'
-import {
-  isFocusAccentId,
-  isUiLayoutId,
-  type FocusAccentId,
-  type UiLayoutId,
-} from '../ui/layoutMode'
+import { isFocusAccentId, type FocusAccentId } from '../ui/layoutMode'
 import {
   isWeightUnit,
   setStoredWeightUnit,
@@ -379,16 +374,12 @@ async function downloadCloudToLocalInner(
       applyTheme(prefs.theme_id)
       restoredPreferences = true
     }
-    const layout: UiLayoutId | undefined =
-      prefs.ui_layout && isUiLayoutId(prefs.ui_layout)
-        ? prefs.ui_layout
-        : undefined
     const accent: FocusAccentId | undefined =
       prefs.focus_accent && isFocusAccentId(prefs.focus_accent)
         ? prefs.focus_accent
         : undefined
-    if (layout) {
-      applyUiLayout(layout, accent)
+    if (prefs.ui_layout || accent || prefs.theme_id) {
+      applyUiLayout('focus', accent)
       restoredPreferences = true
     }
     if (prefs.brand_avatar_id && isBrandAvatarId(prefs.brand_avatar_id)) {

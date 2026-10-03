@@ -21,6 +21,8 @@ import {
   type AvatarMode,
 } from '../brand/avatarMode'
 import { applyTheme, getStoredThemeId } from '../themes/applyTheme'
+import { applyUiLayout } from '../ui/applyUiLayout'
+import { getStoredFocusAccent } from '../ui/layoutMode'
 import { isThemeId, type ThemeId } from '../themes/presets'
 import { CUSTOM_AVATAR_ID, getCustomAvatarRecord } from './customAvatar'
 
@@ -678,6 +680,7 @@ async function importFullBackupInner(raw: unknown): Promise<{
   let restoredPreferences = false
   if (backup.preferences) {
     applyTheme(backup.preferences.themeId)
+    applyUiLayout('focus', getStoredFocusAccent())
     setStoredBrandAvatarId(backup.preferences.brandAvatarId)
     if (backup.preferences.avatarMode) {
       setStoredAvatarMode(backup.preferences.avatarMode)

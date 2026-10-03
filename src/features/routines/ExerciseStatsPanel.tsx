@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { Button } from '../../components/Button'
-import { useTheme } from '../../context/ThemeProvider'
 import { useWeightUnit } from '../../context/WeightUnitProvider'
 import {
   getExerciseProgressFromCoachHistory,
@@ -72,12 +71,11 @@ export function ExerciseStatsPanel({
   unitOverride,
   historySource,
 }: ExerciseStatsPanelProps) {
-  const { uiLayout } = useTheme()
   const ctx = useWeightUnit()
   const unit = unitOverride ?? ctx.unit
   const label = weightUnitLabel(unit)
   const toDisplay = (lb: number | null | undefined) => lbToDisplay(lb, unit)
-  const isFocus = forceFocus || uiLayout === 'focus'
+  const isFocus = true
   const [range, setRange] = useState<ExerciseProgressRange>('3m')
   const [withStraps, setWithStraps] = useState(() => defaultWithStraps(target))
   const [stats, setStats] = useState<ExerciseProgressStats | null>(null)
@@ -303,25 +301,14 @@ export function ExerciseStatsPanel({
     </>
   )
 
-  if (isFocus) {
-    return (
-      <div
-        className={[
-          'pr-stats pr-stats--focus',
-          embedded ? 'pr-stats--embedded' : '',
-        ].join(' ')}
-        role={embedded ? 'region' : 'dialog'}
-        aria-label="Estadística de ejercicio"
-      >
-        {body}
-      </div>
-    )
-  }
-
   return (
     <div
-      className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+      className={[
+        'pr-stats pr-stats--focus',
+        embedded ? 'pr-stats--embedded' : '',
+      ].join(' ')}
       role={embedded ? 'region' : 'dialog'}
+      aria-label="Estadística de ejercicio"
     >
       {body}
     </div>

@@ -34,7 +34,7 @@ export function ProgressPage() {
       <PageHeader
         kicker="Focus · Sistema"
         title="Ajustes"
-        subtitle="Temas, nube, respaldo y preferencias."
+        subtitle="Acento Focus, nube, respaldo y preferencias."
       />
 
       <Card className="space-y-2">
