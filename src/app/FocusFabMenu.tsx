@@ -150,7 +150,14 @@ export function FocusFabMenu({ showBackupBadge = false }: FocusFabMenuProps) {
         />
       ) : null}
 
-      <div className={['focus-fab-root', open ? 'focus-fab-root--open' : ''].join(' ')}>
+      <div
+        className={[
+          'focus-fab-root',
+          open ? 'focus-fab-root--open' : '',
+          prsOpen ? 'pointer-events-none invisible' : '',
+        ].join(' ')}
+        aria-hidden={prsOpen}
+      >
         <div className="focus-fab-glow" aria-hidden />
 
         {ARC_ITEMS.map((item, index) => {

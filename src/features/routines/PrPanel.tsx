@@ -36,36 +36,30 @@ function pickBestPr(
 function MuscleFilterChips({
   value,
   onChange,
-  focus,
 }: {
   value: string | null
   onChange: (next: string | null) => void
-  focus?: boolean
 }) {
+  function chipClass(on: boolean) {
+    return [
+      'min-h-11 rounded-full px-4 text-sm font-semibold transition active:scale-[0.98]',
+      on
+        ? 'bg-chrome text-chrome-fg'
+        : 'bg-surface text-muted ring-1 ring-line',
+    ].join(' ')
+  }
+
   return (
     <div
-      className={
-        focus ? 'focus-pr-reel__muscles' : 'mb-3 flex flex-wrap gap-2'
-      }
+      className="focus-pr-reel__muscles"
       role="group"
       aria-label="Filtrar por músculo"
     >
       <button
         type="button"
+        className={chipClass(value === null)}
+        onPointerDown={(e) => e.stopPropagation()}
         onClick={() => onChange(null)}
-        className={
-          focus
-            ? [
-                'pr-stats__chip',
-                value === null ? 'pr-stats__chip--on' : '',
-              ].join(' ')
-            : [
-                'min-h-11 rounded-full px-4 text-sm font-semibold transition active:scale-[0.98]',
-                value === null
-                  ? 'bg-chrome text-chrome-fg'
-                  : 'bg-surface text-muted ring-1 ring-line hover:text-fg',
-              ].join(' ')
-        }
       >
         Todos
       </button>
@@ -75,19 +69,9 @@ function MuscleFilterChips({
           <button
             key={group.id}
             type="button"
+            className={chipClass(active)}
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={() => onChange(active ? null : group.id)}
-            className={
-              focus
-                ? ['pr-stats__chip', active ? 'pr-stats__chip--on' : ''].join(
-                    ' ',
-                  )
-                : [
-                    'min-h-11 rounded-full px-4 text-sm font-semibold transition active:scale-[0.98]',
-                    active
-                      ? 'bg-chrome text-chrome-fg'
-                      : 'bg-surface text-muted ring-1 ring-line hover:text-fg',
-                  ].join(' ')
-            }
           >
             {group.label}
           </button>
@@ -410,7 +394,10 @@ export function PrPanel({
             Todas las máquinas de tu rutina. Abre la estadística de cada una.
           </p>
 
-          <div className="focus-pr-reel__toolbar">
+          <div
+            className="focus-pr-reel__toolbar"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
             <input
               type="text"
               inputMode="search"
@@ -425,7 +412,6 @@ export function PrPanel({
             />
 
             <MuscleFilterChips
-              focus
               value={muscleFilter}
               onChange={setMuscleFilter}
             />
