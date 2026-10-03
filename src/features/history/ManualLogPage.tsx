@@ -14,6 +14,14 @@ import { supportsStrapsTracking } from '../../utils/straps'
 import { WorkoutExerciseCard } from '../workout/WorkoutExerciseCard'
 import { PageHeader } from '../../ui/PageHeader'
 
+function lastDateForWeekday(weekday: number, today: string): string {
+  for (let i = 0; i <= 21; i++) {
+    const iso = addDaysISO(today, -i)
+    if (weekdayFromISO(iso) === weekday) return iso
+  }
+  return today
+}
+
 function cloneSession(session: WorkoutSession): WorkoutSession {
   return {
     ...session,
@@ -81,15 +89,11 @@ export function ManualLogPage() {
 
   useEffect(() => {
     if (draft || days.length === 0) return
-    setDayId((current) => {
-      if (current && days.some((d) => d.id === current)) return current
-      return matchingDay?.id ?? days[0]?.id ?? ''
-    })
+    setDayId(matchingDay?.id ?? '')
   }, [days, matchingDay, draft])
 
-  const selectedDay = days.find((d) => d.id === dayId)
-  const isRecovery =
-    Boolean(selectedDay) && selectedDay!.weekday !== dateWeekday
+  const selectedDay = matchingDay
+  const isRestDate = !matchingDay && days.length > 0
 
   const exercises = useMemo(
     () =>
@@ -133,12 +137,12 @@ export function ManualLogPage() {
   }
 
   async function handleBuildDraft() {
-    if (!dayId) return
+    if (!matchingDay) return
     if (draft && !confirmResetDraft()) return
     setLoadingDraft(true)
     setError(null)
     try {
-      const next = await buildManualSessionDraft(dayId, date)
+      const next = await buildManualSessionDraft(matchingDay.id, date)
       setDraft(cloneSession(next))
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'No se pudo armar la sesión')
@@ -161,7 +165,7 @@ export function ManualLogPage() {
     }
 
     const ok = window.confirm(
-      `¿Guardar este entrenamiento en ${new Date(draft.date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}?\n\nEntra al historial, a los PR y a la meta de constancia.`,
+      `¿Guardar este entrenamiento en ${new Date(draft.date + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}?\n\nEntra al historial, a los PR y a la meta. No cuenta como recuperación.`,
     )
     if (!ok) return
 
@@ -187,7 +191,7 @@ export function ManualLogPage() {
         <PageHeader
           kicker="Focus · Cargar"
           title="Cargar entreno a mano"
-          subtitle="Para un día que sí hiciste y no quedó en la app (notas, fallo, etc.)."
+          subtitle="Anota un día que sí entrenaste. No gasta la recuperación de la semana."
           back={
             <Link
               to="/historial"
@@ -216,7 +220,7 @@ export function ManualLogPage() {
                 setDraft(null)
                 const weekday = weekdayFromISO(next)
                 const match = days.find((d) => d.weekday === weekday)
-                if (match) setDayId(match.id)
+                setDayId(match?.id ?? '')
               }}
               className="min-h-12 w-full rounded-2xl bg-surface px-3 text-base text-fg ring-1 ring-line"
             />
@@ -244,6 +248,7 @@ export function ManualLogPage() {
                       onClick={() => {
                         if (day.id === dayId) return
                         if (draft && !confirmResetDraft()) return
+                        setDate(lastDateForWeekday(day.weekday, today))
                         setDayId(day.id)
                         setDraft(null)
                       }}
@@ -262,18 +267,28 @@ export function ManualLogPage() {
             )}
           </div>
 
-          {selectedDay ? (
+          {isRestDate ? (
             <p className="text-xs text-muted">
-              {isRecovery
-                ? `Esa fecha fue ${weekdayLabel(dateWeekday)}. Se guardará como recuperación de ${weekdayLabel(selectedDay.weekday)} (cuenta como la 1 de esa semana).`
-                : `Se guarda como el entrenamiento de ${weekdayLabel(selectedDay.weekday)} en esa fecha.`}
+              Esa fecha fue {weekdayLabel(dateWeekday)} y está de descanso. Elige
+              un día en el que sí hayas entrenado. Esto no es una recuperación.
+            </p>
+          ) : selectedDay ? (
+            <p className="text-xs text-muted">
+              Se guarda como el entrenamiento de{' '}
+              {weekdayLabel(selectedDay.weekday)} en esa fecha. No cuenta como
+              recuperación.
             </p>
           ) : null}
 
           <Button
             fullWidth
             variant={draft ? 'secondary' : 'primary'}
-            disabled={loadingDraft || saving || !dayId || days.length === 0}
+            disabled={
+              loadingDraft ||
+              saving ||
+              !matchingDay ||
+              days.length === 0
+            }
             onClick={() => void handleBuildDraft()}
           >
             {loadingDraft
@@ -286,12 +301,6 @@ export function ManualLogPage() {
 
         {draft ? (
           <>
-            {draft.isRecovery ? (
-              <span className="inline-flex rounded-full bg-progress-soft px-2.5 py-1 text-xs font-bold text-progress">
-                Recuperado
-                {draft.recoveredDayLabel ? ` · ${draft.recoveredDayLabel}` : ''}
-              </span>
-            ) : null}
             <ProgressBar
               value={completedCount}
               max={Math.max(exercises.length, 1)}

@@ -1840,11 +1840,6 @@ function assertIsoDate(date: string): string {
   return date
 }
 
-function isoDateForWeekdayInWeek(weekStart: string, weekday: Weekday): string {
-  const offset = weekday === 0 ? 6 : weekday - 1
-  return addDaysISO(weekStart, offset)
-}
-
 function normalizeEditedExercises(
   originalExercises: ExerciseLog[],
   nextExercises: ExerciseLog[],
@@ -1949,11 +1944,6 @@ export async function saveCompletedSessionEdits(
   return updated
 }
 
-function gymWeekBounds(date: string): { weekStart: string; weekEnd: string } {
-  const weekStart = todayISODate(startOfWeekMonday(parseISODate(date)))
-  return { weekStart, weekEnd: addDaysISO(weekStart, 6) }
-}
-
 /** Días de gym que se pueden cargar a mano (no descanso, con ejercicios). */
 export async function getManualLogDayOptions(): Promise<RoutineDay[]> {
   const routine = await getActiveRoutine()
@@ -1966,7 +1956,7 @@ export async function getManualLogDayOptions(): Promise<RoutineDay[]> {
 
 /**
  * Arma un borrador (sin guardar) para cargar un entreno pasado.
- * Si la rutina no coincide con el weekday de la fecha, queda como recuperación.
+ * Nunca es recuperación: cuenta como el entreno de esa fecha.
  */
 export async function buildManualSessionDraft(
   routineDayId: string,
@@ -1987,24 +1977,17 @@ export async function buildManualSessionDraft(
   }
 
   const dateWeekday = weekdayFromISO(iso) as Weekday
-  const recovery = day.weekday !== dateWeekday
-  if (recovery) {
-    const { weekStart } = gymWeekBounds(iso)
-    const missedDate = isoDateForWeekdayInWeek(weekStart, day.weekday)
-    if (missedDate >= iso) {
-      throw new Error(
-        'Solo puedes cargar como recuperación un día de esa semana que ya haya pasado.',
-      )
-    }
+  if (day.weekday !== dateWeekday) {
+    throw new Error(
+      `Esa fecha fue ${weekdayLabel(dateWeekday)}. Elige la rutina de ese día. La carga a mano no es una recuperación.`,
+    )
   }
 
   return {
     id: createId('session'),
     routineId: routine.id,
     routineDayId: day.id,
-    dayLabel: recovery
-      ? `${day.label} (Recuperado · ${weekdayLabel(day.weekday)})`
-      : day.label,
+    dayLabel: day.label,
     muscleGroups: [...day.muscleGroups],
     date: iso,
     status: 'completed',
@@ -2012,9 +1995,6 @@ export async function buildManualSessionDraft(
     exercises: sortExercises(day.exercises).map((ex) =>
       buildExerciseLogFromRoutine(ex, () => createId('elog')),
     ),
-    isRecovery: recovery || undefined,
-    recoveredWeekday: recovery ? day.weekday : undefined,
-    recoveredDayLabel: recovery ? weekdayLabel(day.weekday) : undefined,
     isManualEntry: true,
   }
 }
@@ -2042,37 +2022,12 @@ export async function insertManualCompletedSession(
   if (day.isRestDay) throw new Error('Ese día está marcado como descanso.')
 
   const dateWeekday = weekdayFromISO(iso) as Weekday
-  const recovery = Boolean(draft.isRecovery) || day.weekday !== dateWeekday
-  if (recovery && day.weekday === dateWeekday) {
-    throw new Error('Si la fecha es ese mismo día de rutina, no es una recuperación.')
-  }
-  if (!recovery && day.weekday !== dateWeekday) {
+  if (day.weekday !== dateWeekday) {
     throw new Error(
-      `Esa fecha fue ${weekdayLabel(dateWeekday)}. Elige esa rutina o cárgala como recuperación.`,
+      `Esa fecha fue ${weekdayLabel(dateWeekday)}. Elige la rutina de ese día. La carga a mano no es una recuperación.`,
     )
   }
-
-  if (recovery) {
-    const { weekStart } = gymWeekBounds(iso)
-    const missedDate = isoDateForWeekdayInWeek(weekStart, day.weekday)
-    if (missedDate >= iso) {
-      throw new Error(
-        'Solo puedes cargar como recuperación un día de esa semana que ya haya pasado.',
-      )
-    }
-    if (await gymDayFulfilled(missedDate, day)) {
-      throw new Error('Ese día ya está cubierto (entrenado o recuperado).')
-    }
-    const weekEnd = addDaysISO(weekStart, 6)
-    const alreadyRecovered = await db.sessions
-      .where('date')
-      .between(weekStart, weekEnd, true, true)
-      .filter((s) => s.status === 'completed' && Boolean(s.isRecovery))
-      .count()
-    if (alreadyRecovered > 0) {
-      throw new Error('Esa semana ya tiene una recuperación.')
-    }
-  } else if (await gymDayFulfilled(iso, day)) {
+  if (await gymDayFulfilled(iso, day)) {
     throw new Error('Ese día ya está en el historial (entrenado o recuperado).')
   }
 
@@ -2103,13 +2058,13 @@ export async function insertManualCompletedSession(
     date: iso,
     status: 'completed',
     exercises: normalized,
-    isRecovery: recovery || undefined,
-    recoveredWeekday: recovery ? day.weekday : undefined,
-    recoveredDayLabel: recovery ? weekdayLabel(day.weekday) : undefined,
     isManualEntry: true,
     finishedAt: Date.now(),
     durationMs: undefined,
   }
+  delete prepared.isRecovery
+  delete prepared.recoveredWeekday
+  delete prepared.recoveredDayLabel
 
   if (!prepared.exercises.some(hasWorkingSets)) {
     throw new Error(
