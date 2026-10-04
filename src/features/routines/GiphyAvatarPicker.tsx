@@ -9,6 +9,9 @@ import {
 interface GiphyAvatarPickerProps {
   selected: GiphyGif | null
   onSelect: (gif: GiphyGif | null) => void
+  placeholder?: string
+  defaultQuery?: string
+  autoSearch?: boolean
 }
 
 function GiphyGifGrid({
@@ -53,9 +56,15 @@ function GiphyGifGrid({
   )
 }
 
-export function GiphyAvatarPicker({ selected, onSelect }: GiphyAvatarPickerProps) {
+export function GiphyAvatarPicker({
+  selected,
+  onSelect,
+  placeholder = 'Buscar GIF (gym, anime, boxing…)',
+  defaultQuery = '',
+  autoSearch = false,
+}: GiphyAvatarPickerProps) {
   const inputRef = useRef<HTMLInputElement>(null)
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(defaultQuery)
   const [results, setResults] = useState<GiphyGif[]>([])
   const [recentGifs, setRecentGifs] = useState<GiphyGif[]>([])
   const [loading, setLoading] = useState(false)
@@ -89,6 +98,11 @@ export function GiphyAvatarPicker({ selected, onSelect }: GiphyAvatarPickerProps
       setLoading(false)
     }
   }, [configured])
+
+  useEffect(() => {
+    if (!autoSearch || !configured || !defaultQuery.trim()) return
+    void runSearch(defaultQuery)
+  }, [autoSearch, configured, defaultQuery, runSearch])
 
   const handleSearch = useCallback(() => {
     const term = (inputRef.current?.value ?? query).trim()
@@ -131,7 +145,7 @@ export function GiphyAvatarPicker({ selected, onSelect }: GiphyAvatarPickerProps
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onInput={(e) => setQuery(e.currentTarget.value)}
-          placeholder="Buscar GIF (gym, anime, boxing…)"
+          placeholder={placeholder}
           className="input-ios-safe min-h-11 w-full rounded-xl border border-line bg-surface px-3 text-fg outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
         />
         <button

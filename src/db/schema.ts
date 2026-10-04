@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from 'dexie'
 import type { CustomAvatarRecord } from './customAvatar'
+import type { PrCelebrationGifRecord } from './prCelebrationGif'
 import type {
   BodyCheckIn,
   BodyCheckInPhoto,
@@ -25,6 +26,7 @@ export class MiGymDB extends Dexie {
   constancyGoals!: EntityTable<ConstancyGoal, 'id'>
   treadmillSessions!: EntityTable<TreadmillSession, 'id'>
   customAvatarGifs!: EntityTable<CustomAvatarRecord, 'id'>
+  prCelebrationGifs!: EntityTable<PrCelebrationGifRecord, 'id'>
 
   constructor() {
     super('mi-gym')
@@ -76,6 +78,19 @@ export class MiGymDB extends Dexie {
       constancyGoals: 'id, status, updatedAt',
       treadmillSessions: 'id, date, createdAt',
       customAvatarGifs: 'id, updatedAt',
+    })
+
+    this.version(6).stores({
+      routines: 'id, updatedAt',
+      sessions: 'id, date, status, routineDayId, startedAt',
+      exerciseImages: 'id, updatedAt',
+      improvements: 'id, detectedAt, exerciseName, sessionId',
+      bodyCheckIns: 'id, date, createdAt',
+      bodyCheckInPhotos: 'id, checkInId, angle',
+      constancyGoals: 'id, status, updatedAt',
+      treadmillSessions: 'id, date, createdAt',
+      customAvatarGifs: 'id, updatedAt',
+      prCelebrationGifs: 'id, updatedAt',
     })
   }
 }

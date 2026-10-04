@@ -19,6 +19,8 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const { configured, loading, user } = useAuth()
   const { unit } = useWeightUnit()
   const publicCoach = isPublicCoachSharePath(location.pathname)
+  const devPrPreview =
+    import.meta.env.DEV && location.pathname.replace(/\/$/, '') === '/dev/pr'
   const [slow, setSlow] = useState(false)
 
   useEffect(() => {
@@ -37,7 +39,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
     return () => window.clearTimeout(t)
   }, [loading])
 
-  if (publicCoach) return <>{children}</>
+  if (publicCoach || devPrPreview) return <>{children}</>
 
   if (!configured) return <>{children}</>
 

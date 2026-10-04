@@ -4,6 +4,7 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { initTheme } from './themes/applyTheme'
 import { initUiLayout } from './ui/applyUiLayout'
 import { initSafeAreaInsets } from './utils/safeArea'
+import { initPrCelebrationColors } from './features/workout/prCelebrationColors'
 import './index.css'
 import App from './App.tsx'
 
@@ -12,6 +13,7 @@ function boot() {
     initTheme()
     initUiLayout()
     initSafeAreaInsets()
+    initPrCelebrationColors()
   } catch (err) {
     console.warn('init falló:', err)
   }

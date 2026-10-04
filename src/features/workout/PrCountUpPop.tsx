@@ -1,6 +1,11 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useWeightUnit } from '../../context/WeightUnitProvider'
 import { playPrChime } from '../../utils/prChime'
+import { getPrCelebrationGif } from '../../db/prCelebrationGif'
+import {
+  prCelebrationCssVars,
+  usePrCelebrationColors,
+} from './prCelebrationColors'
 
 export interface PrCountUpPayload {
   exerciseName: string
@@ -31,6 +36,58 @@ function prefersReducedMotion() {
   )
 }
 
+function CutinMedia({
+  src,
+  mime,
+  className,
+  style,
+  onReady,
+}: {
+  src: string
+  mime: string
+  className?: string
+  style?: CSSProperties
+  onReady?: (size: { width: number; height: number }) => void
+}) {
+  if (mime.startsWith('video/')) {
+    return (
+      <video
+        className={className}
+        style={style}
+        src={src}
+        autoPlay
+        loop
+        muted
+        playsInline
+        preload="auto"
+        onLoadedMetadata={(e) => {
+          const video = e.currentTarget
+          if (video.videoWidth && onReady) {
+            onReady({ width: video.videoWidth, height: video.videoHeight })
+          }
+        }}
+      />
+    )
+  }
+  return (
+    <img
+      className={className}
+      style={style}
+      src={src}
+      alt=""
+      decoding="async"
+      onLoad={(e) => {
+        const img = e.currentTarget
+        if (img.naturalWidth && onReady) {
+          onReady({ width: img.naturalWidth, height: img.naturalHeight })
+        }
+      }}
+    />
+  )
+}
+
+const SPARKS = Array.from({ length: 16 }, (_, i) => i)
+
 /** Overlay: el número sube del PR anterior al nuevo. */
 export function PrCountUpPop({
   exerciseName,
@@ -43,6 +100,7 @@ export function PrCountUpPop({
   playSound = true,
 }: PrCountUpPopProps) {
   const { toDisplay, label } = useWeightUnit()
+  const colors = usePrCelebrationColors()
   const fromW = toDisplay(fromWeight) ?? fromWeight
   const toW = toDisplay(toWeight) ?? toWeight
   const onCloseRef = useRef(onClose)
@@ -51,6 +109,29 @@ export function PrCountUpPop({
   const [weight, setWeight] = useState(fromW)
   const [reps, setReps] = useState(fromReps)
   const [phase, setPhase] = useState<'count' | 'done'>('count')
+  const [gifUrl, setGifUrl] = useState<string | null>(null)
+  const [gifMime, setGifMime] = useState('image/gif')
+  const [gifSize, setGifSize] = useState<{ width: number; height: number } | null>(
+    null,
+  )
+
+  useEffect(() => {
+    let url: string | null = null
+    let alive = true
+    void getPrCelebrationGif().then((row) => {
+      if (!alive || !row) return
+      url = URL.createObjectURL(row.blob)
+      setGifUrl(url)
+      setGifMime(row.mimeType || row.blob.type || 'image/gif')
+      if (row.width && row.height) {
+        setGifSize({ width: row.width, height: row.height })
+      }
+    })
+    return () => {
+      alive = false
+      if (url) URL.revokeObjectURL(url)
+    }
+  }, [])
 
   useEffect(() => {
     if (playSound) playPrChime()
@@ -88,7 +169,7 @@ export function PrCountUpPop({
 
     let autoClose: number | undefined
     if (!stayOpen) {
-      autoClose = window.setTimeout(() => onCloseRef.current(), duration + 1600)
+      autoClose = window.setTimeout(() => onCloseRef.current(), duration + 2600)
     }
 
     return () => {
@@ -107,55 +188,139 @@ export function PrCountUpPop({
       ? String(Math.round(reps))
       : reps.toFixed(1)
 
+  const beforeText =
+    fromWeight <= 0 && fromReps <= 0
+      ? 'Primera marca'
+      : `${fromW % 1 === 0 ? fromW : fromW.toFixed(1)} ${label} × ${fromReps}`
+
   return (
     <div
-      className="fixed inset-0 z-[85] flex items-center justify-center bg-overlay px-4"
+      className={[
+        'pr-limit-pop',
+        phase === 'done' ? 'pr-limit-pop--hit' : '',
+        gifUrl ? 'pr-limit-pop--cutin' : '',
+      ].join(' ')}
+      style={prCelebrationCssVars(colors)}
       role="dialog"
       aria-modal="true"
       aria-label="Nuevo récord personal"
       onClick={() => onCloseRef.current()}
     >
+      <div className="pr-limit-pop__fx" aria-hidden>
+        <div className="pr-limit-pop__bg" />
+        <div className="pr-limit-pop__vignette" />
+        <div className="pr-limit-pop__flash" />
+        <div className="pr-limit-pop__mark">
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
+        <svg
+          className="pr-limit-pop__bolts"
+          viewBox="0 0 100 160"
+          preserveAspectRatio="none"
+        >
+          <polyline
+            className="pr-limit-pop__bolt pr-limit-pop__bolt--a"
+            pathLength="100"
+            points="18,0 24,28 12,28 30,72 16,72 42,160"
+          />
+          <polyline
+            className="pr-limit-pop__bolt pr-limit-pop__bolt--b"
+            pathLength="100"
+            points="78,8 70,40 84,40 62,88 78,88 48,160"
+          />
+          <polyline
+            className="pr-limit-pop__bolt pr-limit-pop__bolt--c"
+            pathLength="100"
+            points="50,0 46,36 58,36 40,86 54,86 36,160"
+          />
+        </svg>
+        <div className="pr-limit-pop__sparks">
+          {SPARKS.map((i) => (
+            <span key={i} style={{ ['--spark' as string]: String(i) }} />
+          ))}
+        </div>
+        {gifUrl && phase === 'done' ? (
+          <CutinMedia
+            className="pr-limit-pop__cutin-bleed"
+            src={gifUrl}
+            mime={gifMime}
+          />
+        ) : null}
+      </div>
+
       <div
-        className="pr-count-pop w-full max-w-sm rounded-3xl bg-surface-elevated p-6 text-center shadow-xl ring-1 ring-line"
+        className="pr-limit-pop__stage"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="pr-count-pop__trophy mx-auto mb-2 text-5xl" aria-hidden>
-          <span className="pr-pop-glow">🏆</span>
-        </div>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-brand">
-          {phase === 'done' ? '¡Nuevo PR!' : 'Rompiendo marca…'}
+        <p className="pr-limit-pop__kicker">
+          {phase === 'done' ? 'Límite roto' : 'Rompiendo el límite'}
         </p>
-        <h2 className="mt-2 font-display text-xl font-extrabold text-fg">
-          {exerciseName}
+        <h2 className="pr-limit-pop__title">
+          {phase === 'done' ? (
+            <>
+              ¡Rompiste
+              <br />
+              el límite!
+            </>
+          ) : (
+            <>
+              Rompiendo
+              <br />
+              el límite…
+            </>
+          )}
         </h2>
 
-        <div className="pr-count-pop__stage mt-5 rounded-2xl bg-surface px-4 py-5 ring-1 ring-brand/30">
-          <p
-            className={[
-              'font-display text-4xl font-black tabular-nums tracking-tight text-fg',
-              phase === 'done' ? 'pr-count-pop__hit' : '',
-            ].join(' ')}
-            aria-live="polite"
-          >
-            {weightText}
-            <span className="ml-1 text-lg font-bold text-muted">{label}</span>
-            <span className="mx-1.5 text-2xl text-muted">×</span>
-            {repsText}
-            <span className="ml-1 text-lg font-bold text-muted">reps</span>
-          </p>
-          <p className="mt-3 text-sm text-muted">
-            Antes:{' '}
-            <span className="font-semibold text-fg">
-              {fromWeight <= 0 && fromReps <= 0
-                ? 'Primera marca'
-                : `${fromW % 1 === 0 ? fromW : fromW.toFixed(1)} ${label} × ${fromReps}`}
-            </span>
-          </p>
-        </div>
+        {gifUrl && phase === 'done' ? (
+          <div className="pr-limit-pop__cutin" aria-hidden>
+            <div className="pr-limit-pop__cutin-frame">
+              <CutinMedia
+                src={gifUrl}
+                mime={gifMime}
+                onReady={setGifSize}
+                style={
+                  gifSize
+                    ? {
+                        maxWidth: `min(${gifSize.width}px, 100%)`,
+                        maxHeight: `min(${gifSize.height}px, 36dvh)`,
+                      }
+                    : undefined
+                }
+              />
+            </div>
+          </div>
+        ) : null}
+
+        <p className="pr-limit-pop__exercise">{exerciseName}</p>
+
+        <p
+          className={[
+            'pr-limit-pop__nums',
+            phase === 'done' ? 'pr-limit-pop__nums--hit' : '',
+          ].join(' ')}
+          aria-live="polite"
+        >
+          <span className="pr-limit-pop__block">
+            <span className="pr-limit-pop__weight">{weightText}</span>
+            <span className="pr-limit-pop__unit">{label}</span>
+          </span>
+          <span className="pr-limit-pop__times">×</span>
+          <span className="pr-limit-pop__block">
+            <span className="pr-limit-pop__reps">{repsText}</span>
+            <span className="pr-limit-pop__unit">reps</span>
+          </span>
+        </p>
+        <p className="pr-limit-pop__before">
+          Antes: <strong>{beforeText}</strong>
+        </p>
 
         <button
           type="button"
-          className="mt-5 inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-accent px-5 text-base font-semibold text-accent-fg transition active:scale-[0.98]"
+          className="pr-limit-pop__go"
           onClick={() => onCloseRef.current()}
         >
           Seguir

@@ -29,7 +29,10 @@ export function getRecentGiphyGifs(): GiphyGif[] {
   return readStored()
     .sort((a, b) => b.usedAt - a.usedAt)
     .slice(0, MAX_RECENT_GIPHY_GIFS)
-    .map(({ usedAt: _usedAt, ...gif }) => gif)
+    .map(({ usedAt: _usedAt, ...gif }) => ({
+      ...gif,
+      hdUrl: gif.hdUrl || gif.downloadUrl,
+    }))
 }
 
 export function rememberRecentGiphyGif(gif: GiphyGif): void {

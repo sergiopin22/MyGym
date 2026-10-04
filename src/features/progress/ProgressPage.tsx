@@ -4,6 +4,7 @@ import { BackupPanel } from '../backup/BackupPanel'
 import { CloudPanel } from '../cloud/CloudPanel'
 import { ThemePicker } from '../settings/ThemePicker'
 import { WeightUnitSettings } from '../settings/WeightUnitSettings'
+import { PrCelebrationSettingsEntry } from '../settings/PrCelebrationSettingsPage'
 import { DisplayNameSettings } from '../settings/DisplayNameSettings'
 import { CoachNameSettings } from '../settings/CoachNameSettings'
 import { PageHeader } from '../../ui/PageHeader'
@@ -57,6 +58,7 @@ export function ProgressPage() {
           <CoachNameSettings />
           <ThemePicker />
           <WeightUnitSettings />
+          <PrCelebrationSettingsEntry />
         </div>
         <div className="space-y-5">
           <div id="nube">

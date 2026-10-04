@@ -7,6 +7,10 @@ export default defineConfig({
   build: {
     target: ['es2020', 'safari15'],
   },
+  server: {
+    host: true,
+    port: 5173,
+  },
   plugins: [
     react(),
     tailwindcss(),

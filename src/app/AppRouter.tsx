@@ -7,14 +7,19 @@ import { HistoryDetailPage, HistoryPage } from '../features/history/HistoryPage'
 import { EditCompletedSessionPage } from '../features/history/EditCompletedSessionPage'
 import { ManualLogPage } from '../features/history/ManualLogPage'
 import { ProgressPage } from '../features/progress/ProgressPage'
+import { PrCelebrationSettingsPage } from '../features/settings/PrCelebrationSettingsPage'
 import { WorkoutPage } from '../features/workout/WorkoutPage'
 import { TreadmillPage } from '../features/cardio/TreadmillPage'
 import { PlateCalculatorPage } from '../features/tools/PlateCalculatorPage'
 import { CoachPage } from '../features/coach/CoachPage'
+import { PrCelebrationPreviewPage } from '../features/workout/PrCelebrationPreviewPage'
 
 export function AppRouter() {
   return (
     <Routes>
+      {import.meta.env.DEV ? (
+        <Route path="dev/pr" element={<PrCelebrationPreviewPage />} />
+      ) : null}
       <Route path="entrenar/:sessionId" element={<WorkoutPage />} />
       <Route path="coach/:token" element={<CoachPage />} />
       <Route path="coach" element={<CoachPage />} />
@@ -35,6 +40,10 @@ export function AppRouter() {
         <Route path="historial/:sessionId" element={<HistoryDetailPage />} />
         <Route path="discos" element={<PlateCalculatorPage />} />
         <Route path="progreso" element={<ProgressPage />} />
+        <Route
+          path="progreso/animacion-pr"
+          element={<PrCelebrationSettingsPage />}
+        />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
