@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { createPortal } from 'react-dom'
 import { useWeightUnit } from '../../context/WeightUnitProvider'
 import { playPrChime } from '../../utils/prChime'
 import { getPrCelebrationGif } from '../../db/prCelebrationGif'
@@ -193,7 +194,7 @@ export function PrCountUpPop({
       ? 'Primera marca'
       : `${fromW % 1 === 0 ? fromW : fromW.toFixed(1)} ${label} × ${fromReps}`
 
-  return (
+  return createPortal(
     <div
       className={[
         'pr-limit-pop',
@@ -326,7 +327,8 @@ export function PrCountUpPop({
           Seguir
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
