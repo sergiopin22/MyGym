@@ -5,6 +5,7 @@ import { initTheme } from './themes/applyTheme'
 import { initUiLayout } from './ui/applyUiLayout'
 import { initSafeAreaInsets } from './utils/safeArea'
 import { initPrCelebrationColors } from './features/workout/prCelebrationColors'
+import { initPrCelebrationCopy } from './features/workout/prCelebrationCopy'
 import './index.css'
 import App from './App.tsx'
 
@@ -14,6 +15,7 @@ function boot() {
     initUiLayout()
     initSafeAreaInsets()
     initPrCelebrationColors()
+    initPrCelebrationCopy()
   } catch (err) {
     console.warn('init falló:', err)
   }

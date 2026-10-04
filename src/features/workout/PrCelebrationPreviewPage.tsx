@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { PrCountUpPop } from './PrCountUpPop'
 import { PrGifPicker } from '../settings/PrGifPicker'
 import { PrCelebrationColorsPicker } from '../settings/PrCelebrationColorsPicker'
+import { PrCelebrationAnimePicker } from '../settings/PrCelebrationAnimePicker'
 
 /** Datos de mentira. No toca PRs ni el historial. */
 const FAKE = {
@@ -40,8 +41,8 @@ export function PrCelebrationPreviewPage() {
       <p className="pr-limit-preview__badge">Solo local · no pisa tus PRs</p>
       <h1 className="pr-limit-preview__title">Celebración de PR</h1>
       <p className="pr-limit-preview__lede">
-        1. Elige otra vez el GIF de Asta (así se guarda en la mejor calidad).
-        2. Toca ver el corte. El peso es de mentira.
+        1. Elige un anime. 2. Toca un GIF. 3. Mira el corte. El peso es de
+        mentira.
       </p>
       <button type="button" className="pr-limit-preview__btn" onClick={replay}>
         Ver el corte
@@ -49,6 +50,10 @@ export function PrCelebrationPreviewPage() {
       <Link to="/" className="pr-limit-preview__back">
         Volver al inicio
       </Link>
+
+      <div className="pr-limit-preview__picker">
+        <PrCelebrationAnimePicker dark />
+      </div>
 
       <div className="pr-limit-preview__picker">
         <PrCelebrationColorsPicker dark />

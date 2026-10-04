@@ -7,6 +7,11 @@ import {
   prCelebrationCssVars,
   usePrCelebrationColors,
 } from './prCelebrationColors'
+import {
+  displayPrKicker,
+  displayPrTitle,
+  usePrCelebrationCopy,
+} from './prCelebrationCopy'
 
 export interface PrCountUpPayload {
   exerciseName: string
@@ -102,6 +107,7 @@ export function PrCountUpPop({
 }: PrCountUpPopProps) {
   const { toDisplay, label } = useWeightUnit()
   const colors = usePrCelebrationColors()
+  const copy = usePrCelebrationCopy()
   const fromW = toDisplay(fromWeight) ?? fromWeight
   const toW = toDisplay(toWeight) ?? toWeight
   const onCloseRef = useRef(onClose)
@@ -258,23 +264,9 @@ export function PrCountUpPop({
         onClick={(e) => e.stopPropagation()}
       >
         <p className="pr-limit-pop__kicker">
-          {phase === 'done' ? 'Límite roto' : 'Rompiendo el límite'}
+          {displayPrKicker(copy, phase)}
         </p>
-        <h2 className="pr-limit-pop__title">
-          {phase === 'done' ? (
-            <>
-              ¡Rompiste
-              <br />
-              el límite!
-            </>
-          ) : (
-            <>
-              Rompiendo
-              <br />
-              el límite…
-            </>
-          )}
-        </h2>
+        <h2 className="pr-limit-pop__title">{displayPrTitle(copy, phase)}</h2>
 
         {gifUrl && phase === 'done' ? (
           <div className="pr-limit-pop__cutin" aria-hidden>

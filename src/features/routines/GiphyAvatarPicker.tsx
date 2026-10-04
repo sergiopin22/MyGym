@@ -76,6 +76,10 @@ export function GiphyAvatarPicker({
     setRecentGifs(getRecentGiphyGifs())
   }, [])
 
+  useEffect(() => {
+    setQuery(defaultQuery)
+  }, [defaultQuery])
+
   const runSearch = useCallback(async (term: string) => {
     if (!configured) return
     const q = term.trim()

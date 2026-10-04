@@ -8,6 +8,10 @@ import {
   savePrCelebrationGifFromFile,
   savePrCelebrationGifFromGiphy,
 } from '../../db/prCelebrationGif'
+import {
+  PR_ANIME_THEMES,
+  usePrCelebrationCopy,
+} from '../workout/prCelebrationCopy'
 
 interface PrGifPickerProps {
   /** Si true, se ve sobre fondo negro de la preview local. */
@@ -22,6 +26,9 @@ export function PrGifPicker({
   onSaved,
   autoSearch = false,
 }: PrGifPickerProps) {
+  const copy = usePrCelebrationCopy()
+  const animeName =
+    copy.anime === 'custom' ? 'anime' : PR_ANIME_THEMES[copy.anime].name
   const fileRef = useRef<HTMLInputElement>(null)
   const [pending, setPending] = useState<GiphyGif | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -109,9 +116,9 @@ export function PrGifPicker({
       <div>
         <h2 className="font-display text-lg font-bold">GIF del PR</h2>
         <p className={dark ? 'mt-1 text-sm text-white/70' : 'mt-1 text-sm text-muted'}>
-          Elige otra vez Asta para guardar la versión más nítida. El fondo se
-          agranda borroso; el personaje se queda en su tamaño real para no
-          pixelarse. Se guarda en este teléfono, no en la nube.
+          Elige un GIF de {animeName}. El fondo se agranda borroso; el
+          personaje se queda en su tamaño real para no pixelarse. Se guarda en
+          este teléfono, no en la nube.
         </p>
       </div>
 
@@ -151,6 +158,7 @@ export function PrGifPicker({
       ) : null}
 
       <GiphyAvatarPicker
+        key={copy.giphyQuery}
         selected={pending}
         onSelect={(gif) => {
           if (!gif) {
@@ -159,8 +167,8 @@ export function PrGifPicker({
           }
           void persistFromGiphy(gif)
         }}
-        defaultQuery="asta"
-        placeholder="Buscar Asta, Black Clover…"
+        defaultQuery={copy.giphyQuery}
+        placeholder={`Buscar ${animeName}…`}
         autoSearch={dark || autoSearch}
       />
 

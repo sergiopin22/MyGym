@@ -367,6 +367,7 @@
 
 .pr-limit-pop {
   --pr-black: #000000;
+  --pr-bg: var(--pr-black);
   --pr-white: #ffffff;
   --pr-kicker: #c80000;
   --pr-title: #ffffff;
@@ -387,7 +388,7 @@
     max(1.25rem, env(safe-area-inset-bottom));
   overflow: hidden;
   color: var(--pr-white);
-  background: var(--pr-black);
+  background: var(--pr-bg);
 }
 
 .pr-limit-pop__fx {
@@ -415,7 +416,7 @@
       color-mix(in srgb, var(--pr-accent) 18%, transparent) 0%,
       transparent 40%
     ),
-    var(--pr-black);
+    var(--pr-bg);
 }
 
 .pr-limit-pop__vignette {
@@ -577,7 +578,7 @@
 }
 
 .pr-limit-pop--cutin .pr-limit-pop__bg {
-  background: var(--pr-black);
+  background: var(--pr-bg);
 }
 
 .pr-limit-pop--cutin .pr-limit-pop__vignette {
@@ -642,19 +643,29 @@
 
 .pr-limit-pop__kicker {
   margin: 0;
-  font-size: 0.72rem;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.68rem;
   font-weight: 800;
-  letter-spacing: 0.38em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--pr-kicker);
 }
 
 .pr-limit-pop__title {
   margin: 0.55rem 0 0;
+  max-width: 100%;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
   font-family: var(--font-display);
-  font-size: clamp(2.15rem, 9vw, 3.35rem);
+  font-size: clamp(1.85rem, 8vw, 3.1rem);
   font-weight: 800;
-  line-height: 0.92;
+  line-height: 0.95;
   letter-spacing: -0.04em;
   text-transform: uppercase;
   color: var(--pr-title);

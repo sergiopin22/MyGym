@@ -11,6 +11,7 @@ import {
   type PrCelebrationPalette,
   type PrCelebrationPresetId,
 } from '../workout/prCelebrationColors'
+import { usePrCelebrationCopy } from '../workout/prCelebrationCopy'
 
 function HexField({
   value,
@@ -52,6 +53,7 @@ const COLOR_ROWS: Array<{
   label: string
   hint: string
 }> = [
+  { key: 'bg', label: 'Fondo', hint: 'Toda la pantalla' },
   { key: 'kicker', label: 'Subtítulo', hint: 'LÍMITE ROTO' },
   { key: 'title', label: 'Título', hint: '¡Rompiste el límite!' },
   { key: 'nums', label: 'Números', hint: '225 lb × 8' },
@@ -66,6 +68,7 @@ export function PrCelebrationColorsPicker({
   dark = false,
 }: PrCelebrationColorsPickerProps) {
   const colors = usePrCelebrationColors()
+  const copy = usePrCelebrationCopy()
   const vars = prCelebrationCssVars(colors)
   const btnFg = buttonForeground(colors.button)
   const muted = dark ? 'text-white/70' : 'text-muted'
@@ -79,26 +82,26 @@ export function PrCelebrationColorsPicker({
           Colores del PR
         </h2>
         <p className={`mt-1 text-sm ${muted}`}>
-          Elige una paleta o arma la tuya. Por defecto es Clover (rojo, negro y
-          blanco).
+          Elige una paleta o arma la tuya. El fondo, el texto y el botón se
+          cambian igual.
         </p>
       </div>
 
       <div
-        className="rounded-2xl bg-black px-4 py-4 text-center ring-1 ring-white/15"
-        style={vars}
+        className="rounded-2xl px-4 py-4 text-center ring-1 ring-white/15"
+        style={{ ...vars, background: 'var(--pr-bg)' }}
       >
         <p
-          className="m-0 text-[0.68rem] font-extrabold uppercase tracking-[0.32em]"
+          className="m-0 truncate text-[0.68rem] font-extrabold uppercase tracking-[0.12em]"
           style={{ color: 'var(--pr-kicker)' }}
         >
-          Límite roto
+          {copy.kicker}
         </p>
         <p
-          className="mt-1 font-display text-[1.45rem] font-extrabold uppercase leading-none"
+          className="mt-1 line-clamp-2 font-display text-[1.45rem] font-extrabold uppercase leading-none"
           style={{ color: 'var(--pr-title)' }}
         >
-          ¡Rompiste el límite!
+          {copy.title}
         </p>
         <p
           className="mt-3 font-display text-[1.85rem] font-extrabold leading-none"
@@ -149,11 +152,11 @@ export function PrCelebrationColorsPicker({
                 <span className="mb-2 flex gap-1">
                   <span
                     className="h-6 flex-1 rounded-lg ring-1 ring-white/20"
-                    style={{ background: preset.colors.kicker }}
+                    style={{ background: preset.colors.bg }}
                   />
                   <span
                     className="h-6 flex-1 rounded-lg ring-1 ring-white/20"
-                    style={{ background: preset.colors.title }}
+                    style={{ background: preset.colors.kicker }}
                   />
                   <span
                     className="h-6 flex-1 rounded-lg ring-1 ring-white/20"

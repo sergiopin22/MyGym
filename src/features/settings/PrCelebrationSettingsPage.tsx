@@ -5,11 +5,13 @@ import { PageHeader } from '../../ui/PageHeader'
 import { getPrCelebrationGif } from '../../db/prCelebrationGif'
 import { PrGifPicker } from './PrGifPicker'
 import { PrCelebrationColorsSettings } from './PrCelebrationColorsPicker'
+import { PrCelebrationAnimeSettings } from './PrCelebrationAnimePicker'
 import { PrCountUpPop } from '../workout/PrCountUpPop'
 import {
   PR_CELEBRATION_PRESETS,
   usePrCelebrationColors,
 } from '../workout/prCelebrationColors'
+import { prAnimeLabel, usePrCelebrationCopy } from '../workout/prCelebrationCopy'
 
 const FAKE = {
   exerciseName: 'Press banca',
@@ -22,6 +24,7 @@ const FAKE = {
 /** Tarjeta corta en Ajustes. El detalle vive en /progreso/animacion-pr. */
 export function PrCelebrationSettingsEntry() {
   const colors = usePrCelebrationColors()
+  const copy = usePrCelebrationCopy()
   const [gifUrl, setGifUrl] = useState<string | null>(null)
   const [gifTitle, setGifTitle] = useState<string | null>(null)
   const [gifMime, setGifMime] = useState('image/gif')
@@ -42,22 +45,20 @@ export function PrCelebrationSettingsEntry() {
     }
   }, [])
 
-  const paletteName =
-    colors.preset === 'custom'
-      ? 'Tus colores'
-      : PR_CELEBRATION_PRESETS[colors.preset].name
-
   return (
     <Card className="space-y-3">
       <div>
         <h2 className="font-display text-lg font-bold">Animación de PR</h2>
         <p className="mt-1 text-sm text-muted">
-          GIF, colores del título, números y el botón Seguir. El corte que sale
-          cuando rompes un récord.
+          GIF, fondo, colores del título, números y el botón Seguir. El corte
+          que sale cuando rompes un récord.
         </p>
       </div>
 
-      <div className="flex items-center gap-3 rounded-2xl bg-black p-2 ring-1 ring-line">
+      <div
+        className="flex items-center gap-3 rounded-2xl p-2 ring-1 ring-line"
+        style={{ background: colors.bg }}
+      >
         <span className="h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-zinc-900">
           {gifUrl ? (
             gifMime.startsWith('video/') ? (
@@ -82,9 +83,18 @@ export function PrCelebrationSettingsEntry() {
           <p className="truncate text-sm font-semibold text-white">
             {gifTitle ?? 'Sin GIF todavía'}
           </p>
-          <p className="text-xs text-white/60">{paletteName}</p>
+          <p className="text-xs text-white/60">
+            {prAnimeLabel(copy)} ·{' '}
+            {colors.preset === 'custom'
+              ? 'Tus colores'
+              : PR_CELEBRATION_PRESETS[colors.preset].name}
+          </p>
         </div>
         <span className="flex shrink-0 gap-1">
+          <span
+            className="h-6 w-6 rounded-md ring-1 ring-white/20"
+            style={{ background: colors.bg }}
+          />
           <span
             className="h-6 w-6 rounded-md ring-1 ring-white/20"
             style={{ background: colors.kicker }}
@@ -156,6 +166,7 @@ export function PrCelebrationSettingsPage() {
         </button>
       </Card>
 
+      <PrCelebrationAnimeSettings />
       <PrCelebrationColorsSettings />
       <PrGifPicker autoSearch onSaved={replay} />
     </div>

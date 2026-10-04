@@ -4,6 +4,7 @@ import type { CSSProperties } from 'react'
 export type PrCelebrationPresetId = 'clover' | 'violet' | 'mono' | 'custom'
 
 export interface PrCelebrationPalette {
+  bg: string
   kicker: string
   title: string
   nums: string
@@ -24,6 +25,7 @@ export const PR_CELEBRATION_PRESETS: Record<
     name: 'Clover',
     tagline: 'Rojo, negro y blanco',
     colors: {
+      bg: '#000000',
       kicker: '#c80000',
       title: '#ffffff',
       nums: '#ffffff',
@@ -34,6 +36,7 @@ export const PR_CELEBRATION_PRESETS: Record<
     name: 'Violeta',
     tagline: 'Púrpura, negro y blanco',
     colors: {
+      bg: '#000000',
       kicker: '#a855f7',
       title: '#ffffff',
       nums: '#ffffff',
@@ -44,6 +47,7 @@ export const PR_CELEBRATION_PRESETS: Record<
     name: 'Mono',
     tagline: 'Solo blanco y negro',
     colors: {
+      bg: '#000000',
       kicker: '#ffffff',
       title: '#ffffff',
       nums: '#ffffff',
@@ -114,16 +118,18 @@ function isPresetId(value: string): value is PrCelebrationPresetId {
 function sanitize(raw: unknown): PrCelebrationColors {
   if (!raw || typeof raw !== 'object') return DEFAULT_PR_CELEBRATION_COLORS
   const row = raw as Record<string, unknown>
+  const bg = typeof row.bg === 'string' ? normalizeHex(row.bg) : '#000000'
   const kicker = typeof row.kicker === 'string' ? normalizeHex(row.kicker) : null
   const title = typeof row.title === 'string' ? normalizeHex(row.title) : null
   const nums = typeof row.nums === 'string' ? normalizeHex(row.nums) : null
   const button = typeof row.button === 'string' ? normalizeHex(row.button) : null
-  if (!kicker || !title || !nums || !button) return DEFAULT_PR_CELEBRATION_COLORS
+  if (!bg || !kicker || !title || !nums || !button)
+    return DEFAULT_PR_CELEBRATION_COLORS
   const preset =
     typeof row.preset === 'string' && isPresetId(row.preset)
       ? row.preset
       : 'custom'
-  return { preset, kicker, title, nums, button }
+  return { preset, bg, kicker, title, nums, button }
 }
 
 function loadFromStorage(): PrCelebrationColors {
@@ -140,6 +146,7 @@ export function prCelebrationCssVars(
   colors: PrCelebrationColors,
 ): CSSProperties {
   return {
+    ['--pr-bg' as string]: colors.bg,
     ['--pr-kicker' as string]: colors.kicker,
     ['--pr-title' as string]: colors.title,
     ['--pr-nums' as string]: colors.nums,
