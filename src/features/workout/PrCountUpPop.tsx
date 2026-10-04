@@ -227,34 +227,6 @@ export function PrCountUpPop({
         <div className="pr-limit-pop__bg" />
         <div className="pr-limit-pop__vignette" />
         <div className="pr-limit-pop__flash" />
-        <div className="pr-limit-pop__mark">
-          <span />
-          <span />
-          <span />
-          <span />
-          <span />
-        </div>
-        <svg
-          className="pr-limit-pop__bolts"
-          viewBox="0 0 100 160"
-          preserveAspectRatio="none"
-        >
-          <polyline
-            className="pr-limit-pop__bolt pr-limit-pop__bolt--a"
-            pathLength="100"
-            points="18,0 24,28 12,28 30,72 16,72 42,160"
-          />
-          <polyline
-            className="pr-limit-pop__bolt pr-limit-pop__bolt--b"
-            pathLength="100"
-            points="78,8 70,40 84,40 62,88 78,88 48,160"
-          />
-          <polyline
-            className="pr-limit-pop__bolt pr-limit-pop__bolt--c"
-            pathLength="100"
-            points="50,0 46,36 58,36 40,86 54,86 36,160"
-          />
-        </svg>
         <div className="pr-limit-pop__sparks">
           {SPARKS.map((i) => (
             <span key={i} style={{ ['--spark' as string]: String(i) }} />
@@ -267,6 +239,11 @@ export function PrCountUpPop({
             mime={gifMime}
           />
         ) : null}
+      </div>
+      <div className="pr-limit-pop__shock" aria-hidden>
+        <span />
+        <span />
+        <span />
       </div>
 
       <div
