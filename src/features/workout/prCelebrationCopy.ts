@@ -9,13 +9,20 @@ export const PR_KICKER_MAX = 18
 /** Tope del título grande. Cabe en 2 líneas. */
 export const PR_TITLE_MAX = 32
 
-export type PrAnimeId =
-  | 'clover'
-  | 'goku'
-  | 'ippo'
-  | 'luffy'
-  | 'vinland'
-  | 'custom'
+export const PR_NAMED_ANIME_IDS = [
+  'clover',
+  'goku',
+  'ippo',
+  'luffy',
+  'vinland',
+] as const
+
+export type PrNamedAnimeId = (typeof PR_NAMED_ANIME_IDS)[number]
+export type PrAnimeId = PrNamedAnimeId | 'custom'
+
+export function isNamedAnimeId(value: string): value is PrNamedAnimeId {
+  return (PR_NAMED_ANIME_IDS as readonly string[]).includes(value)
+}
 
 export interface PrAnimeTheme {
   name: string
@@ -30,6 +37,8 @@ export interface PrAnimeTheme {
 
 export interface PrCelebrationCopy {
   anime: PrAnimeId
+  /** Último anime elegido: ahí se guarda el GIF, también con frases tuyas. */
+  gifTheme: PrNamedAnimeId
   kicker: string
   title: string
   giphyQuery: string
@@ -125,19 +134,13 @@ export const PR_ANIME_THEMES: Record<
 
 export const DEFAULT_PR_CELEBRATION_COPY: PrCelebrationCopy = {
   anime: 'clover',
+  gifTheme: 'clover',
   kicker: PR_ANIME_THEMES.clover.kicker,
   title: PR_ANIME_THEMES.clover.title,
   giphyQuery: PR_ANIME_THEMES.clover.giphyQuery,
 }
 
-const ANIME_IDS: PrAnimeId[] = [
-  'clover',
-  'goku',
-  'ippo',
-  'luffy',
-  'vinland',
-  'custom',
-]
+const ANIME_IDS: PrAnimeId[] = [...PR_NAMED_ANIME_IDS, 'custom']
 
 const listeners = new Set<() => void>()
 let cache = loadFromStorage()
@@ -185,8 +188,14 @@ function sanitize(raw: unknown): PrCelebrationCopy {
     typeof row.giphyQuery === 'string' && row.giphyQuery.trim()
       ? row.giphyQuery.trim().slice(0, 80)
       : DEFAULT_PR_CELEBRATION_COPY.giphyQuery
+  const gifTheme = isNamedAnimeId(anime)
+    ? anime
+    : typeof row.gifTheme === 'string' && isNamedAnimeId(row.gifTheme)
+      ? row.gifTheme
+      : 'clover'
   return {
     anime,
+    gifTheme,
     kicker: kicker.trim() ? kicker : DEFAULT_PR_CELEBRATION_COPY.kicker,
     title: title.trim() ? title : DEFAULT_PR_CELEBRATION_COPY.title,
     giphyQuery,
@@ -221,6 +230,7 @@ export function selectPrAnimeTheme(id: Exclude<PrAnimeId, 'custom'>) {
   const theme = PR_ANIME_THEMES[id]
   setPrCelebrationCopy({
     anime: id,
+    gifTheme: id,
     kicker: theme.kicker,
     title: theme.title,
     giphyQuery: theme.giphyQuery,
@@ -264,6 +274,10 @@ export function displayPrTitle(
 export function prAnimeLabel(copy: PrCelebrationCopy): string {
   if (copy.anime === 'custom') return 'Tus frases'
   return PR_ANIME_THEMES[copy.anime].name
+}
+
+export function prGifTheme(copy: PrCelebrationCopy): PrNamedAnimeId {
+  return copy.gifTheme
 }
 
 export function initPrCelebrationCopy() {

@@ -11,7 +11,7 @@ import {
   PR_CELEBRATION_PRESETS,
   usePrCelebrationColors,
 } from '../workout/prCelebrationColors'
-import { prAnimeLabel, usePrCelebrationCopy } from '../workout/prCelebrationCopy'
+import { prAnimeLabel, prGifTheme, usePrCelebrationCopy } from '../workout/prCelebrationCopy'
 
 const FAKE = {
   exerciseName: 'Press banca',
@@ -29,11 +29,20 @@ export function PrCelebrationSettingsEntry() {
   const [gifTitle, setGifTitle] = useState<string | null>(null)
   const [gifMime, setGifMime] = useState('image/gif')
 
+  const gifTheme = prGifTheme(copy)
+
   useEffect(() => {
     let url: string | null = null
     let alive = true
-    void getPrCelebrationGif().then((row) => {
-      if (!alive || !row) return
+    setGifUrl(null)
+    setGifTitle(null)
+    void getPrCelebrationGif(gifTheme).then((row) => {
+      if (!alive) return
+      if (!row) {
+        setGifUrl(null)
+        setGifTitle(null)
+        return
+      }
       url = URL.createObjectURL(row.blob)
       setGifUrl(url)
       setGifTitle(row.title)
@@ -43,7 +52,7 @@ export function PrCelebrationSettingsEntry() {
       alive = false
       if (url) URL.revokeObjectURL(url)
     }
-  }, [])
+  }, [gifTheme])
 
   return (
     <Card className="space-y-3">

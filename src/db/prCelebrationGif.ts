@@ -1,12 +1,18 @@
 import type { GiphyGif } from '../api/giphy'
 import { downloadGiphyHd } from '../api/giphy'
 import { rememberRecentGiphyGif } from '../brand/recentGiphyGifs'
+import type { PrNamedAnimeId } from '../features/workout/prCelebrationCopy'
 import { db } from './schema'
 
+/** Slot viejo, de cuando había un solo GIF para todos los temas. */
 export const PR_CELEBRATION_GIF_ID = 'pr-gif' as const
 
+export function prCelebrationGifId(theme: PrNamedAnimeId): string {
+  return `pr-gif-${theme}`
+}
+
 export interface PrCelebrationGifRecord {
-  id: typeof PR_CELEBRATION_GIF_ID
+  id: string
   giphyId: string
   title: string
   blob: Blob
@@ -16,10 +22,26 @@ export interface PrCelebrationGifRecord {
   height?: number
 }
 
-export async function getPrCelebrationGif(): Promise<
-  PrCelebrationGifRecord | undefined
-> {
-  return db.prCelebrationGifs.get(PR_CELEBRATION_GIF_ID)
+let migratedLegacy = false
+
+/** El GIF único anterior pasa a Black Clover, que era el tema por defecto. */
+async function migrateLegacyPrGif(): Promise<void> {
+  if (migratedLegacy) return
+  migratedLegacy = true
+  const legacy = await db.prCelebrationGifs.get(PR_CELEBRATION_GIF_ID)
+  if (!legacy) return
+  const cloverId = prCelebrationGifId('clover')
+  const clover = await db.prCelebrationGifs.get(cloverId)
+  if (!clover) {
+    await db.prCelebrationGifs.put({ ...legacy, id: cloverId })
+  }
+}
+
+export async function getPrCelebrationGif(
+  theme: PrNamedAnimeId,
+): Promise<PrCelebrationGifRecord | undefined> {
+  await migrateLegacyPrGif()
+  return db.prCelebrationGifs.get(prCelebrationGifId(theme))
 }
 
 async function readMediaSize(
@@ -61,13 +83,14 @@ async function readMediaSize(
 
 export async function savePrCelebrationGifFromGiphy(
   gif: GiphyGif,
+  theme: PrNamedAnimeId,
 ): Promise<PrCelebrationGifRecord> {
   const blob = await downloadGiphyHd(gif)
   const size = (await readMediaSize(blob)) ?? {
     width: gif.width,
     height: gif.height,
   }
-  const record = await putPrCelebrationGif({
+  const record = await putPrCelebrationGif(theme, {
     giphyId: gif.id,
     title: gif.title,
     blob,
@@ -80,9 +103,10 @@ export async function savePrCelebrationGifFromGiphy(
 
 export async function savePrCelebrationGifFromFile(
   file: File,
+  theme: PrNamedAnimeId,
 ): Promise<PrCelebrationGifRecord> {
   const size = await readMediaSize(file)
-  return putPrCelebrationGif({
+  return putPrCelebrationGif(theme, {
     giphyId: 'file',
     title: file.name || 'GIF de PR',
     blob: file,
@@ -91,19 +115,24 @@ export async function savePrCelebrationGifFromFile(
   })
 }
 
-export async function clearPrCelebrationGif(): Promise<void> {
-  await db.prCelebrationGifs.delete(PR_CELEBRATION_GIF_ID)
+export async function clearPrCelebrationGif(
+  theme: PrNamedAnimeId,
+): Promise<void> {
+  await db.prCelebrationGifs.delete(prCelebrationGifId(theme))
 }
 
-async function putPrCelebrationGif(input: {
-  giphyId: string
-  title: string
-  blob: Blob
-  width?: number
-  height?: number
-}): Promise<PrCelebrationGifRecord> {
+async function putPrCelebrationGif(
+  theme: PrNamedAnimeId,
+  input: {
+    giphyId: string
+    title: string
+    blob: Blob
+    width?: number
+    height?: number
+  },
+): Promise<PrCelebrationGifRecord> {
   const record: PrCelebrationGifRecord = {
-    id: PR_CELEBRATION_GIF_ID,
+    id: prCelebrationGifId(theme),
     giphyId: input.giphyId,
     title: input.title,
     blob: input.blob,

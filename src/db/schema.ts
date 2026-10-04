@@ -92,6 +92,29 @@ export class MiGymDB extends Dexie {
       customAvatarGifs: 'id, updatedAt',
       prCelebrationGifs: 'id, updatedAt',
     })
+
+    this.version(7)
+      .stores({
+        routines: 'id, updatedAt',
+        sessions: 'id, date, status, routineDayId, startedAt',
+        exerciseImages: 'id, updatedAt',
+        improvements: 'id, detectedAt, exerciseName, sessionId',
+        bodyCheckIns: 'id, date, createdAt',
+        bodyCheckInPhotos: 'id, checkInId, angle',
+        constancyGoals: 'id, status, updatedAt',
+        treadmillSessions: 'id, date, createdAt',
+        customAvatarGifs: 'id, updatedAt',
+        prCelebrationGifs: 'id, updatedAt',
+      })
+      .upgrade(async (tx) => {
+        const table = tx.table('prCelebrationGifs')
+        const legacy = await table.get('pr-gif')
+        if (!legacy) return
+        const clover = await table.get('pr-gif-clover')
+        if (!clover) {
+          await table.put({ ...legacy, id: 'pr-gif-clover' })
+        }
+      })
   }
 }
 

@@ -10,6 +10,7 @@ import {
 } from '../../db/prCelebrationGif'
 import {
   PR_ANIME_THEMES,
+  prGifTheme,
   usePrCelebrationCopy,
 } from '../workout/prCelebrationCopy'
 
@@ -27,8 +28,10 @@ export function PrGifPicker({
   autoSearch = false,
 }: PrGifPickerProps) {
   const copy = usePrCelebrationCopy()
-  const animeName =
-    copy.anime === 'custom' ? 'anime' : PR_ANIME_THEMES[copy.anime].name
+  const gifTheme = prGifTheme(copy)
+  const gifThemeRef = useRef(gifTheme)
+  gifThemeRef.current = gifTheme
+  const animeName = PR_ANIME_THEMES[gifTheme].name
   const fileRef = useRef<HTMLInputElement>(null)
   const [pending, setPending] = useState<GiphyGif | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
@@ -40,8 +43,17 @@ export function PrGifPicker({
   useEffect(() => {
     let url: string | null = null
     let alive = true
-    void getPrCelebrationGif().then((row) => {
-      if (!alive || !row) return
+    setPending(null)
+    setError(null)
+    setPreviewUrl(null)
+    setTitle(null)
+    void getPrCelebrationGif(gifTheme).then((row) => {
+      if (!alive) return
+      if (!row) {
+        setTitle(null)
+        setPreviewUrl(null)
+        return
+      }
       url = URL.createObjectURL(row.blob)
       setPreviewUrl(url)
       setTitle(row.title)
@@ -51,13 +63,15 @@ export function PrGifPicker({
       alive = false
       if (url) URL.revokeObjectURL(url)
     }
-  }, [])
+  }, [gifTheme])
 
   async function persistFromGiphy(gif: GiphyGif) {
+    const theme = gifTheme
     setSaving(true)
     setError(null)
     try {
-      const row = await savePrCelebrationGifFromGiphy(gif)
+      const row = await savePrCelebrationGifFromGiphy(gif, theme)
+      if (gifThemeRef.current !== theme) return
       setPending(gif)
       setTitle(row.title)
       setPreviewUrl((prev) => {
@@ -67,17 +81,20 @@ export function PrGifPicker({
       setGifMime(row.mimeType || row.blob.type || 'image/gif')
       onSaved?.()
     } catch (err) {
+      if (gifThemeRef.current !== theme) return
       setError(err instanceof Error ? err.message : 'No se pudo guardar el GIF')
     } finally {
-      setSaving(false)
+      if (gifThemeRef.current === theme) setSaving(false)
     }
   }
 
   async function persistFromFile(file: File) {
+    const theme = gifTheme
     setSaving(true)
     setError(null)
     try {
-      const row = await savePrCelebrationGifFromFile(file)
+      const row = await savePrCelebrationGifFromFile(file, theme)
+      if (gifThemeRef.current !== theme) return
       setPending(null)
       setTitle(row.title)
       setPreviewUrl((prev) => {
@@ -87,17 +104,20 @@ export function PrGifPicker({
       setGifMime(row.mimeType || row.blob.type || 'image/gif')
       onSaved?.()
     } catch (err) {
+      if (gifThemeRef.current !== theme) return
       setError(err instanceof Error ? err.message : 'No se pudo guardar el archivo')
     } finally {
-      setSaving(false)
+      if (gifThemeRef.current === theme) setSaving(false)
     }
   }
 
   async function remove() {
+    const theme = gifTheme
     setSaving(true)
     setError(null)
     try {
-      await clearPrCelebrationGif()
+      await clearPrCelebrationGif(theme)
+      if (gifThemeRef.current !== theme) return
       setPending(null)
       setTitle(null)
       setPreviewUrl((prev) => {
@@ -105,9 +125,10 @@ export function PrGifPicker({
         return null
       })
     } catch (err) {
+      if (gifThemeRef.current !== theme) return
       setError(err instanceof Error ? err.message : 'No se pudo quitar')
     } finally {
-      setSaving(false)
+      if (gifThemeRef.current === theme) setSaving(false)
     }
   }
 
@@ -116,9 +137,9 @@ export function PrGifPicker({
       <div>
         <h2 className="font-display text-lg font-bold">GIF del PR</h2>
         <p className={dark ? 'mt-1 text-sm text-white/70' : 'mt-1 text-sm text-muted'}>
-          Elige un GIF de {animeName}. El fondo se agranda borroso; el
-          personaje se queda en su tamaño real para no pixelarse. Se guarda en
-          este teléfono, no en la nube.
+          Elige un GIF de {animeName}. Queda solo para este tema: si cambias de
+          anime, cada uno guarda el suyo. El fondo se agranda borroso; el
+          personaje se queda en su tamaño real para no pixelarse.
         </p>
       </div>
 
@@ -155,7 +176,11 @@ export function PrGifPicker({
             Quitar
           </button>
         </div>
-      ) : null}
+      ) : (
+        <p className={dark ? 'text-sm text-white/70' : 'text-sm text-muted'}>
+          Todavía no hay GIF para {animeName}.
+        </p>
+      )}
 
       <GiphyAvatarPicker
         key={copy.giphyQuery}

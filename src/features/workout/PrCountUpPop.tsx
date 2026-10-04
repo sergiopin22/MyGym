@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react'
 import { createPortal } from 'react-dom'
 import { useWeightUnit } from '../../context/WeightUnitProvider'
 import { playPrChime } from '../../utils/prChime'
+import { schedulePrHitHaptic } from '../../utils/prHaptic'
 import { getPrCelebrationGif } from '../../db/prCelebrationGif'
 import {
   prCelebrationCssVars,
@@ -10,6 +11,7 @@ import {
 import {
   displayPrKicker,
   displayPrTitle,
+  prGifTheme,
   usePrCelebrationCopy,
 } from './prCelebrationCopy'
 
@@ -125,7 +127,9 @@ export function PrCountUpPop({
   useEffect(() => {
     let url: string | null = null
     let alive = true
-    void getPrCelebrationGif().then((row) => {
+    setGifUrl(null)
+    setGifSize(null)
+    void getPrCelebrationGif(prGifTheme(copy)).then((row) => {
       if (!alive || !row) return
       url = URL.createObjectURL(row.blob)
       setGifUrl(url)
@@ -138,23 +142,28 @@ export function PrCountUpPop({
       alive = false
       if (url) URL.revokeObjectURL(url)
     }
-  }, [])
+  }, [copy.gifTheme])
 
   useEffect(() => {
     if (playSound) playPrChime()
 
     if (prefersReducedMotion()) {
+      const stopHaptic = schedulePrHitHaptic(0)
       setWeight(toW)
       setReps(toReps)
       setPhase('done')
       if (!stayOpen) {
         const t = window.setTimeout(() => onCloseRef.current(), 1800)
-        return () => window.clearTimeout(t)
+        return () => {
+          stopHaptic()
+          window.clearTimeout(t)
+        }
       }
-      return
+      return stopHaptic
     }
 
     const duration = 1200
+    const stopHaptic = schedulePrHitHaptic(duration)
     const start = performance.now()
     let raf = 0
 
@@ -180,6 +189,7 @@ export function PrCountUpPop({
     }
 
     return () => {
+      stopHaptic()
       cancelAnimationFrame(raf)
       if (autoClose) window.clearTimeout(autoClose)
     }
