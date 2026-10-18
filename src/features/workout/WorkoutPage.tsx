@@ -6,12 +6,13 @@ import { ProgressBar } from '../../components/ProgressBar'
 import {
   completeSession,
   cancelSession,
+  getActiveSession,
   getSessionById,
   skipLeftoverExercises,
   type SessionNewPR,
 } from '../../db/repository'
 import type { SessionSummary, WorkoutSession } from '../../types'
-import { formatDuration } from '../../utils/id'
+import { formatDuration, formatLongDateEs } from '../../utils/id'
 import { getIncompleteWorkoutParts, hasWorkingSets } from '../../utils/workout'
 import { getDailyMotivationQuote } from '../../utils/dailyMotivation'
 import { CopyCoachMessageButton } from '../history/CopyCoachMessageButton'
@@ -42,11 +43,13 @@ export function WorkoutPage() {
   useEffect(() => {
     let alive = true
     if (!sessionId) return
-    getSessionById(sessionId)
-      .then((s) => {
+    void (async () => {
+      try {
+        await getActiveSession()
+        const s = await getSessionById(sessionId)
         if (!alive) return
         if (!s) {
-          setError('Sesión no encontrada')
+          navigate('/', { replace: true })
           return
         }
         setSession(s)
@@ -67,17 +70,16 @@ export function WorkoutPage() {
             recoveredDayLabel: s.recoveredDayLabel,
           })
         }
-      })
-      .catch((err: unknown) => {
+      } catch (err: unknown) {
         if (alive) setError(err instanceof Error ? err.message : 'Error al cargar')
-      })
-      .finally(() => {
+      } finally {
         if (alive) setLoading(false)
-      })
+      }
+    })()
     return () => {
       alive = false
     }
-  }, [sessionId])
+  }, [sessionId, navigate])
 
   const exercises = useMemo(
     () =>
@@ -204,7 +206,7 @@ export function WorkoutPage() {
         <PageHeader
           kicker="Focus · Listo"
           title="Resumen"
-          subtitle={summary.dayLabel}
+          subtitle={`${summary.dayLabel} · ${formatLongDateEs(summary.date)}`}
           className="shrink-0 border-b border-line pb-3"
         />
         {summary.isRecovery ? (
@@ -321,6 +323,9 @@ export function WorkoutPage() {
               <h1 className="focus-page-title font-display text-[1.85rem] font-extrabold tracking-tight">
                 {session.dayLabel}
               </h1>
+              <p className="mt-1 text-sm font-semibold text-fg">
+                {formatLongDateEs(session.date)}
+              </p>
               {session.isRecovery ? (
                 <span className="mt-1 inline-flex rounded-full bg-progress-soft px-2.5 py-1 text-xs font-bold text-progress">
                   Recuperado

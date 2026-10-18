@@ -8,9 +8,16 @@ import {
   getCompletedSessionToday,
   getRecoverableMissedDays,
   startSession,
+  type RecoverableMissedDay,
 } from '../../db/repository'
 import type { Routine, RoutineDay, Weekday, WorkoutSession } from '../../types'
-import { weekdayLabel } from '../../utils/id'
+import {
+  formatLongDateEs,
+  formatShortDateEs,
+  isoForWeekdayThisWeek,
+  todayISODate,
+  weekdayLabel,
+} from '../../utils/id'
 import { ConstancyGoalCard } from './ConstancyGoalCard'
 import { BrandAvatarButton } from './BrandAvatarButton'
 import { FocusGymHeatmap } from './FocusGymHeatmap'
@@ -28,13 +35,17 @@ function sortDays(days: RoutineDay[]): RoutineDay[] {
 function FocusPosterHero({
   progressPct,
   weekday,
+  dateLabel,
   dayLabel,
   muscles,
+  kicker = 'Arena · Hoy',
 }: {
   progressPct: number
   weekday: Weekday
+  dateLabel: string
   dayLabel: string
   muscles: string[]
+  kicker?: string
 }) {
   const [ringPct, setRingPct] = useState(0)
 
@@ -82,8 +93,9 @@ function FocusPosterHero({
           ) : null}
         </div>
       </div>
-      <p className="focus-home-kicker">Arena · Hoy</p>
+      <p className="focus-home-kicker">{kicker}</p>
       <h1 className="focus-home-title text-fg">{weekdayLabel(weekday)}</h1>
+      <p className="mt-1 text-base font-bold text-fg">{dateLabel}</p>
       <p className="focus-page-sub">
         {dayLabel}
         {muscles.length ? ` · ${muscles.join(' · ')}` : ''}
@@ -106,7 +118,8 @@ export function HomePage() {
   const [error, setError] = useState<string | null>(null)
   const [starting, setStarting] = useState(false)
   const [recoveryDay, setRecoveryDay] = useState<RoutineDay | null>(null)
-  const [missedDays, setMissedDays] = useState<RoutineDay[]>([])
+  const [recoveryDate, setRecoveryDate] = useState<string | null>(null)
+  const [missedDays, setMissedDays] = useState<RecoverableMissedDay[]>([])
   const [goalRefresh, setGoalRefresh] = useState(0)
   const [focusDeck, setFocusDeck] = useState<'hoy' | 'semana' | 'meta'>('hoy')
   const [weekExpanded, setWeekExpanded] = useState<Weekday | null>(todayWeekday)
@@ -229,6 +242,17 @@ export function HomePage() {
     !completedToday?.isRecovery &&
     (!todayDay || completedToday?.routineDayId === todayDay.id)
 
+  const todayIso = todayISODate()
+  const selectedDateIso = isRecoveryMode
+    ? (recoveryDate ?? isoForWeekdayThisWeek(selectedWeekday))
+    : activeSession && sessionForSelected
+      ? activeSession.date
+      : completedTodayForSelected
+        ? completedTodayForSelected.date
+        : isoForWeekdayThisWeek(selectedWeekday)
+  const selectedDateLabel = formatLongDateEs(selectedDateIso)
+  const todayDateLabel = formatLongDateEs(todayIso)
+
   function handleDayUpdated(updated: RoutineDay) {
     setRoutine((prev) =>
       prev
@@ -240,14 +264,16 @@ export function HomePage() {
     )
   }
 
-  function handleSelectRecoveryDay(day: RoutineDay) {
+  function handleSelectRecoveryDay(day: RoutineDay, date: string) {
     setRecoveryDay(day)
+    setRecoveryDate(date)
     setSelectedWeekday(day.weekday)
     setError(null)
   }
 
   function handleClearRecovery() {
     setRecoveryDay(null)
+    setRecoveryDate(null)
     setSelectedWeekday(todayWeekday)
   }
 
@@ -319,11 +345,19 @@ export function HomePage() {
       {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
       {activeSession ? (
-        <Button fullWidth onClick={() => void handleStartOrContinue()} disabled={starting}>
-          {starting ? 'Abriendo…' : 'Continuar entrenamiento'}
-        </Button>
+        <div className="space-y-2">
+          <p className="text-center text-sm font-semibold text-fg">
+            {formatLongDateEs(activeSession.date)}
+          </p>
+          <Button fullWidth onClick={() => void handleStartOrContinue()} disabled={starting}>
+            {starting ? 'Abriendo…' : 'Continuar entrenamiento'}
+          </Button>
+        </div>
       ) : completedTodayForSelected || (todayDone && isTodaySelected) ? (
         <div className="space-y-2">
+          <p className="text-center text-sm font-semibold text-fg">
+            {formatLongDateEs((completedTodayForSelected ?? completedToday)!.date)}
+          </p>
           <Button
             fullWidth
             variant="secondary"
@@ -337,23 +371,33 @@ export function HomePage() {
           </Button>
         </div>
       ) : isRecoveryMode && !isRestDay ? (
-        <Button
-          fullWidth
-          onClick={() => void handleStartOrContinue()}
-          disabled={starting || (selectedDay?.exercises.length ?? 0) === 0}
-        >
-          {starting
-            ? 'Abriendo…'
-            : `Empezar entrenamiento · ${weekdayLabel(recoveryDay!.weekday)}`}
-        </Button>
+        <div className="space-y-2">
+          <p className="text-center text-sm font-semibold text-fg">
+            Te faltó el {selectedDateLabel}
+          </p>
+          <Button
+            fullWidth
+            onClick={() => void handleStartOrContinue()}
+            disabled={starting || (selectedDay?.exercises.length ?? 0) === 0}
+          >
+            {starting
+              ? 'Abriendo…'
+              : `Empezar · ${weekdayLabel(recoveryDay!.weekday)} ${formatShortDateEs(selectedDateIso)}`}
+          </Button>
+        </div>
       ) : isTodaySelected && !isRestDay ? (
-        <Button
-          fullWidth
-          onClick={() => void handleStartOrContinue()}
-          disabled={starting || (selectedDay?.exercises.length ?? 0) === 0}
-        >
-          {starting ? 'Abriendo…' : 'Comenzar entrenamiento'}
-        </Button>
+        <div className="space-y-2">
+          <p className="text-center text-sm font-semibold text-fg">
+            Hoy · {todayDateLabel}
+          </p>
+          <Button
+            fullWidth
+            onClick={() => void handleStartOrContinue()}
+            disabled={starting || (selectedDay?.exercises.length ?? 0) === 0}
+          >
+            {starting ? 'Abriendo…' : 'Comenzar entrenamiento'}
+          </Button>
+        </div>
       ) : null}
     </>
   )
@@ -363,7 +407,7 @@ export function HomePage() {
       <div className="space-y-2 rounded-2xl bg-brand-soft px-3 py-3">
         <p className="text-sm font-semibold text-fg">
           {isRecoveryMode
-            ? `Vas a recuperar el ${weekdayLabel(recoveryDay!.weekday)}`
+            ? `Vas a recuperar el ${selectedDateLabel}`
             : 'Recuperar un día que te faltó'}
         </p>
         <p className="text-xs text-muted">
@@ -373,16 +417,16 @@ export function HomePage() {
         </p>
         {missedDays.length > 0 ? (
           <div className="flex flex-wrap gap-2">
-            {missedDays.map((day) => {
-              const selected = recoveryDay?.id === day.id
+            {missedDays.map((item) => {
+              const selected = recoveryDay?.id === item.day.id
               return (
                 <button
-                  key={day.id}
+                  key={item.day.id}
                   type="button"
                   onClick={() =>
                     selected
                       ? handleClearRecovery()
-                      : handleSelectRecoveryDay(day)
+                      : handleSelectRecoveryDay(item.day, item.date)
                   }
                   className={[
                     'min-h-11 rounded-xl px-3 text-sm font-semibold ring-1 transition',
@@ -391,7 +435,7 @@ export function HomePage() {
                       : 'bg-surface text-fg ring-line',
                   ].join(' ')}
                 >
-                  {weekdayLabel(day.weekday)}
+                  {weekdayLabel(item.day.weekday)} · {formatShortDateEs(item.date)}
                   {selected ? ' · seleccionado' : ''}
                 </button>
               )
@@ -434,8 +478,8 @@ export function HomePage() {
           <h2 className="font-display text-xl font-bold">Día de descanso</h2>
           <p className="text-sm text-muted">
             {isTodaySelected
-              ? 'Hoy no toca gym. Descansa y vuelve fuerte el próximo entreno.'
-              : `${weekdayLabel(selectedWeekday)} está marcado como descanso.`}
+              ? `Hoy (${todayDateLabel}) no toca gym. Descansa y vuelve fuerte el próximo entreno.`
+              : `${selectedDateLabel} está marcado como descanso.`}
           </p>
         </div>
       ) : (
@@ -443,12 +487,15 @@ export function HomePage() {
           <div>
             {isRecoveryMode ? (
               <p className="mb-2 inline-flex rounded-full bg-progress-soft px-3 py-1 text-xs font-bold text-progress">
-                Recuperado · {weekdayLabel(recoveryDay!.weekday)}
+                Recuperar · {selectedDateLabel}
               </p>
             ) : null}
             <h2 className="font-display text-xl font-bold">
               {selectedDay?.label ?? 'Sin día'}
             </h2>
+            <p className="mt-1 text-sm font-semibold text-fg">
+              {selectedDateLabel}
+            </p>
             <p className="mt-1 text-sm text-muted">
               {selectedDay?.muscleGroups.length
                 ? selectedDay.muscleGroups.join(' · ')
@@ -458,22 +505,21 @@ export function HomePage() {
 
           {completedTodayForSelected ? (
             <p className="rounded-2xl bg-success-soft px-3 py-3 text-sm font-semibold text-accent-strong">
-              ✅ Entrenamiento de hoy completado
+              ✅ Completado el {formatLongDateEs(completedTodayForSelected.date)}
             </p>
           ) : null}
 
           {isRecoveryMode ? (
             <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-fg">
-              Vas a recuperar el{' '}
-              <strong>{weekdayLabel(recoveryDay!.weekday)}</strong>. Al
-              comenzar verás todas las máquinas de ese día con peso, reps y RIR.
-              En el historial quedará etiquetado como recuperado.
+              Te faltó el <strong>{selectedDateLabel}</strong>. Al comenzar
+              verás todas las máquinas de ese día. Hoy es {todayDateLabel}; tú
+              decides si lo recuperas ahora o no. En el historial quedará como
+              recuperado.
             </p>
           ) : !isTodaySelected ? (
             <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-fg">
-              Estás viendo la rutina del {weekdayLabel(selectedWeekday)}. Para
-              entrenar usa el día de hoy ({weekdayLabel(todayWeekday)}) o
-              recupera un día que te faltó.
+              Estás viendo la rutina del {selectedDateLabel}. Para entrenar usa
+              el día de hoy ({todayDateLabel}) o recupera un día que te faltó.
             </p>
           ) : null}
 
@@ -535,8 +581,9 @@ export function HomePage() {
 
       {activeSession && !sessionForSelected ? (
         <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-ink">
-          Tienes un entrenamiento en curso ({activeSession.dayLabel}). Continúalo o
-          cancélalo desde ahí.
+          Tienes un entrenamiento en curso ({activeSession.dayLabel}) del{' '}
+          {formatLongDateEs(activeSession.date)}. Continúalo o cancélalo desde
+          ahí.
         </p>
       ) : null}
 
@@ -590,7 +637,11 @@ export function HomePage() {
             <FocusPosterHero
               key={posterEnterKey}
               progressPct={progressPct}
-              weekday={todayWeekday}
+              weekday={isRecoveryMode ? recoveryDay!.weekday : todayWeekday}
+              dateLabel={
+                isRecoveryMode ? selectedDateLabel : todayDateLabel
+              }
+              kicker={isRecoveryMode ? 'Arena · Recuperar' : 'Arena · Hoy'}
               dayLabel={selectedDay?.label ?? 'Sin día'}
               muscles={selectedDay?.muscleGroups ?? []}
             />
@@ -679,7 +730,8 @@ export function HomePage() {
               <div className="focus-runway__actions space-y-3">
                 {activeSession && !sessionForSelected ? (
                   <p className="rounded-2xl bg-brand-soft px-3 py-3 text-sm text-ink">
-                    Tienes un entrenamiento en curso ({activeSession.dayLabel}).
+                    Tienes un entrenamiento en curso ({activeSession.dayLabel}) del{' '}
+                    {formatLongDateEs(activeSession.date)}.
                   </p>
                 ) : null}
                 {sessionActions}
@@ -695,7 +747,7 @@ export function HomePage() {
               <p className="focus-home-kicker">Mapa semanal</p>
               <h2 className="focus-week-ladder__title">
                 {isRecoveryMode
-                  ? `Recuperando ${weekdayLabel(recoveryDay!.weekday)}`
+                  ? `Recuperando ${selectedDateLabel}`
                   : 'Tu semana en escalera'}
               </h2>
               <p className="focus-page-sub">
@@ -711,6 +763,7 @@ export function HomePage() {
                 const rest = Boolean(day.isRestDay)
                 const recovering = recoveryDay?.id === day.id
                 const short = weekdayLabel(day.weekday).slice(0, 3).toUpperCase()
+                const dayIso = isoForWeekdayThisWeek(day.weekday)
                 return (
                   <li
                     key={day.id}
@@ -747,11 +800,12 @@ export function HomePage() {
                           {rest ? 'Descanso' : day.label}
                         </span>
                         <span className="focus-week-ladder__meta">
+                          {formatShortDateEs(dayIso)}
                           {rest
-                            ? 'Sin gym'
+                            ? ' · Sin gym'
                             : day.muscleGroups.length
-                              ? day.muscleGroups.join(' · ')
-                              : `${day.exercises.length} ejercicios`}
+                              ? ` · ${day.muscleGroups.join(' · ')}`
+                              : ` · ${day.exercises.length} ejercicios`}
                         </span>
                       </span>
                       <span className="focus-week-ladder__flags">
@@ -804,8 +858,8 @@ export function HomePage() {
             </header>
             <ConstancyGoalCard
               recoveryDayId={recoveryDay?.id ?? null}
-              onSelectRecoveryDay={(day) => {
-                handleSelectRecoveryDay(day)
+              onSelectRecoveryDay={(day, date) => {
+                handleSelectRecoveryDay(day, date)
                 setWeekExpanded(day.weekday)
                 setFocusDeck('semana')
               }}

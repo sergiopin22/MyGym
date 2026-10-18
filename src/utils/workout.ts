@@ -10,6 +10,7 @@ import type {
   Weekday,
   WorkoutSession,
 } from '../types'
+import { parseISODate, todayISODate } from './id'
 
 const DEFAULT_IMAGE = '/exercises/default.svg'
 
@@ -26,6 +27,79 @@ export function isWorkingSet(set: Pick<SetLog, 'completed' | 'weight' | 'reps'>)
 
 export function hasWorkingSets(exercise: Pick<ExerciseLog, 'sets'>): boolean {
   return exercise.sets.some(isWorkingSet)
+}
+
+/**
+ * Un entreno abierto de otro día no se “continúa” al día siguiente.
+ * 12 h cubre cruzar medianoche en el gym; más que eso es un leftover.
+ */
+export const STALE_IN_PROGRESS_AFTER_MS = 12 * 60 * 60 * 1000
+
+type SessionActivity = Pick<
+  WorkoutSession,
+  'status' | 'date' | 'startedAt' | 'exercises'
+>
+
+function activityStamps(session: Pick<WorkoutSession, 'exercises'>): number[] {
+  const stamps: number[] = []
+  for (const ex of session.exercises) {
+    if (ex.completedAt != null) stamps.push(ex.completedAt)
+    for (const set of ex.sets) {
+      if (set.completedAt != null) stamps.push(set.completedAt)
+    }
+  }
+  return stamps
+}
+
+export function lastWorkoutActivityAt(
+  session: Pick<WorkoutSession, 'startedAt' | 'exercises'>,
+): number {
+  let last = session.startedAt
+  for (const stamp of activityStamps(session)) {
+    if (stamp > last) last = stamp
+  }
+  return last
+}
+
+/** Sesión en curso de un día anterior, sin actividad reciente: no se continúa. */
+export function isStaleInProgressSession(
+  session: SessionActivity,
+  now = Date.now(),
+  today = todayISODate(),
+): boolean {
+  if (session.status !== 'in_progress') return false
+  if (session.date === today) return false
+  if (!session.exercises.some(hasWorkingSets)) return true
+  return now - lastWorkoutActivityAt(session) >= STALE_IN_PROGRESS_AFTER_MS
+}
+
+/**
+ * Fecha y duración al guardar. Si el entreno se quedó abierto varios días,
+ * se registra como hoy y el reloj parte de la primera serie de hoy
+ * (evita “9 de octubre” y “184 h”).
+ */
+export function resolveCompletedSessionTiming(
+  session: Pick<WorkoutSession, 'date' | 'startedAt' | 'exercises'>,
+  finishedAt = Date.now(),
+): { date: string; durationMs: number } {
+  const elapsed = finishedAt - session.startedAt
+  if (elapsed >= 0 && elapsed <= STALE_IN_PROGRESS_AFTER_MS) {
+    return { date: session.date, durationMs: elapsed }
+  }
+
+  const today = todayISODate()
+  const startOfToday = parseISODate(today).getTime()
+  let firstToday: number | undefined
+  for (const stamp of activityStamps(session)) {
+    if (stamp >= startOfToday && (firstToday == null || stamp < firstToday)) {
+      firstToday = stamp
+    }
+  }
+  const started = firstToday ?? finishedAt
+  return {
+    date: today,
+    durationMs: Math.max(0, finishedAt - started),
+  }
 }
 
 export function computeExerciseStatus(

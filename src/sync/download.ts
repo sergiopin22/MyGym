@@ -410,6 +410,8 @@ async function downloadCloudToLocalInner(
   }
 
   onProgress('Listo')
+  const { discardStaleInProgressSessions } = await import('../db/repository')
+  await discardStaleInProgressSessions()
   setLocalDataOwner(userId)
   return {
     routines: routines.length,

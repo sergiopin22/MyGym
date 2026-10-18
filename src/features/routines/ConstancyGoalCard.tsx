@@ -10,6 +10,7 @@ import {
   getLatestConstancyGoal,
   getPenanceStatus,
   getRecoverableMissedDays,
+  type RecoverableMissedDay,
 } from '../../db/repository'
 import {
   PRIZE_PRESETS,
@@ -17,7 +18,7 @@ import {
   type PrizePresetId,
   type RoutineDay,
 } from '../../types'
-import { weekdayLabel } from '../../utils/id'
+import { formatShortDateEs, weekdayLabel } from '../../utils/id'
 
 const RULES = [
   'Cada entrenamiento que finalices suma +1 a tu meta.',
@@ -33,7 +34,7 @@ const RULES = [
 
 interface ConstancyGoalCardProps {
   /** Día elegido para recuperar → Inicio muestra su rutina y el botón empezar */
-  onSelectRecoveryDay?: (day: RoutineDay) => void
+  onSelectRecoveryDay?: (day: RoutineDay, date: string) => void
   recoveryDayId?: string | null
   onClearRecovery?: () => void
   refreshKey?: number
@@ -55,7 +56,7 @@ export function ConstancyGoalCard({
   const [prizePreset, setPrizePreset] = useState<PrizePresetId>('pork_roll')
   const [customPrize, setCustomPrize] = useState('')
 
-  const [missedDays, setMissedDays] = useState<RoutineDay[]>([])
+  const [missedDays, setMissedDays] = useState<RecoverableMissedDay[]>([])
   const [canRecover, setCanRecover] = useState(false)
   const [penance, setPenance] = useState<{
     owed: boolean
@@ -319,23 +320,23 @@ export function ConstancyGoalCard({
               penitencia.
             </p>
             <div className="focus-meta-recover__chips">
-              {missedDays.map((day) => {
-                const selected = recoveryDayId === day.id
+              {missedDays.map((item) => {
+                const selected = recoveryDayId === item.day.id
                 return (
                   <button
-                    key={day.id}
+                    key={item.day.id}
                     type="button"
                     onClick={() =>
                       selected
                         ? onClearRecovery?.()
-                        : onSelectRecoveryDay?.(day)
+                        : onSelectRecoveryDay?.(item.day, item.date)
                     }
                     className={[
                       'focus-meta-recover__chip',
                       selected ? 'focus-meta-recover__chip--on' : '',
                     ].join(' ')}
                   >
-                    {weekdayLabel(day.weekday)}
+                    {weekdayLabel(item.day.weekday)} · {formatShortDateEs(item.date)}
                   </button>
                 )
               })}
@@ -380,14 +381,14 @@ export function ConstancyGoalCard({
           <div className="focus-meta-recover">
             <p className="focus-meta-recover__title">Recuperar día perdido</p>
             <div className="focus-meta-recover__chips">
-              {missedDays.map((day) => (
+              {missedDays.map((item) => (
                 <button
-                  key={day.id}
+                  key={item.day.id}
                   type="button"
-                  onClick={() => onSelectRecoveryDay?.(day)}
+                  onClick={() => onSelectRecoveryDay?.(item.day, item.date)}
                   className="focus-meta-recover__chip"
                 >
-                  {weekdayLabel(day.weekday)}
+                  {weekdayLabel(item.day.weekday)} · {formatShortDateEs(item.date)}
                 </button>
               ))}
             </div>

@@ -34,8 +34,11 @@ import {
   computeExerciseStatus,
   getUnstartedWorkoutParts,
   hasWorkingSets,
+  isStaleInProgressSession,
   isWorkingSet,
+  lastWorkoutActivityAt,
   markExerciseSkipped,
+  resolveCompletedSessionTiming,
   skipUnstartedExercises,
   unmarkExerciseSkipped,
 } from '../utils/workout'
@@ -1317,8 +1320,37 @@ export async function getExerciseImageObjectUrl(
 
 // ─── Sesiones de entrenamiento ───────────────────────────────────────────────
 
+/**
+ * Tira entrenos en curso de otros días (los que obligan a Continuar → cancelar).
+ * Si hay varios de hoy, deja el de actividad más reciente.
+ */
+export async function discardStaleInProgressSessions(): Promise<
+  WorkoutSession | undefined
+> {
+  const open = await db.sessions.where('status').equals('in_progress').toArray()
+  if (open.length === 0) return undefined
+
+  const staleIds = open
+    .filter((session) => isStaleInProgressSession(session))
+    .map((session) => session.id)
+  if (staleIds.length > 0) {
+    await db.sessions.bulkDelete(staleIds)
+  }
+
+  const fresh = open.filter((session) => !staleIds.includes(session.id))
+  if (fresh.length === 0) return undefined
+  if (fresh.length === 1) return fresh[0]
+
+  fresh.sort((a, b) => lastWorkoutActivityAt(b) - lastWorkoutActivityAt(a))
+  const [keep, ...extras] = fresh
+  if (extras.length > 0) {
+    await db.sessions.bulkDelete(extras.map((session) => session.id))
+  }
+  return keep
+}
+
 export async function getActiveSession(): Promise<WorkoutSession | undefined> {
-  return db.sessions.where('status').equals('in_progress').first()
+  return discardStaleInProgressSessions()
 }
 
 export async function getSessionById(
@@ -1348,7 +1380,7 @@ export async function startSession(
 
   if (recovery) {
     const eligible = await getRecoverableMissedDays()
-    if (!eligible.some((d) => d.id === day.id)) {
+    if (!eligible.some((item) => item.day.id === day.id)) {
       throw new Error('Ese día no está disponible para recuperar esta semana.')
     }
   } else if (day.weekday !== todayWeekday) {
@@ -1813,11 +1845,13 @@ export async function completeSession(sessionId: string): Promise<{
   }
 
   const finishedAt = Date.now()
+  const timing = resolveCompletedSessionTiming(session, finishedAt)
   const completed: WorkoutSession = {
     ...session,
+    date: timing.date,
     status: 'completed',
     finishedAt,
-    durationMs: finishedAt - session.startedAt,
+    durationMs: timing.durationMs,
   }
   await saveSession(completed)
   await onWorkoutCompletedForConstancy(completed)
@@ -1942,6 +1976,21 @@ export async function saveCompletedSessionEdits(
   }
   await saveSession(updated)
   return updated
+}
+
+/**
+ * Quita un entreno ya guardado del historial (heatmap, PR y meta se recalculan).
+ */
+export async function deleteCompletedSession(sessionId: string): Promise<void> {
+  const session = await getSessionById(sessionId)
+  if (!session) throw new Error('Sesión no encontrada')
+  if (session.status !== 'completed') {
+    throw new Error('Solo se pueden eliminar entrenamientos ya guardados en el historial.')
+  }
+  await db.sessions.delete(sessionId)
+  await onWorkoutDeletedForConstancy(session)
+  const { deleteCloudWorkoutSession } = await import('../sync/upload')
+  await deleteCloudWorkoutSession(sessionId)
 }
 
 /** Días de gym que se pueden cargar a mano (no descanso, con ejercicios). */
@@ -2762,8 +2811,42 @@ async function onWorkoutCompletedForConstancy(
   await db.constancyGoals.put(updated)
 }
 
+async function onWorkoutDeletedForConstancy(
+  session: WorkoutSession,
+): Promise<void> {
+  const goal =
+    (await db.constancyGoals.where('status').equals('active').first()) ??
+    (await getLatestConstancyGoal())
+  if (!goal) return
+
+  const start = goalStartDate(goal)
+  if (session.date < start) return
+
+  const next: ConstancyGoal = {
+    ...goal,
+    updatedAt: Date.now(),
+    currentCount:
+      goal.status === 'active'
+        ? Math.max(0, goal.currentCount - 1)
+        : goal.currentCount,
+  }
+  if (
+    session.isRecovery &&
+    goal.recoveryWeekKey === isoWeekKey(parseISODate(session.date))
+  ) {
+    delete next.recoveryWeekKey
+  }
+
+  await db.constancyGoals.put(next)
+}
+
+export interface RecoverableMissedDay {
+  day: RoutineDay
+  date: string
+}
+
 /** Días de gym de esta semana que faltaron (se pueden recuperar cualquier día). */
-export async function getRecoverableMissedDays(): Promise<RoutineDay[]> {
+export async function getRecoverableMissedDays(): Promise<RecoverableMissedDay[]> {
   const weekKey = isoWeekKey()
   const goal = await db.constancyGoals.where('status').equals('active').first()
   if (goal?.recoveryWeekKey === weekKey) return []
@@ -2784,7 +2867,7 @@ export async function getRecoverableMissedDays(): Promise<RoutineDay[]> {
   const routine = await getActiveRoutine()
   if (!routine) return []
 
-  const missed: RoutineDay[] = []
+  const missed: RecoverableMissedDay[] = []
   for (let i = 0; i < 7; i++) {
     const date = addDaysISO(weekStart, i)
     if (date >= today) continue
@@ -2800,7 +2883,7 @@ export async function getRecoverableMissedDays(): Promise<RoutineDay[]> {
     const recovered = weekSessions.some(
       (s) => s.isRecovery && s.recoveredWeekday === day.weekday,
     )
-    if (!doneOnDay && !recovered) missed.push(day)
+    if (!doneOnDay && !recovered) missed.push({ day, date })
   }
 
   return missed

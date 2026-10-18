@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
 import { StatusBadge } from '../../components/StatusBadge'
-import { getExerciseHistory, getSessionDetail } from '../../db/repository'
+import {
+  deleteCompletedSession,
+  getExerciseHistory,
+  getSessionDetail,
+} from '../../db/repository'
 import { formatStrapsSuffix } from '../../utils/straps'
 import type { WorkoutSession } from '../../types'
 import { formatDuration } from '../../utils/id'
@@ -43,10 +48,12 @@ export function HistoryPage() {
 
 export function HistoryDetailPage() {
   const { sessionId } = useParams<{ sessionId: string }>()
+  const navigate = useNavigate()
   const { format } = useWeightUnit()
   const [session, setSession] = useState<WorkoutSession | null>(null)
   const [loading, setLoading] = useState(true)
   const [exerciseName, setExerciseName] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -73,6 +80,26 @@ export function HistoryDetailPage() {
         </Link>
       </div>
     )
+  }
+
+  async function handleDelete() {
+    if (!session) return
+    const ok = window.confirm(
+      `¿Eliminar este entrenamiento del ${new Date(session.date + 'T12:00:00').toLocaleDateString('es-ES', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+      })}?\n\nSe quita del historial, del heatmap y de la meta. Los PR se recalculan. No se puede deshacer.`,
+    )
+    if (!ok) return
+    setDeleting(true)
+    try {
+      await deleteCompletedSession(session.id)
+      navigate('/historial', { replace: true })
+    } catch (err) {
+      window.alert(err instanceof Error ? err.message : 'No se pudo eliminar')
+      setDeleting(false)
+    }
   }
 
   if (exerciseName) {
@@ -132,14 +159,24 @@ export function HistoryDetailPage() {
           ) : null}
       </div>
 
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <CopyCoachMessageButton session={session} fullWidth />
-        <Link
-          to={`/historial/${session.id}/editar`}
-          className="ui-btn ui-btn--secondary inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-chrome px-5 text-base font-semibold text-chrome-fg transition active:scale-[0.98]"
+      <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <CopyCoachMessageButton session={session} fullWidth />
+          <Link
+            to={`/historial/${session.id}/editar`}
+            className="ui-btn ui-btn--secondary inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-chrome px-5 text-base font-semibold text-chrome-fg transition active:scale-[0.98]"
+          >
+            Editar entrenamiento
+          </Link>
+        </div>
+        <Button
+          variant="danger"
+          fullWidth
+          disabled={deleting}
+          onClick={() => void handleDelete()}
         >
-          Editar entrenamiento
-        </Link>
+          {deleting ? 'Eliminando…' : 'Eliminar entrenamiento'}
+        </Button>
       </div>
 
       <ul className="space-y-3">

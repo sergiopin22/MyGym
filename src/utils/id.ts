@@ -62,6 +62,29 @@ export function weekdayLabel(weekday: number): string {
   return labels[weekday] ?? 'Día'
 }
 
+/** Fecha de un weekday dentro de la semana actual (lunes–domingo). */
+export function isoForWeekdayThisWeek(weekday: number, today = new Date()): string {
+  const mondayIso = todayISODate(startOfWeekMonday(today))
+  const offset = weekday === 0 ? 6 : weekday - 1
+  return addDaysISO(mondayIso, offset)
+}
+
+export function formatLongDateEs(iso: string): string {
+  const raw = new Date(iso + 'T12:00:00').toLocaleDateString('es-ES', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  })
+  return raw.charAt(0).toUpperCase() + raw.slice(1)
+}
+
+export function formatShortDateEs(iso: string): string {
+  return new Date(iso + 'T12:00:00').toLocaleDateString('es-ES', {
+    day: 'numeric',
+    month: 'short',
+  })
+}
+
 export function formatDuration(ms: number): string {
   const totalSec = Math.max(0, Math.floor(ms / 1000))
   const h = Math.floor(totalSec / 3600)

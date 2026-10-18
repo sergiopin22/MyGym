@@ -12,6 +12,28 @@ import { msToIso } from './time'
 
 export const LAST_CLOUD_UPLOAD_KEY = 'mi-gym-last-cloud-upload-at'
 
+/** Borra una sesión en Supabase para que no vuelva al bajar la nube. */
+export async function deleteCloudWorkoutSession(sessionId: string): Promise<void> {
+  const sb = getSupabase()
+  if (!sb) return
+  try {
+    const {
+      data: { session },
+    } = await sb.auth.getSession()
+    if (!session?.user) return
+    const { error } = await sb
+      .from('workout_sessions')
+      .delete()
+      .eq('id', sessionId)
+      .eq('user_id', session.user.id)
+    if (error) {
+      console.warn('[cloud] no se pudo borrar la sesión', error.message)
+    }
+  } catch (err) {
+    console.warn('[cloud] no se pudo borrar la sesión', err)
+  }
+}
+
 export type SyncProgress = (step: string) => void
 
 const CHUNK = 80
