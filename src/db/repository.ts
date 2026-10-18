@@ -3062,10 +3062,12 @@ export async function listCoachMachines(): Promise<CoachMachineSummary[]> {
           lastDayLabel: session.dayLabel,
           muscleGroups: new Set(),
         }
+        addMuscles(acc, session.muscleGroups)
         byKey.set(key, acc)
         continue
       }
       existing.sessionIds.add(session.id)
+      addMuscles(existing, session.muscleGroups)
       if (isNewer) {
         existing.name = ex.name
         existing.lastDate = session.date
@@ -3085,11 +3087,7 @@ export async function listCoachMachines(): Promise<CoachMachineSummary[]> {
         const acc = ensureAcc(key, ex.name, day.label)
         const tagged = sanitizeMuscleGroups(ex.muscleGroups)
         const machineGroups =
-          tagged.length > 0
-            ? tagged
-            : day.muscleGroups.length === 1
-              ? day.muscleGroups
-              : []
+          tagged.length > 0 ? tagged : [...day.muscleGroups]
         addMuscles(acc, machineGroups)
         if (ex.underMaintenance) maintenanceByKey.set(key, true)
         for (const alt of ex.alternatives ?? []) {
