@@ -6,7 +6,6 @@ import { ProgressBar } from '../../components/ProgressBar'
 import {
   completeSession,
   cancelSession,
-  getActiveSession,
   getSessionById,
   skipLeftoverExercises,
   type SessionNewPR,
@@ -43,13 +42,11 @@ export function WorkoutPage() {
   useEffect(() => {
     let alive = true
     if (!sessionId) return
-    void (async () => {
-      try {
-        await getActiveSession()
-        const s = await getSessionById(sessionId)
+    getSessionById(sessionId)
+      .then((s) => {
         if (!alive) return
         if (!s) {
-          navigate('/', { replace: true })
+          setError('Sesión no encontrada')
           return
         }
         setSession(s)
@@ -70,16 +67,17 @@ export function WorkoutPage() {
             recoveredDayLabel: s.recoveredDayLabel,
           })
         }
-      } catch (err: unknown) {
+      })
+      .catch((err: unknown) => {
         if (alive) setError(err instanceof Error ? err.message : 'Error al cargar')
-      } finally {
+      })
+      .finally(() => {
         if (alive) setLoading(false)
-      }
-    })()
+      })
     return () => {
       alive = false
     }
-  }, [sessionId, navigate])
+  }, [sessionId])
 
   const exercises = useMemo(
     () =>

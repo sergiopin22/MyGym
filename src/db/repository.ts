@@ -1321,36 +1321,15 @@ export async function getExerciseImageObjectUrl(
 // ─── Sesiones de entrenamiento ───────────────────────────────────────────────
 
 /**
- * Tira entrenos en curso de otros días (los que obligan a Continuar → cancelar).
- * Si hay varios de hoy, deja el de actividad más reciente.
+ * Entrenamiento abierto de HOY (o que sigue activo cruzando medianoche).
+ * No borra nada: los abiertos de otros días se ignoran para no mostrar Continuar.
  */
-export async function discardStaleInProgressSessions(): Promise<
-  WorkoutSession | undefined
-> {
-  const open = await db.sessions.where('status').equals('in_progress').toArray()
-  if (open.length === 0) return undefined
-
-  const staleIds = open
-    .filter((session) => isStaleInProgressSession(session))
-    .map((session) => session.id)
-  if (staleIds.length > 0) {
-    await db.sessions.bulkDelete(staleIds)
-  }
-
-  const fresh = open.filter((session) => !staleIds.includes(session.id))
-  if (fresh.length === 0) return undefined
-  if (fresh.length === 1) return fresh[0]
-
-  fresh.sort((a, b) => lastWorkoutActivityAt(b) - lastWorkoutActivityAt(a))
-  const [keep, ...extras] = fresh
-  if (extras.length > 0) {
-    await db.sessions.bulkDelete(extras.map((session) => session.id))
-  }
-  return keep
-}
-
 export async function getActiveSession(): Promise<WorkoutSession | undefined> {
-  return discardStaleInProgressSessions()
+  const open = await db.sessions.where('status').equals('in_progress').toArray()
+  const fresh = open.filter((session) => !isStaleInProgressSession(session))
+  if (fresh.length === 0) return undefined
+  fresh.sort((a, b) => lastWorkoutActivityAt(b) - lastWorkoutActivityAt(a))
+  return fresh[0]
 }
 
 export async function getSessionById(

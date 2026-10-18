@@ -20,6 +20,31 @@ import { setStoredDisplayName } from '../utils/displayName'
 
 export type ReconcileAction = 'noop' | 'downloaded' | 'uploaded' | 'cleared'
 
+const DOWNLOAD_FINGERPRINT_KEY = 'mi-gym-reconcile-download-fp'
+
+function downloadFingerprint(
+  userId: string,
+  cloud: { routines: number; sessions: number },
+): string {
+  return `${userId}:${cloud.routines}:${cloud.sessions}`
+}
+
+function alreadyDownloadedThisFingerprint(fingerprint: string): boolean {
+  try {
+    return sessionStorage.getItem(DOWNLOAD_FINGERPRINT_KEY) === fingerprint
+  } catch {
+    return false
+  }
+}
+
+function rememberDownloadFingerprint(fingerprint: string) {
+  try {
+    sessionStorage.setItem(DOWNLOAD_FINGERPRINT_KEY, fingerprint)
+  } catch {
+    /* ignore */
+  }
+}
+
 export interface ReconcileResult {
   action: ReconcileAction
   detail: string
@@ -155,7 +180,7 @@ async function reconcileAccountOnLoginInner(
       }
     }
     onProgress('Cargando datos de tu cuenta…')
-    const stats = await downloadCloudToLocal(userId, onProgress)
+    const stats = await downloadAndRemember(userId, cloud, onProgress)
     setLocalDataOwner(userId)
     return {
       action: 'downloaded',
@@ -197,12 +222,32 @@ async function reconcileAccountOnLoginInner(
     }
   }
 
+  const fingerprint = downloadFingerprint(userId, cloud)
+  if (alreadyDownloadedThisFingerprint(fingerprint)) {
+    setLocalDataOwner(userId)
+    return {
+      action: 'noop',
+      detail: 'Este dispositivo ya tiene los datos de tu cuenta.',
+      weightUnitApplied,
+    }
+  }
+
   onProgress('Cargando datos de tu cuenta…')
-  const stats = await downloadCloudToLocal(userId, onProgress)
+  const stats = await downloadAndRemember(userId, cloud, onProgress)
   setLocalDataOwner(userId)
   return {
     action: 'downloaded',
     detail: `Listo: ${stats.sessions} sesión(es), ${stats.routines} rutina(s) de tu cuenta.`,
     weightUnitApplied: true,
   }
+}
+
+async function downloadAndRemember(
+  userId: string,
+  cloud: { routines: number; sessions: number },
+  onProgress: SyncProgress,
+) {
+  const stats = await downloadCloudToLocal(userId, onProgress)
+  rememberDownloadFingerprint(downloadFingerprint(userId, cloud))
+  return stats
 }
