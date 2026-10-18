@@ -3078,7 +3078,6 @@ export async function listCoachMachines(): Promise<CoachMachineSummary[]> {
   const routine = await getActiveRoutine()
   if (routine) {
     for (const day of routine.days) {
-      if (day.isRestDay) continue
       for (const ex of day.exercises) {
         const key = normalizeExerciseName(ex.name)
         if (!key) continue
@@ -3357,7 +3356,6 @@ export async function getRoutineExercisePRs(): Promise<
 
   if (routine) {
     for (const day of routine.days) {
-      if (day.isRestDay) continue
       for (const ex of day.exercises) {
         const tagged = sanitizeMuscleGroups(ex.muscleGroups)
         const supportsStraps = supportsStrapsTracking(ex.name, day.muscleGroups)
