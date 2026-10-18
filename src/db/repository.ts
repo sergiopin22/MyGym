@@ -3062,12 +3062,10 @@ export async function listCoachMachines(): Promise<CoachMachineSummary[]> {
           lastDayLabel: session.dayLabel,
           muscleGroups: new Set(),
         }
-        addMuscles(acc, session.muscleGroups)
         byKey.set(key, acc)
         continue
       }
       existing.sessionIds.add(session.id)
-      addMuscles(existing, session.muscleGroups)
       if (isNewer) {
         existing.name = ex.name
         existing.lastDate = session.date
@@ -3086,15 +3084,13 @@ export async function listCoachMachines(): Promise<CoachMachineSummary[]> {
         if (!key) continue
         const acc = ensureAcc(key, ex.name, day.label)
         const tagged = sanitizeMuscleGroups(ex.muscleGroups)
-        const machineGroups =
-          tagged.length > 0 ? tagged : [...day.muscleGroups]
-        addMuscles(acc, machineGroups)
+        addMuscles(acc, tagged)
         if (ex.underMaintenance) maintenanceByKey.set(key, true)
         for (const alt of ex.alternatives ?? []) {
           const altKey = normalizeExerciseName(alt.name)
           if (!altKey) continue
           const altAcc = byKey.get(altKey)
-          if (altAcc) addMuscles(altAcc, machineGroups)
+          if (altAcc) addMuscles(altAcc, tagged)
         }
       }
     }
@@ -3364,17 +3360,15 @@ export async function getRoutineExercisePRs(): Promise<
       if (day.isRestDay) continue
       for (const ex of day.exercises) {
         const tagged = sanitizeMuscleGroups(ex.muscleGroups)
-        const machineGroups =
-          tagged.length > 0 ? tagged : [...day.muscleGroups]
         const supportsStraps = supportsStrapsTracking(ex.name, day.muscleGroups)
-        upsertEntry(ex.name, day.label, supportsStraps, undefined, machineGroups, ex.machineId)
+        upsertEntry(ex.name, day.label, supportsStraps, undefined, tagged, ex.machineId)
         for (const grip of ex.grips ?? []) {
           upsertEntry(
             ex.name,
             day.label,
             supportsStraps,
             grip.name,
-            machineGroups,
+            tagged,
             ex.machineId,
           )
         }
