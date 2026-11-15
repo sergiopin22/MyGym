@@ -232,6 +232,18 @@ export function AppDrawer({
                   onClick={() => go('/discos')}
                 />
                 <DrawerActionItem
+                  icon="⏱️"
+                  label="Temporizador"
+                  subtitle="Descanso suelto, cuando lo necesites"
+                  onClick={() => go('/temporizador')}
+                />
+                <DrawerActionItem
+                  icon="📊"
+                  label="Resumen semanal"
+                  subtitle="Subidas y bajadas vs semana pasada"
+                  onClick={() => go('/historial/resumen-semanal')}
+                />
+                <DrawerActionItem
                   icon="🏆"
                   label="Tus PR"
                   subtitle="Marcas personales"

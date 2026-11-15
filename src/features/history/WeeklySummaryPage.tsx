@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '../../components/Button'
 import { getWeeklyMachineSummary } from '../../db/repository'
 import { useWeightUnit } from '../../context/WeightUnitProvider'
 import {
   addDaysISO,
   formatShortDateEs,
+  parseISODate,
   startOfWeekMonday,
   todayISODate,
 } from '../../utils/id'
@@ -18,6 +19,7 @@ import {
   type WeeklyMachineStatus,
   type WeeklyMachineSummary,
 } from '../../utils/weeklySummary'
+import { dismissWeeklyBanner } from '../../utils/weeklyBanner'
 import { PageHeader } from '../../ui/PageHeader'
 
 type Stage = 'counts' | 'champion' | 'list'
@@ -76,17 +78,30 @@ function CountUp({ value, active }: { value: number; active: boolean }) {
 
 export function WeeklySummaryPage() {
   const { unit } = useWeightUnit()
+  const [searchParams] = useSearchParams()
   const thisMonday = useMemo(
     () => todayISODate(startOfWeekMonday()),
     [],
   )
-  const [weekStart, setWeekStart] = useState(thisMonday)
+  const initialWeek = useMemo(() => {
+    const raw = searchParams.get('semana')
+    if (raw && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      const monday = todayISODate(startOfWeekMonday(parseISODate(raw)))
+      if (monday <= thisMonday) return monday
+    }
+    return thisMonday
+  }, [searchParams, thisMonday])
+  const [weekStart, setWeekStart] = useState(initialWeek)
   const [summary, setSummary] = useState<WeeklyMachineSummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [stage, setStage] = useState<Stage>('counts')
   const [copyDone, setCopyDone] = useState(false)
   const [copyBusy, setCopyBusy] = useState(false)
+
+  useEffect(() => {
+    dismissWeeklyBanner(weekStart)
+  }, [weekStart])
 
   useEffect(() => {
     let alive = true
@@ -210,7 +225,7 @@ export function WeeklySummaryPage() {
               </p>
               <p className="weekly-counts__l">Subieron</p>
             </div>
-            <div className="weekly-counts__item">
+            <div className="weekly-counts__item weekly-counts__item--same">
               <p className="weekly-counts__n">
                 <CountUp value={summary.counts.same} active />
               </p>
@@ -236,6 +251,9 @@ export function WeeklySummaryPage() {
           {summary.champion &&
           (stage === 'champion' || stage === 'list') ? (
             <div className="weekly-champion">
+              <p className="weekly-champion__crown" aria-hidden>
+                👑
+              </p>
               <p className="weekly-champion__kicker">Campeón de la semana</p>
               <p className="weekly-champion__name">{summary.champion.name}</p>
               <p className="weekly-champion__sets">
@@ -258,6 +276,7 @@ export function WeeklySummaryPage() {
                     row={row}
                     unit={unit}
                     delayMs={Math.min(i * 35, 500)}
+                    isChampion={summary.champion?.key === row.key}
                   />
                 ))}
               </ul>
@@ -291,23 +310,31 @@ function MachineRow({
   row,
   unit,
   delayMs,
+  isChampion,
 }: {
   row: WeeklyMachineRow
   unit: 'lb' | 'kg'
   delayMs: number
+  isChampion?: boolean
 }) {
   return (
     <li
-      className={`weekly-row ${statusClass(row.status)}`}
+      className={[
+        'weekly-row',
+        statusClass(row.status),
+        isChampion ? 'weekly-row--champion' : '',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       style={{ animationDelay: `${delayMs}ms` }}
     >
       <div className="weekly-row__top">
         <span className="weekly-row__mark" aria-hidden>
-          {statusMark(row.status)}
+          {isChampion ? '👑' : statusMark(row.status)}
         </span>
         <span className="weekly-row__name">{row.name}</span>
         <span className="weekly-row__status">
-          {statusLabelEs(row.status)}
+          {isChampion ? 'Campeón' : statusLabelEs(row.status)}
         </span>
       </div>
       <p className="weekly-row__sets">

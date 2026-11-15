@@ -12,6 +12,8 @@ const LINKS: Array<{
   { to: '/coach', label: 'Coach', hint: 'Solo lectura' },
   { to: '/caminadora', label: 'Caminadora', hint: 'Cardio' },
   { to: '/discos', label: 'Discos', hint: 'Calculadora' },
+  { to: '/temporizador', label: 'Temporizador', hint: 'Descanso suelto' },
+  { to: '/historial/resumen-semanal', label: 'Resumen', hint: 'Semana vs semana' },
   { to: '/progreso', label: 'Ajustes', hint: 'Cuenta y temas' },
 ]
 
