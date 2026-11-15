@@ -44,6 +44,8 @@ import {
 } from '../utils/workout'
 import { supportsStrapsTracking } from '../utils/straps'
 import { machineIdentityKey, sameMachineName } from '../utils/machineName'
+import { buildWeeklyMachineSummary } from '../utils/weeklySummary'
+import type { WeeklyMachineSummary } from '../utils/weeklySummary'
 import {
   alternativeMachineIdForName,
   ensureRoutineMachineIds,
@@ -4068,4 +4070,106 @@ export async function getLatestTreadmillSession(): Promise<
   TreadmillSession | undefined
 > {
   return db.treadmillSessions.orderBy('createdAt').reverse().first()
+}
+
+/**
+ * Resumen semanal máquina a máquina: mejor serie de esta semana vs la anterior.
+ * weekStartMonday = YYYY-MM-DD del lunes (opcional; default semana actual).
+ */
+export async function getWeeklyMachineSummary(
+  weekStartMonday?: string,
+): Promise<WeeklyMachineSummary> {
+  const today = todayISODate()
+  const rawMonday =
+    weekStartMonday && /^\d{4}-\d{2}-\d{2}$/.test(weekStartMonday)
+      ? weekStartMonday
+      : todayISODate(startOfWeekMonday(parseISODate(today)))
+  const weekStart = todayISODate(startOfWeekMonday(parseISODate(rawMonday)))
+  if (weekStart > today) {
+    throw new Error('Esa semana todavía no empieza.')
+  }
+
+  const weekEnd = addDaysISO(weekStart, 6)
+  const prevWeekStart = addDaysISO(weekStart, -7)
+  const prevWeekEnd = addDaysISO(prevWeekStart, 6)
+
+  let completed = await db.sessions.where('status').equals('completed').toArray()
+  if (completed.length === 0) {
+    completed = (await db.sessions.toArray()).filter(
+      (s) => s.status === 'completed',
+    )
+  }
+
+  type BestEntry = {
+    name: string
+    best: { weight: number; reps: number }
+  }
+
+  function considerBest(
+    map: Map<string, BestEntry>,
+    name: string,
+    weight: number,
+    reps: number,
+  ) {
+    const key = machineIdentityKey(name)
+    if (!key) return
+    const prev = map.get(key)
+    if (
+      !prev ||
+      weight > prev.best.weight ||
+      (weight === prev.best.weight && reps > prev.best.reps)
+    ) {
+      map.set(key, { name: name.trim(), best: { weight, reps } })
+    }
+  }
+
+  function collectWeek(from: string, to: string): Map<string, BestEntry> {
+    const map = new Map<string, BestEntry>()
+    for (const session of completed) {
+      const iso = normalizeSessionDate(
+        session.date,
+        session.finishedAt,
+        session.startedAt,
+      )
+      if (!iso || iso < from || iso > to) continue
+      for (const ex of session.exercises) {
+        if (!hasWorkingSets(ex)) continue
+        for (const set of ex.sets) {
+          if (!set.completed) continue
+          if (set.weight == null || set.reps == null) continue
+          if (set.weight <= 0 || set.reps <= 0) continue
+          considerBest(map, ex.name, set.weight, set.reps)
+        }
+      }
+    }
+    return map
+  }
+
+  const currentByKey = collectWeek(weekStart, weekEnd)
+  const previousByKey = collectWeek(prevWeekStart, prevWeekEnd)
+
+  const catalog: Array<{ key: string; name: string }> = []
+  const catalogSeen = new Set<string>()
+  const routine = await getActiveRoutine()
+  if (routine) {
+    for (const day of routine.days) {
+      if (day.isRestDay) continue
+      for (const ex of day.exercises) {
+        const key = machineIdentityKey(ex.name)
+        if (!key || catalogSeen.has(key)) continue
+        catalogSeen.add(key)
+        catalog.push({ key, name: ex.name })
+      }
+    }
+  }
+
+  return buildWeeklyMachineSummary({
+    weekStart,
+    weekEnd: weekEnd > today ? today : weekEnd,
+    prevWeekStart,
+    prevWeekEnd,
+    currentByKey,
+    previousByKey,
+    catalog,
+  })
 }

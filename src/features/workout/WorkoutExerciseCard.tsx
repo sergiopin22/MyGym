@@ -134,6 +134,8 @@ interface WorkoutExerciseCardProps {
   editMode?: boolean
   /** Se dispara al marcar una serie que rompe PR (solo entreno en vivo) */
   onLivePr?: (pr: SessionNewPR) => void
+  /** Se dispara al marcar una serie completada (entreno en vivo → timer de descanso) */
+  onSetCompleted?: () => void
 }
 
 export function WorkoutExerciseCard({
@@ -142,6 +144,7 @@ export function WorkoutExerciseCard({
   onSessionChange,
   editMode = false,
   onLivePr,
+  onSetCompleted,
 }: WorkoutExerciseCardProps) {
   const { label, step, toDisplay, toStorage, format } = useWeightUnit()
   const canEdit = editMode || session.status === 'in_progress'
@@ -244,12 +247,15 @@ export function WorkoutExerciseCard({
     const updated = await updateSet(session.id, exercise.id, setId, patch)
     onSessionChange(updated)
 
-    if (patch.completed === true && onLivePr) {
-      try {
-        const livePr = await evaluateLiveSetPR(updated, exercise.id, setId)
-        if (livePr) onLivePr(livePr)
-      } catch {
-        /* no bloquear el entreno si falla el check de PR */
+    if (patch.completed === true) {
+      onSetCompleted?.()
+      if (onLivePr) {
+        try {
+          const livePr = await evaluateLiveSetPR(updated, exercise.id, setId)
+          if (livePr) onLivePr(livePr)
+        } catch {
+          /* no bloquear el entreno si falla el check de PR */
+        }
       }
     }
   }

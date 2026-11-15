@@ -3918,3 +3918,420 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   font-weight: 800;
   box-shadow: inset 0 0 0 1px var(--color-line);
 }
+
+/* ─── Timer de descanso entre series ─── */
+.workout-rest-timer {
+  position: fixed;
+  left: max(0.85rem, env(safe-area-inset-left));
+  right: max(0.85rem, env(safe-area-inset-right));
+  bottom: max(4.85rem, calc(env(safe-area-inset-bottom) + 4.35rem));
+  z-index: 58;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  padding: 0.85rem 0.95rem 0.9rem;
+  background: color-mix(in srgb, var(--color-chrome, #1a1a1a) 92%, black);
+  color: var(--color-chrome-fg, #fff);
+  box-shadow:
+    0 18px 40px -22px rgba(0, 0, 0, 0.7),
+    inset 0 0 0 1px color-mix(in srgb, white 12%, transparent);
+  animation: workout-rest-in 0.22s ease-out;
+}
+
+.workout-rest-timer--offer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.7rem 0.75rem;
+}
+
+.workout-rest-timer--done {
+  background: color-mix(in srgb, var(--color-brand) 78%, #0a0a0a);
+}
+
+.workout-rest-timer__start {
+  flex: 1 1 10rem;
+  min-height: 3.1rem;
+  border: 0;
+  border-radius: 1rem;
+  padding: 0.65rem 1rem;
+  background: var(--color-brand);
+  color: var(--color-chrome-fg, #fff);
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.workout-rest-timer__start:active {
+  transform: scale(0.98);
+}
+
+.workout-rest-timer__offer-side {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.workout-rest-timer__bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 3px;
+  width: 100%;
+  transform-origin: left center;
+  background: color-mix(in srgb, var(--color-brand) 85%, white);
+  transition: transform 0.2s linear;
+}
+
+.workout-rest-timer__row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.workout-rest-timer__copy {
+  min-width: 0;
+}
+
+.workout-rest-timer__kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  opacity: 0.72;
+}
+
+.workout-rest-timer__clock {
+  display: block;
+  margin: 0.1rem 0 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font-family: var(--font-display);
+  font-size: 1.85rem;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  text-align: left;
+}
+
+.workout-rest-timer__clock:disabled {
+  opacity: 1;
+}
+
+.workout-rest-timer__actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.workout-rest-timer__btn {
+  min-height: 2.4rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.4rem 0.7rem;
+  background: color-mix(in srgb, white 14%, transparent);
+  color: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.workout-rest-timer__btn:active {
+  transform: scale(0.96);
+}
+
+.workout-rest-timer__btn--skip {
+  background: color-mix(in srgb, white 22%, transparent);
+}
+
+.workout-rest-timer__presets {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.7rem;
+}
+
+.workout-rest-timer__preset {
+  min-height: 2.15rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.35rem 0.75rem;
+  background: color-mix(in srgb, white 12%, transparent);
+  color: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.workout-rest-timer__preset--active {
+  background: var(--color-brand);
+  color: var(--color-chrome-fg, #fff);
+}
+
+@keyframes workout-rest-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.6rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workout-rest-timer {
+    animation: none;
+  }
+}
+
+/* ─── Resumen semanal ─── */
+.weekly-week-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  border-radius: 1.15rem;
+  padding: 0.75rem 0.85rem;
+  background: var(--color-surface-elevated);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.weekly-week-nav__btn {
+  flex-shrink: 0;
+  width: 2.6rem;
+  height: 2.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-chrome, #1a1a1a) 88%, black);
+  color: var(--color-chrome-fg, #fff);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.weekly-week-nav__btn:disabled {
+  opacity: 0.35;
+}
+
+.weekly-week-nav__label {
+  min-width: 0;
+  text-align: center;
+}
+
+.weekly-week-nav__range {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--color-fg);
+}
+
+.weekly-week-nav__vs {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.weekly-counts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.5rem;
+  opacity: 0;
+  transform: translateY(0.5rem);
+}
+
+.weekly-counts--in {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.weekly-counts__item {
+  border-radius: 1rem;
+  padding: 0.75rem 0.4rem;
+  text-align: center;
+  background: var(--color-surface);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.weekly-counts__item--up {
+  background: color-mix(in srgb, var(--color-brand) 16%, var(--color-surface));
+}
+
+.weekly-counts__item--down {
+  background: color-mix(in srgb, var(--color-danger, #c44) 12%, var(--color-surface));
+}
+
+.weekly-counts__item--muted {
+  opacity: 0.85;
+}
+
+.weekly-counts__n {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.55rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-fg);
+}
+
+.weekly-counts__l {
+  margin: 0.35rem 0 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.weekly-champion {
+  border-radius: 1.25rem;
+  padding: 1.1rem 1rem;
+  background: color-mix(in srgb, var(--color-chrome, #1a1a1a) 92%, black);
+  color: var(--color-chrome-fg, #fff);
+  animation: weekly-pop 0.4s ease-out;
+}
+
+.weekly-champion__kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.weekly-champion__name {
+  margin: 0.35rem 0 0;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+.weekly-champion__sets {
+  margin: 0.45rem 0 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.weekly-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.weekly-row {
+  border-radius: 1rem;
+  padding: 0.8rem 0.9rem;
+  background: var(--color-surface-elevated);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+  opacity: 0;
+  animation: weekly-row-in 0.35s ease-out forwards;
+}
+
+.weekly-row--up {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-brand) 45%, var(--color-line));
+}
+
+.weekly-row--down {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-danger, #c44) 40%, var(--color-line));
+}
+
+.weekly-row--muted .weekly-row__name,
+.weekly-row--muted .weekly-row__sets {
+  color: var(--color-muted);
+}
+
+.weekly-row__top {
+  display: flex;
+  align-items: baseline;
+  gap: 0.45rem;
+}
+
+.weekly-row__mark {
+  flex-shrink: 0;
+  font-weight: 800;
+  color: var(--color-brand);
+}
+
+.weekly-row--down .weekly-row__mark {
+  color: var(--color-danger, #c44);
+}
+
+.weekly-row--same .weekly-row__mark,
+.weekly-row--muted .weekly-row__mark {
+  color: var(--color-muted);
+}
+
+.weekly-row__name {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--color-fg);
+}
+
+.weekly-row__status {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
+
+.weekly-row__sets {
+  margin: 0.35rem 0 0 1.15rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+@keyframes weekly-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes weekly-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.35rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weekly-counts,
+  .weekly-counts--in,
+  .weekly-champion,
+  .weekly-row {
+    animation: none;
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}

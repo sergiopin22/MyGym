@@ -7,6 +7,7 @@ import { HistoryDetailPage, HistoryPage } from '../features/history/HistoryPage'
 import { EditCompletedSessionPage } from '../features/history/EditCompletedSessionPage'
 import { ManualExerciseLogPage } from '../features/history/ManualExerciseLogPage'
 import { ManualLogPage } from '../features/history/ManualLogPage'
+import { WeeklySummaryPage } from '../features/history/WeeklySummaryPage'
 import { ProgressPage } from '../features/progress/ProgressPage'
 import { PrCelebrationSettingsPage } from '../features/settings/PrCelebrationSettingsPage'
 import { WorkoutPage } from '../features/workout/WorkoutPage'
@@ -42,6 +43,10 @@ export function AppRouter() {
         <Route path="rutinas" element={<RoutinesPage />} />
         <Route path="rutinas/:dayId" element={<RoutineDayPage />} />
         <Route path="historial" element={<HistoryPage />} />
+        <Route
+          path="historial/resumen-semanal"
+          element={<WeeklySummaryPage />}
+        />
         <Route path="historial/:sessionId" element={<HistoryDetailPage />} />
         <Route path="discos" element={<PlateCalculatorPage />} />
         <Route path="progreso" element={<ProgressPage />} />

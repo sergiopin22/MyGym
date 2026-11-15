@@ -26,8 +26,14 @@ export function HistoryPage() {
         action={
           <div className="flex shrink-0 flex-col items-end gap-2">
             <Link
-              to="/historial/cargar-ejercicio"
+              to="/historial/resumen-semanal"
               className="inline-flex min-h-11 items-center rounded-xl bg-chrome px-3 py-2 text-sm font-bold text-chrome-fg"
+            >
+              Resumen semanal
+            </Link>
+            <Link
+              to="/historial/cargar-ejercicio"
+              className="inline-flex min-h-11 items-center rounded-xl bg-brand-soft px-3 py-2 text-sm font-bold text-fg"
             >
               Cargar un ejercicio
             </Link>

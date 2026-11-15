@@ -29,6 +29,7 @@ import {
 import { WorkoutExerciseCard } from './WorkoutExerciseCard'
 import { WorkoutPendingJump } from './WorkoutPendingJump'
 import { WorkoutPlateFab } from './WorkoutPlateFab'
+import { WorkoutRestTimer } from './WorkoutRestTimer'
 import { PageHeader } from '../../ui/PageHeader'
 
 export function WorkoutPage() {
@@ -45,6 +46,7 @@ export function WorkoutPage() {
   const [livePrPop, setLivePrPop] = useState<PrCountUpPayload | null>(null)
   const [pendingCursor, setPendingCursor] = useState(0)
   const [jumpDirection, setJumpDirection] = useState<'up' | 'down'>('down')
+  const [restOfferToken, setRestOfferToken] = useState(0)
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
@@ -426,6 +428,7 @@ export function WorkoutPage() {
                 exercise={exercise}
                 onSessionChange={setSession}
                 onLivePr={(pr) => setLivePrPop(sessionNewPrToCountUp(pr))}
+                onSetCompleted={() => setRestOfferToken((n) => n + 1)}
               />
             </div>
           ))}
@@ -456,6 +459,7 @@ export function WorkoutPage() {
           </p>
         </div>
       </div>
+      <WorkoutRestTimer offerToken={restOfferToken} />
       <WorkoutPendingJump
         pendingCount={pendingCount}
         direction={jumpDirection}
