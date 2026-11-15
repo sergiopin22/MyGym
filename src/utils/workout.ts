@@ -196,6 +196,22 @@ export function getUnstartedWorkoutParts(session: WorkoutSession): {
   }
 }
 
+/** Falta registrar series (pendiente o a medias). No cuenta omitidos ni completados. */
+export function isUnresolvedExercise(
+  exercise: Pick<ExerciseLog, 'status' | 'sets'>,
+): boolean {
+  if (exercise.status === 'completed' || exercise.status === 'skipped') return false
+  return exercise.sets.some((s) => !s.completed)
+}
+
+export function getUnresolvedExercises(
+  exercises: ExerciseLog[],
+): ExerciseLog[] {
+  return [...exercises]
+    .sort((a, b) => a.order - b.order)
+    .filter(isUnresolvedExercise)
+}
+
 export function buildExerciseLogFromRoutine(
   exercise: RoutineExercise,
   createId: () => string,

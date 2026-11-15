@@ -3784,6 +3784,75 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-brand) 30%, transparent);
 }
 
+/* ─── Saltar a ejercicio pendiente ─── */
+.workout-exercise-anchor {
+  scroll-margin-top: 6.5rem;
+}
+
+.workout-pending-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 2.25rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.35rem 0.85rem;
+  background: color-mix(in srgb, var(--color-brand) 18%, var(--color-surface));
+  color: var(--color-fg);
+  font-size: 0.82rem;
+  font-weight: 800;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-brand) 35%, transparent);
+  transition: transform 0.12s ease;
+}
+
+.workout-pending-chip:active {
+  transform: scale(0.97);
+}
+
+.workout-pending-fab {
+  position: fixed;
+  left: max(1rem, env(safe-area-inset-left));
+  bottom: max(1.25rem, env(safe-area-inset-bottom));
+  z-index: 55;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  border: 0;
+  border-radius: 999px;
+  min-height: 3rem;
+  padding: 0.65rem 0.95rem;
+  background: var(--color-chrome, #1a1a1a);
+  color: var(--color-chrome-fg, #fff);
+  font-family: var(--font-display);
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  box-shadow:
+    0 12px 28px -12px color-mix(in srgb, black 70%, transparent),
+    0 0 0 1px color-mix(in srgb, white 12%, transparent);
+}
+
+.workout-pending-fab:active {
+  transform: scale(0.97);
+}
+
+.workout-pending-fab__arrow {
+  font-size: 1.15rem;
+  line-height: 1;
+}
+
+.workout-pending-fab__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  padding: 0 0.35rem;
+  background: color-mix(in srgb, white 16%, transparent);
+  font-size: 0.8rem;
+}
+
 /* ─── Discos flotante en entrenamiento ─── */
 .workout-plate-fab {
   position: fixed;

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Button } from '../../components/Button'
 import { Card } from '../../components/Card'
@@ -12,7 +12,11 @@ import {
 } from '../../db/repository'
 import type { SessionSummary, WorkoutSession } from '../../types'
 import { formatDuration, formatLongDateEs } from '../../utils/id'
-import { getIncompleteWorkoutParts, hasWorkingSets } from '../../utils/workout'
+import {
+  getIncompleteWorkoutParts,
+  getUnresolvedExercises,
+  hasWorkingSets,
+} from '../../utils/workout'
 import { getDailyMotivationQuote } from '../../utils/dailyMotivation'
 import { CopyCoachMessageButton } from '../history/CopyCoachMessageButton'
 import { DailyQuoteBar } from './DailyQuoteBar'
@@ -23,6 +27,7 @@ import {
   type PrCountUpPayload,
 } from './PrCountUpPop'
 import { WorkoutExerciseCard } from './WorkoutExerciseCard'
+import { WorkoutPendingJump } from './WorkoutPendingJump'
 import { WorkoutPlateFab } from './WorkoutPlateFab'
 import { PageHeader } from '../../ui/PageHeader'
 
@@ -38,6 +43,9 @@ export function WorkoutPage() {
   const [newPRs, setNewPRs] = useState<SessionNewPR[]>([])
   const [showPrPop, setShowPrPop] = useState(false)
   const [livePrPop, setLivePrPop] = useState<PrCountUpPayload | null>(null)
+  const [pendingCursor, setPendingCursor] = useState(0)
+  const [jumpDirection, setJumpDirection] = useState<'up' | 'down'>('down')
+  const scrollRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     let alive = true
@@ -90,11 +98,56 @@ export function WorkoutPage() {
   const completedCount = exercises.filter((e) => e.status === 'completed').length
   const skippedCount = exercises.filter((e) => e.status === 'skipped').length
   const resolvedCount = completedCount + skippedCount
+  const unresolved = useMemo(
+    () => getUnresolvedExercises(exercises),
+    [exercises],
+  )
+  const pendingCount = unresolved.length
 
   const dailyQuote = useMemo(() => {
     if (!session?.date) return null
     return getDailyMotivationQuote(session.date)
   }, [session?.date])
+
+  useEffect(() => {
+    setPendingCursor(0)
+  }, [pendingCount, session?.id])
+
+  const refreshJumpDirection = useCallback(() => {
+    if (unresolved.length === 0) {
+      setJumpDirection('down')
+      return
+    }
+    const next = unresolved[pendingCursor % unresolved.length]
+    const target = document.getElementById(`workout-ex-${next.id}`)
+    const scroller = scrollRef.current
+    if (!target || !scroller) {
+      setJumpDirection('down')
+      return
+    }
+    const scrollerRect = scroller.getBoundingClientRect()
+    const targetRect = target.getBoundingClientRect()
+    const mid = scrollerRect.top + scrollerRect.height * 0.35
+    setJumpDirection(targetRect.top < mid ? 'up' : 'down')
+  }, [unresolved, pendingCursor])
+
+  useEffect(() => {
+    refreshJumpDirection()
+    const scroller = scrollRef.current
+    if (!scroller) return
+    scroller.addEventListener('scroll', refreshJumpDirection, { passive: true })
+    return () => scroller.removeEventListener('scroll', refreshJumpDirection)
+  }, [refreshJumpDirection])
+
+  function jumpToNextPending() {
+    if (unresolved.length === 0) return
+    const index = pendingCursor % unresolved.length
+    const next = unresolved[index]
+    const target = document.getElementById(`workout-ex-${next.id}`)
+    target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setPendingCursor(index + 1)
+    window.setTimeout(() => refreshJumpDirection(), 320)
+  }
 
   async function handleFinish() {
     if (!session) return
@@ -332,10 +385,24 @@ export function WorkoutPage() {
                     : ''}
                 </span>
               ) : null}
-              <p className="text-sm text-muted">
-                {completedCount} de {exercises.length} ejercicios completados
-                {skippedCount > 0 ? ` · ${skippedCount} omitido${skippedCount === 1 ? '' : 's'}` : ''}
-              </p>
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <p className="text-sm text-muted">
+                  {completedCount} de {exercises.length} ejercicios completados
+                  {skippedCount > 0
+                    ? ` · ${skippedCount} omitido${skippedCount === 1 ? '' : 's'}`
+                    : ''}
+                </p>
+                {pendingCount > 0 ? (
+                  <button
+                    type="button"
+                    className="workout-pending-chip"
+                    onClick={jumpToNextPending}
+                  >
+                    Faltan {pendingCount}
+                    <span aria-hidden>{jumpDirection === 'up' ? '↑' : '↓'}</span>
+                  </button>
+                ) : null}
+              </div>
             </div>
           </div>
           <ProgressBar value={resolvedCount} max={Math.max(exercises.length, 1)} />
@@ -343,42 +410,57 @@ export function WorkoutPage() {
       </div>
 
       <div
+        ref={scrollRef}
         className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-4"
-        style={{ paddingBottom: 'max(1.5rem, env(safe-area-inset-bottom))' }}
+        style={{ paddingBottom: 'max(5.5rem, calc(env(safe-area-inset-bottom) + 4.5rem))' }}
       >
         <div className="space-y-4">
-        {exercises.map((exercise) => (
-          <WorkoutExerciseCard
-            key={exercise.id}
-            session={session}
-            exercise={exercise}
-            onSessionChange={setSession}
-            onLivePr={(pr) => setLivePrPop(sessionNewPrToCountUp(pr))}
-          />
-        ))}
+          {exercises.map((exercise) => (
+            <div
+              key={exercise.id}
+              id={`workout-ex-${exercise.id}`}
+              className="workout-exercise-anchor"
+            >
+              <WorkoutExerciseCard
+                session={session}
+                exercise={exercise}
+                onSessionChange={setSession}
+                onLivePr={(pr) => setLivePrPop(sessionNewPrToCountUp(pr))}
+              />
+            </div>
+          ))}
         </div>
 
-      {error ? <p className="mt-4 text-sm font-medium text-danger">{error}</p> : null}
+        {error ? <p className="mt-4 text-sm font-medium text-danger">{error}</p> : null}
 
-      <div className="mt-6 space-y-2">
-        <Button fullWidth onClick={() => void handleFinish()} disabled={finishing || cancelling}>
-          {finishing ? 'Guardando…' : 'Finalizar entrenamiento'}
-        </Button>
-        <Button
-          variant="danger"
-          fullWidth
-          disabled={finishing || cancelling}
-          onClick={() => void handleCancel()}
-        >
-          {cancelling ? 'Cancelando…' : 'Cancelar entrenamiento'}
-        </Button>
-        <p className="text-center text-xs text-muted">
-          Se guarda en el historial al finalizar. Si te tienes que ir, omite lo que
-          falte: no pisa el PR ni la última vez. Cancela solo si lo iniciaste por
-          error.
-        </p>
+        <div className="mt-6 space-y-2">
+          <Button
+            fullWidth
+            onClick={() => void handleFinish()}
+            disabled={finishing || cancelling}
+          >
+            {finishing ? 'Guardando…' : 'Finalizar entrenamiento'}
+          </Button>
+          <Button
+            variant="danger"
+            fullWidth
+            disabled={finishing || cancelling}
+            onClick={() => void handleCancel()}
+          >
+            {cancelling ? 'Cancelando…' : 'Cancelar entrenamiento'}
+          </Button>
+          <p className="text-center text-xs text-muted">
+            Se guarda en el historial al finalizar. Si te tienes que ir, omite lo
+            que falte: no pisa el PR ni la última vez. Cancela solo si lo
+            iniciaste por error.
+          </p>
+        </div>
       </div>
-      </div>
+      <WorkoutPendingJump
+        pendingCount={pendingCount}
+        direction={jumpDirection}
+        onJump={jumpToNextPending}
+      />
       <WorkoutPlateFab />
     </div>
   )
