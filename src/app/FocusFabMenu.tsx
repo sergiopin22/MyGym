@@ -99,16 +99,38 @@ function IconGear() {
   )
 }
 
+function IconTimer() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" aria-hidden>
+      <path
+        d="M9 3.5h6M12 3.5V6"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <circle cx="12" cy="13" r="7" stroke="currentColor" strokeWidth="1.8" />
+      <path
+        d="M12 10v3.2l2.2 1.3"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 const ARC_ITEMS: Array<
   ArcAction & { icon: ReactNode; phiDeg: number }
 > = [
   /* Semicírculo hacia arriba (FAB abajo-centro). 0° = arriba. */
   { id: 'home', label: 'Inicio', kind: 'path', path: '/', icon: <IconHome />, phiDeg: -90 },
-  { id: 'routines', label: 'Rutinas', kind: 'path', path: '/rutinas', icon: <IconList />, phiDeg: -60 },
-  { id: 'history', label: 'Historial', kind: 'path', path: '/historial', icon: <IconClock />, phiDeg: -30 },
-  { id: 'plates', label: 'Discos', kind: 'path', path: '/discos', icon: <PlateCalcIcon />, phiDeg: 0 },
-  { id: 'cardio', label: 'Caminadora', kind: 'path', path: '/caminadora', icon: <IconRun />, phiDeg: 30 },
-  { id: 'prs', label: 'PRs', kind: 'prs', icon: <IconTrophy />, phiDeg: 60 },
+  { id: 'routines', label: 'Rutinas', kind: 'path', path: '/rutinas', icon: <IconList />, phiDeg: -64 },
+  { id: 'history', label: 'Historial', kind: 'path', path: '/historial', icon: <IconClock />, phiDeg: -39 },
+  { id: 'timer', label: 'Timer', kind: 'path', path: '/temporizador', icon: <IconTimer />, phiDeg: -13 },
+  { id: 'plates', label: 'Discos', kind: 'path', path: '/discos', icon: <PlateCalcIcon />, phiDeg: 13 },
+  { id: 'cardio', label: 'Caminadora', kind: 'path', path: '/caminadora', icon: <IconRun />, phiDeg: 39 },
+  { id: 'prs', label: 'PRs', kind: 'prs', icon: <IconTrophy />, phiDeg: 64 },
   { id: 'settings', label: 'Ajustes', kind: 'path', path: '/progreso', icon: <IconGear />, phiDeg: 90 },
 ]
 

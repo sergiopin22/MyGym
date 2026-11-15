@@ -4165,28 +4165,27 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 }
 
 .weekly-counts__item--up {
-  background: color-mix(in srgb, #16a34a 18%, var(--color-surface));
-  color: #14532d;
+  background: #15803d;
+  color: #fff;
+  box-shadow: none;
 }
 
 .weekly-counts__item--same {
-  background: color-mix(in srgb, #2563eb 16%, var(--color-surface));
-  color: #1e3a8a;
+  background: #1d4ed8;
+  color: #fff;
+  box-shadow: none;
 }
 
 .weekly-counts__item--down {
-  background: color-mix(in srgb, #dc2626 14%, var(--color-surface));
-  color: #7f1d1d;
+  background: #b91c1c;
+  color: #fff;
+  box-shadow: none;
 }
 
 .weekly-counts__item--muted {
-  opacity: 0.85;
-}
-
-.weekly-counts__item--up .weekly-counts__n,
-.weekly-counts__item--same .weekly-counts__n,
-.weekly-counts__item--down .weekly-counts__n {
-  color: inherit;
+  background: #3f3f46;
+  color: #fff;
+  box-shadow: none;
 }
 
 .weekly-counts__n {
@@ -4195,7 +4194,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   font-size: 1.55rem;
   font-weight: 800;
   line-height: 1;
-  color: var(--color-fg);
+  color: inherit;
 }
 
 .weekly-counts__l {
@@ -4204,7 +4203,8 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--color-muted);
+  color: inherit;
+  opacity: 0.9;
 }
 
 .weekly-champion {
@@ -4274,32 +4274,33 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 }
 
 .weekly-row--up {
-  background: color-mix(in srgb, #16a34a 14%, var(--color-surface-elevated));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #16a34a 45%, var(--color-line));
+  background: #15803d;
+  box-shadow: none;
+  color: #fff;
 }
 
 .weekly-row--same {
-  background: color-mix(in srgb, #2563eb 12%, var(--color-surface-elevated));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #2563eb 40%, var(--color-line));
+  background: #1d4ed8;
+  box-shadow: none;
+  color: #fff;
 }
 
 .weekly-row--down {
-  background: color-mix(in srgb, #dc2626 12%, var(--color-surface-elevated));
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #dc2626 42%, var(--color-line));
+  background: #b91c1c;
+  box-shadow: none;
+  color: #fff;
 }
 
 .weekly-row--champion {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, #fbbf24 22%, var(--color-surface-elevated)),
-    color-mix(in srgb, #b45309 18%, var(--color-surface-elevated))
-  );
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, #f59e0b 55%, var(--color-line));
+  background: linear-gradient(135deg, #b45309 0%, #f59e0b 100%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fde68a 50%, transparent);
+  color: #fff;
 }
 
-.weekly-row--muted .weekly-row__name,
-.weekly-row--muted .weekly-row__sets {
-  color: var(--color-muted);
+.weekly-row--muted {
+  background: #3f3f46;
+  box-shadow: none;
+  color: #fff;
 }
 
 .weekly-row__top {
@@ -4311,23 +4312,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 .weekly-row__mark {
   flex-shrink: 0;
   font-weight: 800;
-  color: #15803d;
-}
-
-.weekly-row--same .weekly-row__mark {
-  color: #1d4ed8;
-}
-
-.weekly-row--down .weekly-row__mark {
-  color: #b91c1c;
-}
-
-.weekly-row--champion .weekly-row__mark {
-  color: #b45309;
-}
-
-.weekly-row--muted .weekly-row__mark {
-  color: var(--color-muted);
+  color: inherit;
 }
 
 .weekly-row__name {
@@ -4335,23 +4320,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   min-width: 0;
   font-size: 0.95rem;
   font-weight: 800;
-  color: var(--color-fg);
-}
-
-.weekly-row--up .weekly-row__name {
-  color: #14532d;
-}
-
-.weekly-row--same .weekly-row__name {
-  color: #1e3a8a;
-}
-
-.weekly-row--down .weekly-row__name {
-  color: #7f1d1d;
-}
-
-.weekly-row--champion .weekly-row__name {
-  color: #78350f;
+  color: inherit;
 }
 
 .weekly-row__status {
@@ -4360,46 +4329,16 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: var(--color-muted);
-}
-
-.weekly-row--up .weekly-row__status {
-  color: #15803d;
-}
-
-.weekly-row--same .weekly-row__status {
-  color: #1d4ed8;
-}
-
-.weekly-row--down .weekly-row__status {
-  color: #b91c1c;
-}
-
-.weekly-row--champion .weekly-row__status {
-  color: #b45309;
+  color: inherit;
+  opacity: 0.9;
 }
 
 .weekly-row__sets {
   margin: 0.35rem 0 0 1.15rem;
   font-size: 0.88rem;
   font-weight: 600;
-  color: var(--color-muted);
-}
-
-.weekly-row--up .weekly-row__sets {
-  color: #166534;
-}
-
-.weekly-row--same .weekly-row__sets {
-  color: #1e40af;
-}
-
-.weekly-row--down .weekly-row__sets {
-  color: #991b1b;
-}
-
-.weekly-row--champion .weekly-row__sets {
-  color: #92400e;
+  color: inherit;
+  opacity: 0.92;
 }
 
 /* Aviso lunes */
