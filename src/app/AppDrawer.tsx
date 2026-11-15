@@ -209,8 +209,14 @@ export function AppDrawer({
               <ul className="space-y-2">
                 <DrawerActionItem
                   icon="📝"
-                  label="Cargar entreno"
-                  subtitle="Un día pasado desde tus notas"
+                  label="Cargar un ejercicio"
+                  subtitle="Una máquina en una fecha (backfill)"
+                  onClick={() => go('/historial/cargar-ejercicio')}
+                />
+                <DrawerActionItem
+                  icon="📋"
+                  label="Cargar día completo"
+                  subtitle="Todo el entreno de un día pasado"
                   onClick={() => go('/historial/cargar')}
                 />
                 <DrawerActionItem

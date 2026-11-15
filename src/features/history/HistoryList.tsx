@@ -38,9 +38,16 @@ export function HistoryList({ onNavigate }: HistoryListProps) {
     return (
       <Card>
         <p className="text-sm text-muted">
-          Aún no hay sesiones completadas. Finaliza un entrenamiento o{' '}
+          Aún no hay sesiones completadas. Finaliza un entrenamiento,{' '}
+          <Link
+            to="/historial/cargar-ejercicio"
+            className="font-semibold text-brand underline"
+          >
+            carga un ejercicio
+          </Link>{' '}
+          o{' '}
           <Link to="/historial/cargar" className="font-semibold text-brand underline">
-            carga uno a mano
+            un día completo
           </Link>
           .
         </p>

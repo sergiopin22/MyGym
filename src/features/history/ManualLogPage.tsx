@@ -378,6 +378,13 @@ export function ManualLogPage() {
             >
               {loadingDraft ? 'Armando…' : 'Cargar ejercicios de ese día'}
             </Button>
+
+            <Link
+              to="/historial/cargar-ejercicio"
+              className="block text-center text-sm font-semibold text-brand underline"
+            >
+              ¿Solo falta un ejercicio? Cárgalo solo
+            </Link>
           </div>
         )}
       </div>

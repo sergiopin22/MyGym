@@ -5,6 +5,7 @@ import { RoutinesPage } from '../features/routines/RoutinesPage'
 import { RoutineDayPage } from '../features/routines/RoutineDayPage'
 import { HistoryDetailPage, HistoryPage } from '../features/history/HistoryPage'
 import { EditCompletedSessionPage } from '../features/history/EditCompletedSessionPage'
+import { ManualExerciseLogPage } from '../features/history/ManualExerciseLogPage'
 import { ManualLogPage } from '../features/history/ManualLogPage'
 import { ProgressPage } from '../features/progress/ProgressPage'
 import { PrCelebrationSettingsPage } from '../features/settings/PrCelebrationSettingsPage'
@@ -27,6 +28,10 @@ export function AppRouter() {
       <Route
         path="historial/cargar"
         element={<ManualLogPage />}
+      />
+      <Route
+        path="historial/cargar-ejercicio"
+        element={<ManualExerciseLogPage />}
       />
       <Route
         path="historial/:sessionId/editar"

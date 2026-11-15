@@ -2109,6 +2109,212 @@ export async function insertManualCompletedSession(
   }
 }
 
+export interface ManualExerciseOption {
+  dayId: string
+  dayLabel: string
+  weekday: Weekday
+  exercise: RoutineExercise
+}
+
+/** Ejercicios de la rutina para cargar uno solo a mano. */
+export async function listManualExerciseOptions(): Promise<ManualExerciseOption[]> {
+  const routine = await getActiveRoutine()
+  if (!routine) return []
+  const order = [1, 2, 3, 4, 5, 6, 0]
+  const rows: ManualExerciseOption[] = []
+  for (const day of [...routine.days].sort(
+    (a, b) => order.indexOf(a.weekday) - order.indexOf(b.weekday),
+  )) {
+    if (day.isRestDay) continue
+    for (const exercise of sortExercises(day.exercises)) {
+      rows.push({
+        dayId: day.id,
+        dayLabel: day.label,
+        weekday: day.weekday,
+        exercise,
+      })
+    }
+  }
+  return rows
+}
+
+function normalizeNewManualExercise(ex: ExerciseLog): ExerciseLog {
+  if (ex.sets.length === 0) {
+    throw new Error('Ese ejercicio no tiene series.')
+  }
+  const sets = ex.sets.map((s) => {
+    if (s.completed && (s.weight == null || s.reps == null)) {
+      throw new Error(
+        `Serie ${s.setNumber}: coloca peso y reps o desmárcala.`,
+      )
+    }
+    return {
+      ...s,
+      withStraps: s.withStraps || undefined,
+      completedAt: s.completed ? s.completedAt ?? Date.now() : undefined,
+    } satisfies SetLog
+  })
+  const status = computeExerciseStatus(sets, ex.status)
+  if (status === 'pending' || !sets.some((s) => s.completed)) {
+    throw new Error('Completa al menos una serie con peso y reps.')
+  }
+  return {
+    ...ex,
+    sets,
+    status,
+    completedAt: status === 'completed' ? ex.completedAt ?? Date.now() : undefined,
+  }
+}
+
+/**
+ * Borrador de UN ejercicio para cargar a mano (fecha + máquina).
+ * La fecha debe coincidir con el weekday de ese día de rutina.
+ */
+export async function buildManualExerciseDraft(
+  routineDayId: string,
+  routineExerciseId: string,
+  date: string,
+): Promise<WorkoutSession> {
+  const iso = assertIsoDate(date)
+  const today = todayISODate()
+  if (iso > today) throw new Error('No puedes cargar un día futuro.')
+
+  const found = await getRoutineDay(routineDayId)
+  if (!found) throw new Error('Día de rutina no encontrado')
+  const { routine, day } = found
+  if (day.isRestDay) throw new Error('Ese día está marcado como descanso.')
+
+  const dateWeekday = weekdayFromISO(iso) as Weekday
+  if (day.weekday !== dateWeekday) {
+    throw new Error(
+      `Esa fecha fue ${weekdayLabel(dateWeekday)}. Elige un ${weekdayLabel(day.weekday)}.`,
+    )
+  }
+
+  const exercise = day.exercises.find((e) => e.id === routineExerciseId)
+  if (!exercise) throw new Error('Ejercicio no encontrado en ese día.')
+
+  return {
+    id: createId('session'),
+    routineId: routine.id,
+    routineDayId: day.id,
+    dayLabel: day.label,
+    muscleGroups: [...day.muscleGroups],
+    date: iso,
+    status: 'completed',
+    startedAt: parseISODate(iso).getTime(),
+    exercises: [buildExerciseLogFromRoutine(exercise, () => createId('elog'))],
+    isManualEntry: true,
+  }
+}
+
+/**
+ * Guarda solo un ejercicio en una fecha.
+ * Si ya hay entreno ese día, lo agrega ahí (sin tocar la meta).
+ * Si no, crea una sesión solo con ese ejercicio (tampoco suma meta:
+ * es un backfill, no un día nuevo de constancia).
+ */
+export async function insertManualExerciseLog(
+  draft: WorkoutSession,
+): Promise<{
+  session: WorkoutSession
+  newPRs: SessionNewPR[]
+  merged: boolean
+}> {
+  if (!draft.isManualEntry) {
+    throw new Error('Esta sesión no es una carga manual.')
+  }
+  if (draft.exercises.length !== 1) {
+    throw new Error('Esta carga es solo para un ejercicio.')
+  }
+
+  const iso = assertIsoDate(draft.date)
+  const today = todayISODate()
+  if (iso > today) throw new Error('No puedes cargar un día futuro.')
+
+  const found = await getRoutineDay(draft.routineDayId, draft.routineId)
+  if (!found) throw new Error('Día de rutina no encontrado')
+  const { day } = found
+  if (day.isRestDay) throw new Error('Ese día está marcado como descanso.')
+
+  const dateWeekday = weekdayFromISO(iso) as Weekday
+  if (day.weekday !== dateWeekday) {
+    throw new Error(
+      `Esa fecha fue ${weekdayLabel(dateWeekday)}. Elige un ${weekdayLabel(day.weekday)}.`,
+    )
+  }
+
+  const preparedEx = normalizeNewManualExercise(draft.exercises[0])
+  const nameKey = normalizeExerciseName(preparedEx.name)
+
+  const existing = (
+    await db.sessions
+      .where('date')
+      .equals(iso)
+      .filter(
+        (s) =>
+          s.status === 'completed' &&
+          s.routineDayId === day.id &&
+          !s.isRecovery,
+      )
+      .toArray()
+  ).sort((a, b) => (b.finishedAt ?? 0) - (a.finishedAt ?? 0))[0]
+
+  if (existing) {
+    const clash = existing.exercises.find(
+      (ex) =>
+        normalizeExerciseName(ex.name) === nameKey && hasWorkingSets(ex),
+    )
+    if (clash) {
+      throw new Error(
+        `Ese día ya tiene series de ${clash.name}. Edítalo en el historial o elige otra fecha.`,
+      )
+    }
+
+    const withoutEmpty = existing.exercises.filter(
+      (ex) =>
+        !(
+          normalizeExerciseName(ex.name) === nameKey &&
+          !hasWorkingSets(ex)
+        ),
+    )
+    const merged: WorkoutSession = {
+      ...existing,
+      exercises: [...withoutEmpty, preparedEx],
+      editedAt: Date.now(),
+      isManualEntry: existing.isManualEntry || true,
+    }
+    await saveSession(merged)
+    const newPRs = (await detectNewPRsInSession(merged)).filter((pr) => {
+      const base = pr.exerciseName.includes(' · ')
+        ? pr.exerciseName.slice(0, pr.exerciseName.lastIndexOf(' · ')).trim()
+        : pr.exerciseName
+      return normalizeExerciseName(base) === nameKey
+    })
+    return { session: merged, newPRs, merged: true }
+  }
+
+  const created: WorkoutSession = {
+    ...draft,
+    date: iso,
+    status: 'completed',
+    exercises: [preparedEx],
+    isManualEntry: true,
+    finishedAt: Date.now(),
+    durationMs: undefined,
+  }
+  delete created.isRecovery
+  delete created.recoveredWeekday
+  delete created.recoveredDayLabel
+
+  await db.sessions.add(created)
+  return {
+    session: created,
+    newPRs: await detectNewPRsInSession(created),
+    merged: false,
+  }
+}
+
 function toSummary(session: WorkoutSession): SessionSummary {
   const completedExercises = session.exercises.filter(
     (e) => e.status === 'completed',
