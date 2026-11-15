@@ -2109,33 +2109,48 @@ export async function insertManualCompletedSession(
   }
 }
 
-export interface ManualExerciseOption {
-  dayId: string
-  dayLabel: string
-  weekday: Weekday
-  exercise: RoutineExercise
+export interface ManualExerciseMachine {
+  /** Nombre para mostrar (primera vez que aparece en la rutina). */
+  name: string
+  /** Días de la semana donde está esa máquina (ej. lun y jue). */
+  weekdays: Weekday[]
 }
 
-/** Ejercicios de la rutina para cargar uno solo a mano. */
-export async function listManualExerciseOptions(): Promise<ManualExerciseOption[]> {
+/**
+ * Máquinas únicas de la rutina (Press militar una sola vez aunque esté lun+jue).
+ */
+export async function listManualExerciseMachines(): Promise<ManualExerciseMachine[]> {
   const routine = await getActiveRoutine()
   if (!routine) return []
   const order = [1, 2, 3, 4, 5, 6, 0]
-  const rows: ManualExerciseOption[] = []
+  const byKey = new Map<string, ManualExerciseMachine>()
+
   for (const day of [...routine.days].sort(
     (a, b) => order.indexOf(a.weekday) - order.indexOf(b.weekday),
   )) {
     if (day.isRestDay) continue
     for (const exercise of sortExercises(day.exercises)) {
-      rows.push({
-        dayId: day.id,
-        dayLabel: day.label,
-        weekday: day.weekday,
-        exercise,
-      })
+      const key = normalizeExerciseName(exercise.name)
+      if (!key) continue
+      const existing = byKey.get(key)
+      if (!existing) {
+        byKey.set(key, { name: exercise.name, weekdays: [day.weekday] })
+        continue
+      }
+      if (!existing.weekdays.includes(day.weekday)) {
+        existing.weekdays.push(day.weekday)
+      }
     }
   }
-  return rows
+
+  return [...byKey.values()]
+    .map((row) => ({
+      ...row,
+      weekdays: [...row.weekdays].sort(
+        (a, b) => order.indexOf(a) - order.indexOf(b),
+      ),
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name, 'es'))
 }
 
 function normalizeNewManualExercise(ex: ExerciseLog): ExerciseLog {
@@ -2167,45 +2182,75 @@ function normalizeNewManualExercise(ex: ExerciseLog): ExerciseLog {
 }
 
 /**
- * Borrador de UN ejercicio para cargar a mano (fecha + máquina).
- * La fecha debe coincidir con el weekday de ese día de rutina.
+ * Borrador de UN ejercicio: eliges máquina + fecha.
+ * Si está lun y jue, la fecha decide cuál plantilla usar.
  */
 export async function buildManualExerciseDraft(
-  routineDayId: string,
-  routineExerciseId: string,
+  exerciseName: string,
   date: string,
 ): Promise<WorkoutSession> {
   const iso = assertIsoDate(date)
   const today = todayISODate()
   if (iso > today) throw new Error('No puedes cargar un día futuro.')
 
-  const found = await getRoutineDay(routineDayId)
-  if (!found) throw new Error('Día de rutina no encontrado')
-  const { routine, day } = found
-  if (day.isRestDay) throw new Error('Ese día está marcado como descanso.')
+  const want = normalizeExerciseName(exerciseName)
+  if (!want) throw new Error('Falta el nombre del ejercicio.')
+
+  const routine = await getActiveRoutine()
+  if (!routine) throw new Error('No hay rutina configurada.')
 
   const dateWeekday = weekdayFromISO(iso) as Weekday
-  if (day.weekday !== dateWeekday) {
+  const day = routine.days.find((d) => d.weekday === dateWeekday)
+  if (!day || day.isRestDay) {
     throw new Error(
-      `Esa fecha fue ${weekdayLabel(dateWeekday)}. Elige un ${weekdayLabel(day.weekday)}.`,
+      `Esa fecha fue ${weekdayLabel(dateWeekday)} y está de descanso. Elige otro día.`,
     )
   }
 
-  const exercise = day.exercises.find((e) => e.id === routineExerciseId)
-  if (!exercise) throw new Error('Ejercicio no encontrado en ese día.')
-
-  return {
-    id: createId('session'),
-    routineId: routine.id,
-    routineDayId: day.id,
-    dayLabel: day.label,
-    muscleGroups: [...day.muscleGroups],
-    date: iso,
-    status: 'completed',
-    startedAt: parseISODate(iso).getTime(),
-    exercises: [buildExerciseLogFromRoutine(exercise, () => createId('elog'))],
-    isManualEntry: true,
+  const onThatDay = day.exercises.find(
+    (ex) => normalizeExerciseName(ex.name) === want,
+  )
+  if (onThatDay) {
+    return {
+      id: createId('session'),
+      routineId: routine.id,
+      routineDayId: day.id,
+      dayLabel: day.label,
+      muscleGroups: [...day.muscleGroups],
+      date: iso,
+      status: 'completed',
+      startedAt: parseISODate(iso).getTime(),
+      exercises: [
+        buildExerciseLogFromRoutine(onThatDay, () => createId('elog')),
+      ],
+      isManualEntry: true,
+    }
   }
+
+  const availableDays: Weekday[] = []
+  let sample: RoutineExercise | undefined
+  for (const d of routine.days) {
+    if (d.isRestDay) continue
+    const match = d.exercises.find(
+      (ex) => normalizeExerciseName(ex.name) === want,
+    )
+    if (!match) continue
+    availableDays.push(d.weekday)
+    if (!sample) sample = match
+  }
+
+  if (!sample || availableDays.length === 0) {
+    throw new Error(
+      `“${exerciseName.trim()}” no está en la rutina. Agrégalo en Rutinas primero.`,
+    )
+  }
+
+  const labels = availableDays
+    .map((w) => weekdayLabel(w))
+    .join(' o ')
+  throw new Error(
+    `Esa fecha fue ${weekdayLabel(dateWeekday)}. “${sample.name}” solo está en ${labels}.`,
+  )
 }
 
 /**

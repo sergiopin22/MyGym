@@ -4,10 +4,10 @@ import { Button } from '../../components/Button'
 import {
   buildManualExerciseDraft,
   insertManualExerciseLog,
-  listManualExerciseOptions,
-  type ManualExerciseOption,
+  listManualExerciseMachines,
+  type ManualExerciseMachine,
 } from '../../db/repository'
-import type { WorkoutSession } from '../../types'
+import type { Weekday, WorkoutSession } from '../../types'
 import {
   addDaysISO,
   formatLongDateEs,
@@ -18,10 +18,13 @@ import {
 import { WorkoutExerciseCard } from '../workout/WorkoutExerciseCard'
 import { PageHeader } from '../../ui/PageHeader'
 
-function lastDateForWeekday(weekday: number, today: string): string {
+function lastDateMatchingWeekdays(
+  weekdays: Weekday[],
+  today: string,
+): string {
   for (let i = 0; i <= 28; i++) {
     const iso = addDaysISO(today, -i)
-    if (weekdayFromISO(iso) === weekday) return iso
+    if (weekdays.includes(weekdayFromISO(iso) as Weekday)) return iso
   }
   return today
 }
@@ -41,9 +44,9 @@ function cloneSession(session: WorkoutSession): WorkoutSession {
 export function ManualExerciseLogPage() {
   const navigate = useNavigate()
   const today = todayISODate()
-  const [options, setOptions] = useState<ManualExerciseOption[]>([])
-  const [loadingOptions, setLoadingOptions] = useState(true)
-  const [selectedKey, setSelectedKey] = useState('')
+  const [machines, setMachines] = useState<ManualExerciseMachine[]>([])
+  const [loadingMachines, setLoadingMachines] = useState(true)
+  const [selectedName, setSelectedName] = useState('')
   const [date, setDate] = useState(() => addDaysISO(today, -1))
   const [draft, setDraft] = useState<WorkoutSession | null>(null)
   const [loadingDraft, setLoadingDraft] = useState(false)
@@ -52,13 +55,13 @@ export function ManualExerciseLogPage() {
 
   useEffect(() => {
     let alive = true
-    listManualExerciseOptions()
+    listManualExerciseMachines()
       .then((rows) => {
         if (!alive) return
-        setOptions(rows)
+        setMachines(rows)
         if (rows[0]) {
-          setSelectedKey(`${rows[0].dayId}::${rows[0].exercise.id}`)
-          setDate(lastDateForWeekday(rows[0].weekday, today))
+          setSelectedName(rows[0].name)
+          setDate(lastDateMatchingWeekdays(rows[0].weekdays, today))
         }
       })
       .catch((err: unknown) => {
@@ -69,7 +72,7 @@ export function ManualExerciseLogPage() {
         }
       })
       .finally(() => {
-        if (alive) setLoadingOptions(false)
+        if (alive) setLoadingMachines(false)
       })
     return () => {
       alive = false
@@ -77,14 +80,13 @@ export function ManualExerciseLogPage() {
   }, [today])
 
   const selected = useMemo(
-    () =>
-      options.find((row) => `${row.dayId}::${row.exercise.id}` === selectedKey) ??
-      null,
-    [options, selectedKey],
+    () => machines.find((row) => row.name === selectedName) ?? null,
+    [machines, selectedName],
   )
 
-  const dateMatches =
-    selected != null && weekdayFromISO(date) === selected.weekday
+  const dateOk =
+    selected != null &&
+    selected.weekdays.includes(weekdayFromISO(date) as Weekday)
 
   function confirmResetDraft(): boolean {
     if (!draft) return true
@@ -93,12 +95,11 @@ export function ManualExerciseLogPage() {
     )
   }
 
-  function pickOption(row: ManualExerciseOption) {
-    const key = `${row.dayId}::${row.exercise.id}`
-    if (key === selectedKey && !draft) return
+  function pickMachine(row: ManualExerciseMachine) {
+    if (row.name === selectedName && !draft) return
     if (!confirmResetDraft()) return
-    setSelectedKey(key)
-    setDate(lastDateForWeekday(row.weekday, today))
+    setSelectedName(row.name)
+    setDate(lastDateMatchingWeekdays(row.weekdays, today))
     setDraft(null)
     setError(null)
   }
@@ -109,11 +110,7 @@ export function ManualExerciseLogPage() {
     setLoadingDraft(true)
     setError(null)
     try {
-      const next = await buildManualExerciseDraft(
-        selected.dayId,
-        selected.exercise.id,
-        date,
-      )
+      const next = await buildManualExerciseDraft(selected.name, date)
       setDraft(cloneSession(next))
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'No se pudo armar')
@@ -135,7 +132,9 @@ export function ManualExerciseLogPage() {
     try {
       const { session, newPRs, merged } = await insertManualExerciseLog(draft)
       if (newPRs.length > 0) {
-        window.alert(`Guardado. PR nuevo: ${newPRs.map((p) => p.exerciseName).join(', ')}`)
+        window.alert(
+          `Guardado. PR nuevo: ${newPRs.map((p) => p.exerciseName).join(', ')}`,
+        )
       } else if (merged) {
         window.alert('Listo: se agregó al entrenamiento que ya tenías ese día.')
       }
@@ -154,11 +153,15 @@ export function ManualExerciseLogPage() {
       <header className="focus-sticky-bar shrink-0 space-y-3 border-b border-line py-3">
         <PageHeader
           kicker="Focus · Cargar"
-          title={draft ? draft.exercises[0]?.name ?? 'Un ejercicio' : 'Cargar un ejercicio'}
+          title={
+            draft
+              ? (draft.exercises[0]?.name ?? 'Un ejercicio')
+              : 'Cargar un ejercicio'
+          }
           subtitle={
             draft
               ? `${formatLongDateEs(draft.date)} · solo esta máquina`
-              : 'Anota series de una máquina en una fecha. Ideal si no registraste ese movimiento.'
+              : 'Elige la máquina y la fecha. Si está lun y jue, la fecha decide sola.'
           }
           back={
             <Link
@@ -208,25 +211,26 @@ export function ManualExerciseLogPage() {
           <div className="space-y-4">
             <div className="space-y-2">
               <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                Ejercicio
+                Máquina
               </p>
-              {loadingOptions ? (
+              {loadingMachines ? (
                 <p className="text-sm text-muted">Cargando…</p>
-              ) : options.length === 0 ? (
+              ) : machines.length === 0 ? (
                 <p className="text-sm text-muted">
-                  No hay ejercicios en la rutina. Agrégalos en Rutinas (lunes y
-                  jueves, por ejemplo).
+                  No hay ejercicios en la rutina. Agrégalos en Rutinas primero.
                 </p>
               ) : (
                 <div className="flex max-h-64 flex-col gap-2 overflow-y-auto">
-                  {options.map((row) => {
-                    const key = `${row.dayId}::${row.exercise.id}`
-                    const active = key === selectedKey
+                  {machines.map((row) => {
+                    const active = row.name === selectedName
+                    const daysLabel = row.weekdays
+                      .map((w) => weekdayLabel(w))
+                      .join(' · ')
                     return (
                       <button
-                        key={key}
+                        key={row.name}
                         type="button"
-                        onClick={() => pickOption(row)}
+                        onClick={() => pickMachine(row)}
                         className={[
                           'min-h-12 rounded-2xl px-3 py-2 text-left text-sm font-semibold ring-1 transition',
                           active
@@ -234,14 +238,14 @@ export function ManualExerciseLogPage() {
                             : 'bg-surface text-fg ring-line',
                         ].join(' ')}
                       >
-                        <span className="block">{row.exercise.name}</span>
+                        <span className="block">{row.name}</span>
                         <span
                           className={[
                             'block text-xs font-medium',
                             active ? 'opacity-80' : 'text-muted',
                           ].join(' ')}
                         >
-                          {weekdayLabel(row.weekday)} · {row.dayLabel}
+                          {daysLabel}
                         </span>
                       </button>
                     )
@@ -270,15 +274,16 @@ export function ManualExerciseLogPage() {
               />
             </label>
 
-            {selected && !dateMatches ? (
+            {selected && !dateOk ? (
               <p className="text-sm font-medium text-danger">
-                Ese ejercicio es de {weekdayLabel(selected.weekday)}. Elige una
-                fecha que caiga en {weekdayLabel(selected.weekday)}.
+                Esa fecha fue {weekdayLabel(weekdayFromISO(date))}. “
+                {selected.name}” está en{' '}
+                {selected.weekdays.map((w) => weekdayLabel(w)).join(' o ')}.
               </p>
             ) : selected ? (
               <p className="text-xs text-muted">
-                Si ese día ya tiene un entreno guardado, este ejercicio se agrega
-                ahí. Si no, se crea solo con esta máquina. No suma a la meta.
+                Pon la fecha real. Si ya hay entreno ese día, se agrega ahí. No
+                suma a la meta.
               </p>
             ) : null}
 
@@ -292,8 +297,8 @@ export function ManualExerciseLogPage() {
                 loadingDraft ||
                 saving ||
                 !selected ||
-                !dateMatches ||
-                options.length === 0
+                !dateOk ||
+                machines.length === 0
               }
               onClick={() => void handleBuildDraft()}
             >
