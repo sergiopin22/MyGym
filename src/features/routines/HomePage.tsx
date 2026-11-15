@@ -24,6 +24,7 @@ import { FocusGymHeatmap } from './FocusGymHeatmap'
 import { RestDayToggle } from './RestDayToggle'
 import { BackupReminderCard } from '../backup/BackupReminderCard'
 import { WeeklySummaryBanner } from '../history/WeeklySummaryBanner'
+import { WeeklySummaryHomeCard } from '../history/WeeklySummaryHomeCard'
 import { DisplayNamePrompt } from '../settings/DisplayNamePrompt'
 
 function sortDays(days: RoutineDay[]): RoutineDay[] {
@@ -655,6 +656,16 @@ export function HomePage() {
                   posterEnterKey +
                   (completedTodayForSelected ? 1000 : 0) +
                   (completedToday ? 1 : 0)
+                }
+              />
+            </div>
+
+            <div className="focus-section-pad">
+              <WeeklySummaryHomeCard
+                refreshKey={
+                  goalRefresh +
+                  (completedToday ? 1 : 0) +
+                  (completedTodayForSelected ? 10 : 0)
                 }
               />
             </div>

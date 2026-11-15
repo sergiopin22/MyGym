@@ -4072,6 +4072,49 @@ export async function getLatestTreadmillSession(): Promise<
   return db.treadmillSessions.orderBy('createdAt').reverse().first()
 }
 
+/** Progreso de entrenos de la semana vs días de la rutina (no descanso). */
+export async function getWeeklyTrainingProgress(): Promise<{
+  weekStart: string
+  weekEnd: string
+  planned: number
+  done: number
+  remaining: number
+}> {
+  const today = todayISODate()
+  const weekStart = todayISODate(startOfWeekMonday(parseISODate(today)))
+  const weekEndRaw = addDaysISO(weekStart, 6)
+  const weekEnd = weekEndRaw > today ? today : weekEndRaw
+
+  const routine = await getActiveRoutine()
+  const planned =
+    routine?.days.filter((d) => !d.isRestDay && d.exercises.length > 0)
+      .length ?? 0
+
+  let completed = await db.sessions.where('status').equals('completed').toArray()
+  if (completed.length === 0) {
+    completed = (await db.sessions.toArray()).filter(
+      (s) => s.status === 'completed',
+    )
+  }
+
+  const doneDates = new Set<string>()
+  for (const session of completed) {
+    const iso = normalizeSessionDate(
+      session.date,
+      session.finishedAt,
+      session.startedAt,
+    )
+    if (!iso || iso < weekStart || iso > weekEndRaw) continue
+    if (iso > today) continue
+    doneDates.add(iso)
+  }
+
+  const done = doneDates.size
+  const remaining = Math.max(0, planned - done)
+
+  return { weekStart, weekEnd, planned, done, remaining }
+}
+
 /**
  * Resumen semanal máquina a máquina: mejor serie de esta semana vs la anterior.
  * weekStartMonday = YYYY-MM-DD del lunes (opcional; default semana actual).

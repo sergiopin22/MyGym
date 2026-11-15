@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Button } from '../../components/Button'
 import { getWeeklyMachineSummary } from '../../db/repository'
@@ -22,7 +22,18 @@ import {
 import { dismissWeeklyBanner } from '../../utils/weeklyBanner'
 import { PageHeader } from '../../ui/PageHeader'
 
-type Stage = 'counts' | 'champion' | 'list'
+/**
+ * Secuencia (una cosa a la vez):
+ * counts → campeón → lista en cascada → botón copiar
+ */
+type Stage = 'counts' | 'champion' | 'list' | 'actions'
+
+function prefersReducedMotion(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  )
+}
 
 function statusClass(status: WeeklyMachineStatus): string {
   switch (status) {
@@ -53,7 +64,15 @@ function statusMark(status: WeeklyMachineStatus): string {
   }
 }
 
-function CountUp({ value, active }: { value: number; active: boolean }) {
+function CountUp({
+  value,
+  active,
+  delayMs = 0,
+}: {
+  value: number
+  active: boolean
+  delayMs?: number
+}) {
   const [n, setN] = useState(0)
   useEffect(() => {
     if (!active) {
@@ -64,15 +83,23 @@ function CountUp({ value, active }: { value: number; active: boolean }) {
       setN(0)
       return
     }
-    let frame = 0
-    const steps = Math.min(16, value)
-    const id = window.setInterval(() => {
-      frame += 1
-      setN(Math.round((value * frame) / steps))
-      if (frame >= steps) window.clearInterval(id)
-    }, 40)
-    return () => window.clearInterval(id)
-  }, [value, active])
+    let intervalId: number | null = null
+    const startId = window.setTimeout(() => {
+      let frame = 0
+      const steps = Math.min(18, Math.max(8, value))
+      intervalId = window.setInterval(() => {
+        frame += 1
+        setN(Math.round((value * frame) / steps))
+        if (frame >= steps && intervalId != null) {
+          window.clearInterval(intervalId)
+        }
+      }, 45)
+    }, delayMs)
+    return () => {
+      window.clearTimeout(startId)
+      if (intervalId != null) window.clearInterval(intervalId)
+    }
+  }, [value, active, delayMs])
   return <span>{n}</span>
 }
 
@@ -96,8 +123,22 @@ export function WeeklySummaryPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [stage, setStage] = useState<Stage>('counts')
+  const [slideDir, setSlideDir] = useState<'left' | 'right' | 'none'>('none')
   const [copyDone, setCopyDone] = useState(false)
   const [copyBusy, setCopyBusy] = useState(false)
+  const [skipped, setSkipped] = useState(false)
+  const timersRef = useRef<number[]>([])
+
+  function clearTimers() {
+    for (const id of timersRef.current) window.clearTimeout(id)
+    timersRef.current = []
+  }
+
+  function skipToEnd() {
+    clearTimers()
+    setSkipped(true)
+    setStage('actions')
+  }
 
   useEffect(() => {
     dismissWeeklyBanner(weekStart)
@@ -105,8 +146,10 @@ export function WeeklySummaryPage() {
 
   useEffect(() => {
     let alive = true
+    clearTimers()
     setLoading(true)
     setError(null)
+    setSkipped(false)
     setStage('counts')
     getWeeklyMachineSummary(weekStart)
       .then((data) => {
@@ -123,17 +166,51 @@ export function WeeklySummaryPage() {
       })
     return () => {
       alive = false
+      clearTimers()
     }
   }, [weekStart])
 
   useEffect(() => {
     if (!summary || loading) return
-    const t1 = window.setTimeout(() => setStage('champion'), 700)
-    const t2 = window.setTimeout(() => setStage('list'), 1400)
-    return () => {
-      window.clearTimeout(t1)
-      window.clearTimeout(t2)
+    clearTimers()
+
+    if (prefersReducedMotion()) {
+      setStage('actions')
+      return
     }
+
+    setStage('counts')
+
+    const hasChampion = Boolean(summary.champion)
+    const rowCount = summary.rows.length
+    /** Tiempo para ver contadores (chips en cascada + count-up). */
+    const countsMs = 1600
+    /** Tiempo para mirar al campeón. */
+    const championMs = hasChampion ? 1400 : 0
+    /** Cascada de filas: una cada ~110 ms, tope razonable. */
+    const listMs = Math.min(2200, Math.max(600, rowCount * 110 + 400))
+
+    const tChampion = window.setTimeout(() => {
+      setStage(hasChampion ? 'champion' : 'list')
+    }, countsMs)
+    timersRef.current.push(tChampion)
+
+    if (hasChampion) {
+      const tList = window.setTimeout(() => {
+        setStage('list')
+      }, countsMs + championMs)
+      timersRef.current.push(tList)
+    }
+
+    const tActions = window.setTimeout(
+      () => {
+        setStage('actions')
+      },
+      countsMs + championMs + listMs,
+    )
+    timersRef.current.push(tActions)
+
+    return () => clearTimers()
   }, [summary, loading, weekStart])
 
   async function handleCopy() {
@@ -153,10 +230,17 @@ export function WeeklySummaryPage() {
   function shiftWeek(delta: number) {
     const next = addDaysISO(weekStart, delta * 7)
     if (next > thisMonday) return
+    setSlideDir(delta < 0 ? 'right' : 'left')
     setWeekStart(next)
   }
 
   const canGoNext = weekStart < thisMonday
+  const showChampion =
+    Boolean(summary?.champion) &&
+    (stage === 'champion' || stage === 'list' || stage === 'actions')
+  const showList = stage === 'list' || stage === 'actions'
+  const showActions = stage === 'actions'
+  const countsActive = Boolean(summary) && !loading
 
   return (
     <div className="weekly-summary-page space-y-5">
@@ -204,53 +288,90 @@ export function WeeklySummaryPage() {
         </button>
       </div>
 
+      {summary && !loading && stage !== 'actions' ? (
+        <button
+          type="button"
+          className="weekly-skip"
+          onClick={skipToEnd}
+        >
+          Ver todo
+        </button>
+      ) : null}
+
       {loading ? <p className="text-sm text-muted">Armando resumen…</p> : null}
       {error ? <p className="text-sm font-medium text-danger">{error}</p> : null}
 
       {summary && !loading ? (
-        <>
-          <div
-            className={[
-              'weekly-counts',
-              stage === 'counts' || stage === 'champion' || stage === 'list'
-                ? 'weekly-counts--in'
+        <div
+          key={weekStart}
+          className={[
+            'weekly-stage',
+            slideDir === 'left'
+              ? 'weekly-stage--from-left'
+              : slideDir === 'right'
+                ? 'weekly-stage--from-right'
                 : '',
-            ]
-              .filter(Boolean)
-              .join(' ')}
-          >
-            <div className="weekly-counts__item weekly-counts__item--up">
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          <div className="weekly-counts weekly-counts--in">
+            <div
+              className="weekly-counts__item weekly-counts__item--up weekly-counts__item--enter"
+              style={{ animationDelay: '0ms' }}
+            >
               <p className="weekly-counts__n">
-                <CountUp value={summary.counts.up} active />
+                <CountUp
+                  value={summary.counts.up}
+                  active={countsActive}
+                  delayMs={80}
+                />
               </p>
               <p className="weekly-counts__l">Subieron</p>
             </div>
-            <div className="weekly-counts__item weekly-counts__item--same">
+            <div
+              className="weekly-counts__item weekly-counts__item--same weekly-counts__item--enter"
+              style={{ animationDelay: '220ms' }}
+            >
               <p className="weekly-counts__n">
-                <CountUp value={summary.counts.same} active />
+                <CountUp
+                  value={summary.counts.same}
+                  active={countsActive}
+                  delayMs={300}
+                />
               </p>
               <p className="weekly-counts__l">Igual</p>
             </div>
-            <div className="weekly-counts__item weekly-counts__item--down">
+            <div
+              className="weekly-counts__item weekly-counts__item--down weekly-counts__item--enter"
+              style={{ animationDelay: '440ms' }}
+            >
               <p className="weekly-counts__n">
-                <CountUp value={summary.counts.down} active />
+                <CountUp
+                  value={summary.counts.down}
+                  active={countsActive}
+                  delayMs={520}
+                />
               </p>
               <p className="weekly-counts__l">Bajaron</p>
             </div>
-            <div className="weekly-counts__item weekly-counts__item--muted">
+            <div
+              className="weekly-counts__item weekly-counts__item--muted weekly-counts__item--enter"
+              style={{ animationDelay: '660ms' }}
+            >
               <p className="weekly-counts__n">
                 <CountUp
                   value={summary.counts.noData + summary.counts.new}
-                  active
+                  active={countsActive}
+                  delayMs={740}
                 />
               </p>
               <p className="weekly-counts__l">Otros</p>
             </div>
           </div>
 
-          {summary.champion &&
-          (stage === 'champion' || stage === 'list') ? (
-            <div className="weekly-champion">
+          {showChampion && summary.champion ? (
+            <div className="weekly-champion weekly-champion--enter">
               <p className="weekly-champion__crown" aria-hidden>
                 👑
               </p>
@@ -264,18 +385,18 @@ export function WeeklySummaryPage() {
             </div>
           ) : null}
 
-          {stage === 'list' ? (
+          {showList ? (
             <div className="space-y-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                Todas las máquinas
-              </p>
+              <p className="weekly-list-label">Todas las máquinas</p>
               <ul className="weekly-list">
                 {summary.rows.map((row, i) => (
                   <MachineRow
                     key={row.key}
                     row={row}
                     unit={unit}
-                    delayMs={Math.min(i * 35, 500)}
+                    delayMs={
+                      skipped ? 0 : Math.min(i * 110, 2400)
+                    }
                     isChampion={summary.champion?.key === row.key}
                   />
                 ))}
@@ -286,9 +407,20 @@ export function WeeklySummaryPage() {
                   Aún no hay máquinas en la rutina ni series esta semana.
                 </p>
               ) : null}
+            </div>
+          ) : stage === 'counts' || stage === 'champion' ? (
+            <p className="weekly-wait-hint" aria-live="polite">
+              {stage === 'counts'
+                ? 'Contando la semana…'
+                : 'Eligiendo al campeón…'}
+            </p>
+          ) : null}
 
+          {showActions ? (
+            <div className="weekly-actions-enter">
               <Button
                 fullWidth
+                className={copyDone ? 'weekly-copy--done' : ''}
                 disabled={copyBusy}
                 onClick={() => void handleCopy()}
               >
@@ -300,7 +432,7 @@ export function WeeklySummaryPage() {
               </Button>
             </div>
           ) : null}
-        </>
+        </div>
       ) : null}
     </div>
   )
