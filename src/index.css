@@ -4420,8 +4420,19 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 
 .weekly-home-card__icon {
   flex-shrink: 0;
-  font-size: 1.35rem;
-  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: 0.85rem;
+  background: color-mix(in srgb, white 10%, transparent);
+}
+
+.weekly-summary-icon {
+  width: 1.7rem;
+  height: 1.7rem;
+  display: block;
 }
 
 .weekly-home-card__copy {

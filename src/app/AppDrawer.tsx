@@ -238,7 +238,7 @@ export function AppDrawer({
                   onClick={() => go('/temporizador')}
                 />
                 <DrawerActionItem
-                  icon="📊"
+                  icon="👑"
                   label="Resumen semanal"
                   subtitle="Subidas y bajadas vs semana pasada"
                   onClick={() => go('/historial/resumen-semanal')}

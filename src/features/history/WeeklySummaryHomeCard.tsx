@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { getWeeklyTrainingProgress } from '../../db/repository'
+import { WeeklySummaryIcon } from './WeeklySummaryIcon'
 
 interface WeeklySummaryHomeCardProps {
   /** Se recalcula al terminar un entreno, etc. */
@@ -47,7 +48,7 @@ export function WeeklySummaryHomeCard({
   return (
     <Link to="/historial/resumen-semanal" className="weekly-home-card">
       <span className="weekly-home-card__icon" aria-hidden>
-        📊
+        <WeeklySummaryIcon />
       </span>
       <span className="weekly-home-card__copy">
         <span className="weekly-home-card__title">Resumen semanal</span>
