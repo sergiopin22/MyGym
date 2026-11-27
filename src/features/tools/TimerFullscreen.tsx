@@ -41,6 +41,11 @@ const DEBRIS = [
 ] as const
 
 function stampFor(design: TimerDesignId, phase: 'running' | 'done', final: boolean) {
+  if (design === 'temach-logo') {
+    if (phase === 'done') return 'GO'
+    if (final) return 'FOCUS'
+    return 'TEMACH'
+  }
   if (design === 'temach') {
     if (phase === 'done') return 'TEMACH'
     if (final) return 'DISCIPLINA'
@@ -52,14 +57,18 @@ function stampFor(design: TimerDesignId, phase: 'running' | 'done', final: boole
 }
 
 function doneLabel(design: TimerDesignId) {
-  return design === 'temach' ? 'GUERRA' : 'ENGAGE'
+  if (design === 'temach-logo') return 'GO'
+  if (design === 'temach') return 'GUERRA'
+  return 'ENGAGE'
 }
 
 function metaPrefix(design: TimerDesignId) {
-  return design === 'temach' ? 'TEMACH' : 'WAR'
+  if (design === 'temach-logo') return 'TEMACH'
+  if (design === 'temach') return 'TEMACH'
+  return 'WAR'
 }
 
-/** Pantalla completa del timer: Temach o campo de batalla. */
+/** Pantalla completa del timer: Temach logo, Temach guerra o campo de batalla. */
 export function TimerFullscreen({
   phase,
   elapsedSec,
@@ -80,6 +89,8 @@ export function TimerFullscreen({
   const ring = 2 * Math.PI * 54
   const dash = ring * (1 - progress)
   const stamp = stampFor(design, phase, inFinalTicks)
+  const showLogo = design === 'temach-logo'
+  const showBattleFx = design !== 'temach-logo'
 
   return (
     <div
@@ -102,26 +113,44 @@ export function TimerFullscreen({
       }
     >
       <div className="timer-fs__soot" aria-hidden />
-      <div className="timer-fs__embers" aria-hidden />
-      <div className="timer-fs__heat" aria-hidden />
-      <div className="timer-fs__mist" aria-hidden />
+      {showBattleFx ? (
+        <>
+          <div className="timer-fs__embers" aria-hidden />
+          <div className="timer-fs__heat" aria-hidden />
+          <div className="timer-fs__mist" aria-hidden />
+        </>
+      ) : null}
       <div className="timer-fs__grain" aria-hidden />
       <div className="timer-fs__scan" aria-hidden />
       <div className="timer-fs__vignette" aria-hidden />
 
-      <div className="timer-fs__hazard" aria-hidden>
-        <span className="timer-fs__hazard-band" />
-        <span className="timer-fs__hazard-glow" />
-      </div>
+      {showBattleFx ? (
+        <>
+          <div className="timer-fs__hazard" aria-hidden>
+            <span className="timer-fs__hazard-band" />
+            <span className="timer-fs__hazard-glow" />
+          </div>
+          <div className="timer-fs__ash" aria-hidden>
+            {DEBRIS.map((id) => (
+              <span
+                key={id}
+                className={`timer-fs__debris timer-fs__debris--${id}`}
+              />
+            ))}
+          </div>
+        </>
+      ) : null}
 
-      <div className="timer-fs__ash" aria-hidden>
-        {DEBRIS.map((id) => (
-          <span
-            key={id}
-            className={`timer-fs__debris timer-fs__debris--${id}`}
+      {showLogo ? (
+        <div className="timer-fs__logo-wrap" aria-hidden>
+          <img
+            className="timer-fs__logo"
+            src="/brand/temach-logo.svg"
+            alt=""
+            draggable={false}
           />
-        ))}
-      </div>
+        </div>
+      ) : null}
 
       <div className="timer-fs__frame" aria-hidden>
         <span className="timer-fs__corner timer-fs__corner--tl" />

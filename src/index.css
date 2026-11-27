@@ -5399,6 +5399,158 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   margin: 0;
 }
 
+/* Variante: Temach logo — negro + logo blanco */
+.timer-fs--temach-logo {
+  background: #000;
+  color: #fff;
+}
+
+.timer-fs--temach-logo.timer-fs--final,
+.timer-fs--temach-logo.timer-fs--done {
+  background: #000;
+}
+
+.timer-fs--temach-logo .timer-fs__soot,
+.timer-fs--temach-logo .timer-fs__embers,
+.timer-fs--temach-logo .timer-fs__heat,
+.timer-fs--temach-logo .timer-fs__mist,
+.timer-fs--temach-logo .timer-fs__hazard,
+.timer-fs--temach-logo .timer-fs__ash {
+  display: none;
+}
+
+.timer-fs--temach-logo .timer-fs__grain {
+  opacity: 0.1;
+}
+
+.timer-fs--temach-logo .timer-fs__scan {
+  opacity: 0.06;
+}
+
+.timer-fs--temach-logo .timer-fs__vignette {
+  box-shadow: inset 0 0 140px 48px #000;
+}
+
+.timer-fs__logo-wrap {
+  position: absolute;
+  top: max(3.4rem, calc(env(safe-area-inset-top) + 2.4rem));
+  left: 50%;
+  z-index: 5;
+  width: min(42vw, 9.5rem);
+  transform: translateX(-50%);
+  pointer-events: none;
+  opacity: 0.92;
+}
+
+.timer-fs--running .timer-fs__logo-wrap {
+  animation: timer-fs-breathe 2.8s ease-in-out infinite;
+}
+
+.timer-fs--final .timer-fs__logo-wrap,
+.timer-fs--done .timer-fs__logo-wrap {
+  opacity: 1;
+  animation: timer-fs-stamp-flash 0.55s steps(2) infinite;
+}
+
+.timer-fs__logo {
+  display: block;
+  width: 100%;
+  height: auto;
+  filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.18));
+}
+
+.timer-fs--temach-logo .timer-fs__frame {
+  border-color: #ffffff33;
+}
+
+.timer-fs--temach-logo .timer-fs__corner {
+  border-color: #fff;
+}
+
+.timer-fs--temach-logo .timer-fs__stamp {
+  border-color: #ffffffaa;
+  color: #fff;
+  background: transparent;
+  mix-blend-mode: normal;
+}
+
+.timer-fs--temach-logo.timer-fs--final .timer-fs__stamp,
+.timer-fs--temach-logo.timer-fs--done .timer-fs__stamp {
+  color: #000;
+  border-color: #fff;
+  background: #fff;
+}
+
+.timer-fs--temach-logo .timer-fs__kicker {
+  color: #fff;
+  text-shadow: 1px 1px 0 #000;
+  margin-top: min(18vh, 8.5rem);
+}
+
+.timer-fs--temach-logo .timer-fs__meta {
+  color: #bdbdbd;
+}
+
+.timer-fs--temach-logo .timer-fs__stage-glow {
+  background: radial-gradient(circle, #ffffff18, transparent 68%);
+}
+
+.timer-fs--temach-logo .timer-fs__ring {
+  filter: drop-shadow(0 0 10px #ffffff55);
+}
+
+.timer-fs--temach-logo .timer-fs__ring-track {
+  stroke: #2a2a2a;
+}
+
+.timer-fs--temach-logo .timer-fs__ring-value {
+  stroke: #fff;
+}
+
+.timer-fs--temach-logo.timer-fs--final .timer-fs__ring-value,
+.timer-fs--temach-logo.timer-fs--done .timer-fs__ring-value {
+  stroke: #fff;
+  filter: drop-shadow(0 0 12px #fff);
+}
+
+.timer-fs--temach-logo .timer-fs__clock {
+  color: #fff;
+  text-shadow:
+    0 0 1px #fff,
+    2px 0 0 #ffffff33,
+    -2px 0 0 #ffffff22,
+    0 0 22px #ffffff66;
+}
+
+.timer-fs--temach-logo.timer-fs--final .timer-fs__clock,
+.timer-fs--temach-logo.timer-fs--done .timer-fs__clock {
+  color: #fff;
+  text-shadow:
+    0 0 3px #fff,
+    3px 0 0 #ffffff55,
+    -3px 0 0 #ffffff33,
+    0 0 28px #ffffff88;
+}
+
+.timer-fs--temach-logo .timer-fs__primary {
+  border-color: #fff;
+  background: #fff;
+  color: #000;
+  box-shadow:
+    0 0 0 1px #000,
+    0 0 24px #ffffff33,
+    inset 0 1px 0 #ffffff88;
+}
+
+.timer-fs--temach-logo .timer-fs__secondary {
+  border-color: #ffffff55;
+  color: #fff;
+}
+
+.timer-fs--temach-logo .timer-fs__footer {
+  color: #8a8a8a;
+}
+
 /* Variante: campo de batalla (óxidos / escombros) */
 .timer-fs--war {
   color: #ffe4e6;
@@ -5653,6 +5805,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   .timer-fs__debris,
   .timer-fs__grain,
   .timer-fs__stamp,
+  .timer-fs__logo-wrap,
   .timer-fs__stage-glow,
   .timer-fs__ring,
   .timer-fs__clock {

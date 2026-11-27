@@ -11,7 +11,7 @@ export const REST_PRESETS = [120, 180, 240, 300] as const
 export const FINAL_TICK_SECONDS = 5
 
 export type TimerToneId = 'beep' | 'bell'
-export type TimerDesignId = 'temach' | 'war'
+export type TimerDesignId = 'temach-logo' | 'temach' | 'war'
 
 export const TIMER_TONES: Array<{ id: TimerToneId; label: string }> = [
   { id: 'beep', label: 'Beep' },
@@ -24,8 +24,13 @@ export const TIMER_DESIGNS: Array<{
   tagline: string
 }> = [
   {
+    id: 'temach-logo',
+    label: 'Temach Logo',
+    tagline: 'Negro · logo blanco',
+  },
+  {
     id: 'temach',
-    label: 'Temach',
+    label: 'Temach Guerra',
     tagline: 'Modo guerra · negro · rojo · blanco',
   },
   {
@@ -35,7 +40,7 @@ export const TIMER_DESIGNS: Array<{
   },
 ]
 
-export const DEFAULT_TIMER_DESIGN: TimerDesignId = 'temach'
+export const DEFAULT_TIMER_DESIGN: TimerDesignId = 'temach-logo'
 
 function clampRestSeconds(sec: number): number {
   if (!Number.isFinite(sec)) return DEFAULT_REST_SECONDS
@@ -103,11 +108,17 @@ export function setTimerSoundEnabled(on: boolean): void {
 }
 
 export function isTimerDesignId(value: string): value is TimerDesignId {
-  return value === 'temach' || value === 'war'
+  return value === 'temach-logo' || value === 'temach' || value === 'war'
 }
 
 export function getTimerDesign(): TimerDesignId {
   try {
+    // Una vez: nuevo diseño logo blanco como preferido.
+    if (!localStorage.getItem('mi-gym-timer-design-logo-v1')) {
+      localStorage.setItem('mi-gym-timer-design-logo-v1', '1')
+      localStorage.setItem(TIMER_DESIGN_KEY, DEFAULT_TIMER_DESIGN)
+      return DEFAULT_TIMER_DESIGN
+    }
     const raw = localStorage.getItem(TIMER_DESIGN_KEY)
     if (raw && isTimerDesignId(raw)) return raw
   } catch {
