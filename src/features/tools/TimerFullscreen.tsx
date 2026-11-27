@@ -13,7 +13,28 @@ interface TimerFullscreenProps {
   footer?: ReactNode
 }
 
-/** Pantalla completa underground: hazard, ceniza, grano, stencil. */
+const DEBRIS = [
+  'a',
+  'b',
+  'c',
+  'd',
+  'e',
+  'f',
+  'g',
+  'h',
+  'i',
+  'j',
+  'k',
+  'l',
+  'm',
+  'n',
+  'o',
+  'p',
+  'q',
+  'r',
+] as const
+
+/** Pantalla completa modo guerra: campo de batalla, hazard, escombros. */
 export function TimerFullscreen({
   phase,
   elapsedSec,
@@ -32,12 +53,13 @@ export function TimerFullscreen({
   const ring = 2 * Math.PI * 54
   const dash = ring * (1 - progress)
   const stamp =
-    phase === 'done' ? 'ROUND OVER' : inFinalTicks ? 'LAST SECONDS' : 'UNDERGROUND'
+    phase === 'done' ? 'ENGAGE' : inFinalTicks ? 'CRITICAL' : 'WAR MODE'
 
   return (
     <div
       className={[
         'timer-fs',
+        'timer-fs--war',
         phase === 'done' ? 'timer-fs--done' : '',
         phase === 'running' ? 'timer-fs--running' : '',
         inFinalTicks ? 'timer-fs--final' : '',
@@ -55,6 +77,7 @@ export function TimerFullscreen({
       <div className="timer-fs__soot" aria-hidden />
       <div className="timer-fs__embers" aria-hidden />
       <div className="timer-fs__heat" aria-hidden />
+      <div className="timer-fs__mist" aria-hidden />
       <div className="timer-fs__grain" aria-hidden />
       <div className="timer-fs__scan" aria-hidden />
       <div className="timer-fs__vignette" aria-hidden />
@@ -65,14 +88,12 @@ export function TimerFullscreen({
       </div>
 
       <div className="timer-fs__ash" aria-hidden>
-        <span className="timer-fs__spark timer-fs__spark--a" />
-        <span className="timer-fs__spark timer-fs__spark--b" />
-        <span className="timer-fs__spark timer-fs__spark--c" />
-        <span className="timer-fs__spark timer-fs__spark--d" />
-        <span className="timer-fs__spark timer-fs__spark--e" />
-        <span className="timer-fs__spark timer-fs__spark--f" />
-        <span className="timer-fs__spark timer-fs__spark--g" />
-        <span className="timer-fs__spark timer-fs__spark--h" />
+        {DEBRIS.map((id) => (
+          <span
+            key={id}
+            className={`timer-fs__debris timer-fs__debris--${id}`}
+          />
+        ))}
       </div>
 
       <div className="timer-fs__frame" aria-hidden>
@@ -87,10 +108,10 @@ export function TimerFullscreen({
       </p>
 
       <p className="timer-fs__kicker">
-        {phase === 'done' ? 'GO' : title.toUpperCase()}
+        {phase === 'done' ? 'ENGAGE' : title.toUpperCase()}
       </p>
       <p className="timer-fs__meta">
-        REST // {formatRestTargetLabel(targetSec).toUpperCase()}
+        WAR // {formatRestTargetLabel(targetSec).toUpperCase()}
         {phase === 'running'
           ? ` // ${formatRestClock(remaining)} LEFT`
           : null}
