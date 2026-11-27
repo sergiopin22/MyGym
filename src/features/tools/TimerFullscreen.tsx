@@ -5,6 +5,7 @@ import {
   getTimerDesign,
   type TimerDesignId,
 } from '../../utils/restTimer'
+import { ippoRingQuote, ippoRingStamp } from './ippoRingCopy'
 import { TemachLogoMark } from './TemachLogoMark'
 import { temachWarQuote, temachWarStamp } from './temachWarCopy'
 
@@ -43,6 +44,7 @@ const DEBRIS = [
 ] as const
 
 function stampFor(design: TimerDesignId, phase: 'running' | 'done', final: boolean) {
+  if (design === 'ippo') return ippoRingStamp(phase, final)
   if (design === 'temach' || design === 'temach-logo') {
     return temachWarStamp(phase, final)
   }
@@ -52,12 +54,13 @@ function stampFor(design: TimerDesignId, phase: 'running' | 'done', final: boole
 }
 
 function doneLabel(design: TimerDesignId) {
+  if (design === 'ippo') return 'BELL'
   if (design === 'temach') return 'VICTORIOSO'
   if (design === 'temach-logo') return 'GO'
   return 'ENGAGE'
 }
 
-/** Pantalla completa del timer: Temach logo, Temach guerra o campo de batalla. */
+/** Pantalla completa del timer: Ippo, Temach o campo de batalla. */
 export function TimerFullscreen({
   phase,
   elapsedSec,
@@ -78,16 +81,26 @@ export function TimerFullscreen({
   const ring = 2 * Math.PI * 54
   const dash = ring * (1 - progress)
   const stamp = stampFor(design, phase, inFinalTicks)
+  const isIppo = design === 'ippo'
   const isTemachWar = design === 'temach'
   const isTemachLogo = design === 'temach-logo'
-  const showLogo = isTemachWar || isTemachLogo
-  const showBattleFx = !isTemachLogo
+  const showTemachLogo = isTemachWar || isTemachLogo
+  const showBattleFx = isTemachWar || design === 'war'
+  const showFrameStamp = showBattleFx || isIppo
+
   const warQuote =
     phase === 'done'
       ? 'Exhausto y victorioso'
       : inFinalTicks
         ? 'Disciplina > motivación'
         : temachWarQuote(elapsedSec)
+
+  const ippoQuote =
+    phase === 'done'
+      ? '¡El espíritu de lucha!'
+      : inFinalTicks
+        ? 'Último round'
+        : ippoRingQuote(elapsedSec)
 
   return (
     <div
@@ -121,6 +134,7 @@ export function TimerFullscreen({
       ) : null}
       <div className="timer-fs__vignette" aria-hidden />
       {isTemachWar ? <div className="timer-fs__war-flash" aria-hidden /> : null}
+      {isIppo ? <div className="timer-fs__ippo-flash" aria-hidden /> : null}
 
       {showBattleFx ? (
         <>
@@ -139,7 +153,15 @@ export function TimerFullscreen({
         </>
       ) : null}
 
-      {showBattleFx ? (
+      {isIppo ? (
+        <div className="timer-fs__ropes" aria-hidden>
+          <span />
+          <span />
+          <span />
+        </div>
+      ) : null}
+
+      {showFrameStamp ? (
         <div className="timer-fs__frame" aria-hidden>
           <span className="timer-fs__corner timer-fs__corner--tl" />
           <span className="timer-fs__corner timer-fs__corner--tr" />
@@ -148,7 +170,7 @@ export function TimerFullscreen({
         </div>
       ) : null}
 
-      {showBattleFx ? (
+      {showFrameStamp ? (
         <p className="timer-fs__stamp" aria-hidden>
           {stamp}
         </p>
@@ -160,7 +182,7 @@ export function TimerFullscreen({
         </div>
       ) : null}
 
-      {showLogo ? (
+      {showTemachLogo ? (
         <div
           className={
             isTemachWar
@@ -178,7 +200,33 @@ export function TimerFullscreen({
         </div>
       ) : null}
 
-      {isTemachWar ? (
+      {isIppo ? (
+        <div className="timer-fs__ippo-gif-wrap">
+          <img
+            className="timer-fs__ippo-gif"
+            src="/brand/ippo-makunouchi.gif"
+            alt="Ippo Makunouchi"
+            draggable={false}
+            decoding="async"
+          />
+        </div>
+      ) : null}
+
+      {isIppo ? (
+        <div className="timer-fs__ippo-head">
+          <p className="timer-fs__ippo-title">
+            {phase === 'done' ? 'BELL' : 'IPPO'}
+          </p>
+          <p className="timer-fs__ippo-gym">KAMOGAWA BOXING GYM</p>
+          <p
+            key={ippoQuote}
+            className="timer-fs__ippo-quote"
+            aria-live="polite"
+          >
+            {ippoQuote}
+          </p>
+        </div>
+      ) : isTemachWar ? (
         <div className="timer-fs__war-head">
           <p className="timer-fs__war-title">MODO GUERRA</p>
           <p className="timer-fs__war-army">EJÉRCITO DE LOS COMPAS</p>
@@ -197,23 +245,29 @@ export function TimerFullscreen({
       ) : null}
 
       <p className="timer-fs__meta">
-        {isTemachWar
-          ? `COMPA · ${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
+        {isIppo
+          ? `ROUND · ${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
               phase === 'running'
                 ? ` · ${formatRestClock(remaining)} LEFT`
                 : ''
             }`
-          : isTemachLogo
-            ? `${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
+          : isTemachWar
+            ? `COMPA · ${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
                 phase === 'running'
                   ? ` · ${formatRestClock(remaining)} LEFT`
                   : ''
               }`
-            : `WAR // ${formatRestTargetLabel(targetSec).toUpperCase()}${
-                phase === 'running'
-                  ? ` // ${formatRestClock(remaining)} LEFT`
-                  : ''
-              }`}
+            : isTemachLogo
+              ? `${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
+                  phase === 'running'
+                    ? ` · ${formatRestClock(remaining)} LEFT`
+                    : ''
+                }`
+              : `WAR // ${formatRestTargetLabel(targetSec).toUpperCase()}${
+                  phase === 'running'
+                    ? ` // ${formatRestClock(remaining)} LEFT`
+                    : ''
+                }`}
       </p>
 
       <div className="timer-fs__stage">

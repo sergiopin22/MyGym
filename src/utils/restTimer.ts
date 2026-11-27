@@ -11,7 +11,7 @@ export const REST_PRESETS = [120, 180, 240, 300] as const
 export const FINAL_TICK_SECONDS = 5
 
 export type TimerToneId = 'beep' | 'bell'
-export type TimerDesignId = 'temach-logo' | 'temach' | 'war'
+export type TimerDesignId = 'ippo' | 'temach-logo' | 'temach' | 'war'
 
 export const TIMER_TONES: Array<{ id: TimerToneId; label: string }> = [
   { id: 'beep', label: 'Beep' },
@@ -23,6 +23,11 @@ export const TIMER_DESIGNS: Array<{
   label: string
   tagline: string
 }> = [
+  {
+    id: 'ippo',
+    label: 'Ippo',
+    tagline: 'Kamogawa Gym · Makunouchi · espíritu de lucha',
+  },
   {
     id: 'temach',
     label: 'Modo Guerra Temach',
@@ -40,7 +45,7 @@ export const TIMER_DESIGNS: Array<{
   },
 ]
 
-export const DEFAULT_TIMER_DESIGN: TimerDesignId = 'temach'
+export const DEFAULT_TIMER_DESIGN: TimerDesignId = 'ippo'
 
 function clampRestSeconds(sec: number): number {
   if (!Number.isFinite(sec)) return DEFAULT_REST_SECONDS
@@ -108,16 +113,21 @@ export function setTimerSoundEnabled(on: boolean): void {
 }
 
 export function isTimerDesignId(value: string): value is TimerDesignId {
-  return value === 'temach-logo' || value === 'temach' || value === 'war'
+  return (
+    value === 'ippo' ||
+    value === 'temach-logo' ||
+    value === 'temach' ||
+    value === 'war'
+  )
 }
 
 export function getTimerDesign(): TimerDesignId {
   try {
-    // Preferir Modo Guerra Temach (logo + frases + estética guerra).
-    if (!localStorage.getItem('mi-gym-timer-design-war-v3')) {
-      localStorage.setItem('mi-gym-timer-design-war-v3', '1')
-      localStorage.setItem(TIMER_DESIGN_KEY, 'temach')
-      return 'temach'
+    // Preferir modo Ippo (GIF Makunouchi + Kamogawa).
+    if (!localStorage.getItem('mi-gym-timer-design-ippo-v1')) {
+      localStorage.setItem('mi-gym-timer-design-ippo-v1', '1')
+      localStorage.setItem(TIMER_DESIGN_KEY, 'ippo')
+      return 'ippo'
     }
     const raw = localStorage.getItem(TIMER_DESIGN_KEY)
     if (raw && isTimerDesignId(raw)) return raw
