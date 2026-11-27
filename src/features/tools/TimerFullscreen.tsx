@@ -143,12 +143,39 @@ export function TimerFullscreen({
 
       {showLogo ? (
         <div className="timer-fs__logo-wrap" aria-hidden>
-          <img
+          <svg
             className="timer-fs__logo"
-            src="/brand/temach-logo.svg"
-            alt=""
-            draggable={false}
-          />
+            viewBox="0 0 320 360"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <g stroke="currentColor" strokeLinecap="square" strokeLinejoin="miter">
+              <circle cx="160" cy="150" r="118" strokeWidth="8" />
+              <path d="M160 48 L248 226 L72 226 Z" strokeWidth="8" />
+              <g strokeWidth="16">
+                <path d="M118 96 V198" />
+                <path d="M118 96 H158" />
+                <path d="M118 140 H152" />
+                <path d="M118 198 H158" />
+                <path d="M168 96 V198" />
+                <path d="M168 96 H208" />
+                <path d="M168 140 H202" />
+                <path d="M168 198 H208" />
+              </g>
+            </g>
+            <text
+              x="160"
+              y="318"
+              textAnchor="middle"
+              fill="currentColor"
+              fontFamily="var(--font-display), Arial Black, Impact, sans-serif"
+              fontSize="48"
+              fontWeight="900"
+              letterSpacing="0.2em"
+            >
+              TEMACH
+            </text>
+          </svg>
         </div>
       ) : null}
 
