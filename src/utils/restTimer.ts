@@ -11,7 +11,12 @@ export const REST_PRESETS = [120, 180, 240, 300] as const
 export const FINAL_TICK_SECONDS = 5
 
 export type TimerToneId = 'beep' | 'bell'
-export type TimerDesignId = 'ippo' | 'temach-logo' | 'temach' | 'war'
+export type TimerDesignId =
+  | 'custom'
+  | 'ippo'
+  | 'temach-logo'
+  | 'temach'
+  | 'war'
 
 export const TIMER_TONES: Array<{ id: TimerToneId; label: string }> = [
   { id: 'beep', label: 'Beep' },
@@ -23,6 +28,11 @@ export const TIMER_DESIGNS: Array<{
   label: string
   tagline: string
 }> = [
+  {
+    id: 'custom',
+    label: 'Mi diseño',
+    tagline: 'GIF, colores y textos que tú eliges',
+  },
   {
     id: 'ippo',
     label: 'Ippo',
@@ -114,6 +124,7 @@ export function setTimerSoundEnabled(on: boolean): void {
 
 export function isTimerDesignId(value: string): value is TimerDesignId {
   return (
+    value === 'custom' ||
     value === 'ippo' ||
     value === 'temach-logo' ||
     value === 'temach' ||

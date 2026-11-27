@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { getTimerCustomGif } from '../../db/timerCustomSkin'
 import {
   formatRestClock,
   formatRestTargetLabel,
@@ -8,6 +9,11 @@ import {
 import { ippoRingQuote, ippoRingStamp } from './ippoRingCopy'
 import { TemachLogoMark } from './TemachLogoMark'
 import { temachWarQuote, temachWarStamp } from './temachWarCopy'
+import {
+  customSkinQuote,
+  getActiveCustomSkin,
+  type TimerCustomSkinMeta,
+} from './timerCustomSkin'
 
 interface TimerFullscreenProps {
   phase: 'running' | 'done'
@@ -43,7 +49,29 @@ const DEBRIS = [
   'r',
 ] as const
 
-function stampFor(design: TimerDesignId, phase: 'running' | 'done', final: boolean) {
+const FALLBACK_CUSTOM: TimerCustomSkinMeta = {
+  id: '',
+  name: 'Mi diseño',
+  accent: '#e10600',
+  title: 'MI ROUND',
+  subtitle: 'PERSONAL',
+  quotes: ['Disciplina > motivación', 'Un round más', 'Sigue adelante'],
+  scene: 'clean',
+  anim: 'combo',
+  hasGif: false,
+  updatedAt: 0,
+}
+
+function stampFor(
+  design: TimerDesignId,
+  phase: 'running' | 'done',
+  final: boolean,
+) {
+  if (design === 'custom') {
+    if (phase === 'done') return 'GO'
+    if (final) return 'CRITICAL'
+    return 'ROUND'
+  }
   if (design === 'ippo') return ippoRingStamp(phase, final)
   if (design === 'temach' || design === 'temach-logo') {
     return temachWarStamp(phase, final)
@@ -57,10 +85,11 @@ function doneLabel(design: TimerDesignId) {
   if (design === 'ippo') return 'BELL'
   if (design === 'temach') return 'VICTORIOSO'
   if (design === 'temach-logo') return 'GO'
+  if (design === 'custom') return 'GO'
   return 'ENGAGE'
 }
 
-/** Pantalla completa del timer: Ippo, Temach o campo de batalla. */
+/** Pantalla completa del timer: custom, Ippo, Temach o campo de batalla. */
 export function TimerFullscreen({
   phase,
   elapsedSec,
@@ -81,12 +110,48 @@ export function TimerFullscreen({
   const ring = 2 * Math.PI * 54
   const dash = ring * (1 - progress)
   const stamp = stampFor(design, phase, inFinalTicks)
+  const isCustom = design === 'custom'
   const isIppo = design === 'ippo'
   const isTemachWar = design === 'temach'
   const isTemachLogo = design === 'temach-logo'
   const showTemachLogo = isTemachWar || isTemachLogo
-  const showBattleFx = isTemachWar || design === 'war'
-  const showFrameStamp = showBattleFx || isIppo
+  const customSkin = isCustom
+    ? (getActiveCustomSkin() ?? FALLBACK_CUSTOM)
+    : null
+  const showBattleFx =
+    isTemachWar ||
+    design === 'war' ||
+    (isCustom && customSkin?.scene === 'war')
+  const showRopes = isIppo || (isCustom && customSkin?.scene === 'ring')
+  const showFrameStamp =
+    showBattleFx || isIppo || (isCustom && customSkin?.scene !== 'clean')
+  const customAnim = customSkin?.anim ?? 'none'
+  const showCustomFlash = isCustom && customAnim === 'combo'
+  const [customGifUrl, setCustomGifUrl] = useState<string | null>(null)
+  const [customGifMime, setCustomGifMime] = useState('image/gif')
+
+  useEffect(() => {
+    if (!isCustom || !customSkin?.id) {
+      setCustomGifUrl(null)
+      return
+    }
+    let url: string | null = null
+    let alive = true
+    void getTimerCustomGif(customSkin.id).then((row) => {
+      if (!alive) return
+      if (!row) {
+        setCustomGifUrl(null)
+        return
+      }
+      url = URL.createObjectURL(row.blob)
+      setCustomGifUrl(url)
+      setCustomGifMime(row.mimeType || row.blob.type || 'image/gif')
+    })
+    return () => {
+      alive = false
+      if (url) URL.revokeObjectURL(url)
+    }
+  }, [isCustom, customSkin?.id])
 
   const warQuote =
     phase === 'done'
@@ -102,17 +167,34 @@ export function TimerFullscreen({
         ? 'Último round'
         : ippoRingQuote(elapsedSec)
 
+  const customQuote = customSkin
+    ? customSkinQuote(
+        customSkin,
+        elapsedSec,
+        phase,
+        inFinalTicks,
+      )
+    : ''
+
+  const customStyle =
+    isCustom && customSkin
+      ? ({ '--timer-accent': customSkin.accent } as CSSProperties)
+      : undefined
+
   return (
     <div
       className={[
         'timer-fs',
         `timer-fs--${design}`,
+        isCustom && customSkin ? `timer-fs--custom-scene-${customSkin.scene}` : '',
+        isCustom ? `timer-fs--custom-anim-${customAnim}` : '',
         phase === 'done' ? 'timer-fs--done' : '',
         phase === 'running' ? 'timer-fs--running' : '',
         inFinalTicks ? 'timer-fs--final' : '',
       ]
         .filter(Boolean)
         .join(' ')}
+      style={customStyle}
       data-timer-design={design}
       role="dialog"
       aria-modal="true"
@@ -133,7 +215,9 @@ export function TimerFullscreen({
         </>
       ) : null}
       <div className="timer-fs__vignette" aria-hidden />
-      {isTemachWar ? <div className="timer-fs__war-flash" aria-hidden /> : null}
+      {isTemachWar || showCustomFlash ? (
+        <div className="timer-fs__war-flash" aria-hidden />
+      ) : null}
       {isIppo ? <div className="timer-fs__ippo-flash" aria-hidden /> : null}
 
       {showBattleFx ? (
@@ -153,7 +237,7 @@ export function TimerFullscreen({
         </>
       ) : null}
 
-      {isIppo ? (
+      {showRopes ? (
         <div className="timer-fs__ropes" aria-hidden>
           <span />
           <span />
@@ -212,7 +296,46 @@ export function TimerFullscreen({
         </div>
       ) : null}
 
-      {isIppo ? (
+      {isCustom && customGifUrl ? (
+        <div className="timer-fs__custom-gif-wrap">
+          {customGifMime.startsWith('video/') ? (
+            <video
+              className="timer-fs__custom-gif"
+              src={customGifUrl}
+              muted
+              loop
+              autoPlay
+              playsInline
+            />
+          ) : (
+            <img
+              className="timer-fs__custom-gif"
+              src={customGifUrl}
+              alt=""
+              draggable={false}
+              decoding="async"
+            />
+          )}
+        </div>
+      ) : null}
+
+      {isCustom && customSkin ? (
+        <div className="timer-fs__custom-head">
+          <p className="timer-fs__custom-title">
+            {phase === 'done' ? 'GO' : customSkin.title}
+          </p>
+          {customSkin.subtitle ? (
+            <p className="timer-fs__custom-sub">{customSkin.subtitle}</p>
+          ) : null}
+          <p
+            key={customQuote}
+            className="timer-fs__custom-quote"
+            aria-live="polite"
+          >
+            {customQuote}
+          </p>
+        </div>
+      ) : isIppo ? (
         <div className="timer-fs__ippo-head">
           <p className="timer-fs__ippo-title">
             {phase === 'done' ? 'BELL' : 'IPPO'}
@@ -245,29 +368,35 @@ export function TimerFullscreen({
       ) : null}
 
       <p className="timer-fs__meta">
-        {isIppo
-          ? `ROUND · ${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
+        {isCustom
+          ? `${(customSkin?.name ?? 'CUSTOM').toUpperCase()} · ${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
               phase === 'running'
                 ? ` · ${formatRestClock(remaining)} LEFT`
                 : ''
             }`
-          : isTemachWar
-            ? `COMPA · ${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
+          : isIppo
+            ? `ROUND · ${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
                 phase === 'running'
                   ? ` · ${formatRestClock(remaining)} LEFT`
                   : ''
               }`
-            : isTemachLogo
-              ? `${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
+            : isTemachWar
+              ? `COMPA · ${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
                   phase === 'running'
                     ? ` · ${formatRestClock(remaining)} LEFT`
                     : ''
                 }`
-              : `WAR // ${formatRestTargetLabel(targetSec).toUpperCase()}${
-                  phase === 'running'
-                    ? ` // ${formatRestClock(remaining)} LEFT`
-                    : ''
-                }`}
+              : isTemachLogo
+                ? `${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
+                    phase === 'running'
+                      ? ` · ${formatRestClock(remaining)} LEFT`
+                      : ''
+                  }`
+                : `WAR // ${formatRestTargetLabel(targetSec).toUpperCase()}${
+                    phase === 'running'
+                      ? ` // ${formatRestClock(remaining)} LEFT`
+                      : ''
+                  }`}
       </p>
 
       <div className="timer-fs__stage">

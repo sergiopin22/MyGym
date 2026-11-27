@@ -6326,6 +6326,233 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   }
 }
 
+/* Variante: diseño custom (GIF + acento + textos) */
+.timer-fs--custom {
+  --timer-accent: #e10600;
+  justify-content: flex-start;
+  gap: 0.4rem;
+  padding-top: max(2.4rem, calc(env(safe-area-inset-top) + 1.4rem));
+}
+
+.timer-fs--custom .timer-fs__soot {
+  background:
+    radial-gradient(ellipse 90% 70% at 50% 0%, #1a1a1acc, transparent 55%),
+    #050505;
+}
+
+.timer-fs--custom .timer-fs__vignette {
+  background: radial-gradient(ellipse at center, transparent 40%, #000000aa 100%);
+}
+
+.timer-fs__custom-gif-wrap {
+  position: relative;
+  z-index: 8;
+  width: min(42vw, 8.5rem);
+  aspect-ratio: 1;
+  margin: 0.15rem 0 0.35rem;
+  overflow: hidden;
+  border-radius: 1rem;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--timer-accent) 55%, transparent),
+    0 10px 28px #000000aa;
+}
+
+.timer-fs--running .timer-fs__custom-gif-wrap {
+  animation: timer-fs-war-logo-hit 2.8s ease-in-out infinite;
+}
+
+.timer-fs--custom-anim-none.timer-fs--running .timer-fs__custom-gif-wrap,
+.timer-fs--custom-anim-pulse.timer-fs--running .timer-fs__custom-gif-wrap {
+  animation: none;
+}
+
+.timer-fs--final .timer-fs__custom-gif-wrap,
+.timer-fs--done .timer-fs__custom-gif-wrap {
+  animation: timer-fs-war-logo-hit 0.9s ease-in-out infinite;
+}
+
+.timer-fs--custom-anim-none.timer-fs--final .timer-fs__custom-gif-wrap,
+.timer-fs--custom-anim-none.timer-fs--done .timer-fs__custom-gif-wrap,
+.timer-fs--custom-anim-pulse.timer-fs--final .timer-fs__custom-gif-wrap,
+.timer-fs--custom-anim-pulse.timer-fs--done .timer-fs__custom-gif-wrap {
+  animation: none;
+}
+
+.timer-fs__custom-gif {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.timer-fs__custom-head {
+  position: relative;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.28rem;
+  max-width: 22rem;
+  text-align: center;
+}
+
+.timer-fs__custom-title {
+  margin: 0;
+  color: var(--timer-accent);
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 6.5vw, 1.85rem);
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  line-height: 1;
+  text-indent: 0.18em;
+  text-transform: uppercase;
+  text-shadow: 0 0 18px color-mix(in srgb, var(--timer-accent) 45%, transparent);
+}
+
+.timer-fs--custom-anim-combo.timer-fs--running .timer-fs__custom-title,
+.timer-fs--custom-anim-pulse.timer-fs--running .timer-fs__custom-title {
+  animation: timer-fs-custom-pulse 1.35s ease-in-out infinite;
+}
+
+.timer-fs--custom-anim-combo.timer-fs--final .timer-fs__custom-title,
+.timer-fs--custom-anim-pulse.timer-fs--final .timer-fs__custom-title {
+  animation: timer-fs-custom-pulse 0.55s ease-in-out infinite;
+}
+
+.timer-fs--custom-anim-combo.timer-fs--done .timer-fs__custom-title,
+.timer-fs--custom-anim-pulse.timer-fs--done .timer-fs__custom-title {
+  animation: timer-fs-custom-pulse 0.85s ease-in-out infinite;
+}
+
+.timer-fs__custom-sub {
+  margin: 0;
+  color: #fff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.timer-fs__custom-quote {
+  margin: 0.35rem 0 0;
+  max-width: 28ch;
+  color: #cfcfcf;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+  animation: timer-fs-war-stencil 0.38s steps(2, end) both;
+}
+
+.timer-fs--custom-anim-none .timer-fs__custom-quote {
+  animation: none;
+}
+
+.timer-fs--final .timer-fs__custom-quote {
+  color: #fff;
+  text-shadow: 0 0 12px color-mix(in srgb, var(--timer-accent) 55%, transparent);
+}
+
+.timer-fs--custom .timer-fs__meta {
+  z-index: 8;
+  color: color-mix(in srgb, var(--timer-accent) 70%, #fff);
+  font-size: 0.72rem;
+}
+
+.timer-fs--custom .timer-fs__stage {
+  z-index: 8;
+  width: min(58vw, 15rem);
+  margin: 0.25rem 0 0.65rem;
+}
+
+.timer-fs--custom .timer-fs__ring-value {
+  stroke: var(--timer-accent);
+}
+
+.timer-fs--custom.timer-fs--final .timer-fs__ring-value,
+.timer-fs--custom.timer-fs--done .timer-fs__ring-value {
+  stroke: #fff;
+  filter: drop-shadow(0 0 8px var(--timer-accent));
+}
+
+.timer-fs--custom .timer-fs__stamp {
+  border-color: var(--timer-accent);
+  color: var(--timer-accent);
+}
+
+.timer-fs--custom.timer-fs--final .timer-fs__stamp,
+.timer-fs--custom.timer-fs--done .timer-fs__stamp {
+  color: #fff;
+  border-color: var(--timer-accent);
+  background: var(--timer-accent);
+}
+
+.timer-fs--custom .timer-fs__corner {
+  border-color: var(--timer-accent);
+}
+
+.timer-fs--custom .timer-fs__primary {
+  background: var(--timer-accent);
+  color: #0a0a0a;
+  border-color: var(--timer-accent);
+}
+
+.timer-fs--custom .timer-fs__actions {
+  z-index: 8;
+}
+
+.timer-fs--custom-scene-ring .timer-fs__ropes span {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    var(--timer-accent),
+    transparent
+  );
+}
+
+.timer-fs--custom .timer-fs__war-flash {
+  background: radial-gradient(
+    circle at 50% 40%,
+    color-mix(in srgb, var(--timer-accent) 40%, transparent),
+    transparent 62%
+  );
+}
+
+@keyframes timer-fs-custom-pulse {
+  0%,
+  100% {
+    opacity: 0.82;
+    text-shadow: 0 0 12px color-mix(in srgb, var(--timer-accent) 35%, transparent);
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    text-shadow: 0 0 26px color-mix(in srgb, var(--timer-accent) 75%, transparent);
+    transform: scale(1.03);
+  }
+}
+
+@media (max-height: 760px) {
+  .timer-fs__custom-gif-wrap {
+    width: min(32vw, 6.5rem);
+  }
+
+  .timer-fs__custom-title {
+    font-size: 1.2rem;
+  }
+
+  .timer-fs__custom-quote {
+    font-size: 0.82rem;
+  }
+
+  .timer-fs--custom .timer-fs__stage {
+    width: min(48vw, 12.5rem);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .timer-fs__heat,
   .timer-fs__embers,
@@ -6342,6 +6569,9 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   .timer-fs__ippo-quote,
   .timer-fs__ippo-flash,
   .timer-fs__ippo-gif-wrap,
+  .timer-fs__custom-gif-wrap,
+  .timer-fs__custom-title,
+  .timer-fs__custom-quote,
   .timer-fs__stage-glow,
   .timer-fs__ring,
   .timer-fs__clock {

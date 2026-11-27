@@ -212,6 +212,20 @@ export function StandaloneTimerPage() {
             </button>
           ))}
         </div>
+        <Link
+          to="/temporizador/personalizar"
+          className="timer-preview-link"
+        >
+          <span className="timer-preview-link__copy">
+            <span className="timer-preview-link__title">
+              Crear / editar mi diseño
+            </span>
+            <span className="timer-preview-link__sub">
+              GIF, color, título, frases y estilo
+            </span>
+          </span>
+          <span aria-hidden>→</span>
+        </Link>
 
         <p className="timer-setup__label">Tono de alarma</p>
         <div className="timer-setup__tones">
