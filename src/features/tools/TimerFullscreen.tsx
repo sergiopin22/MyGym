@@ -13,7 +13,7 @@ interface TimerFullscreenProps {
   footer?: ReactNode
 }
 
-/** Pantalla completa underground: negro, llamas, grano, stencil. */
+/** Pantalla completa underground: hazard, ceniza, grano, stencil. */
 export function TimerFullscreen({
   phase,
   elapsedSec,
@@ -59,14 +59,20 @@ export function TimerFullscreen({
       <div className="timer-fs__scan" aria-hidden />
       <div className="timer-fs__vignette" aria-hidden />
 
-      <div className="timer-fs__flames" aria-hidden>
-        <span className="timer-fs__flame timer-fs__flame--a" />
-        <span className="timer-fs__flame timer-fs__flame--b" />
-        <span className="timer-fs__flame timer-fs__flame--c" />
-        <span className="timer-fs__flame timer-fs__flame--d" />
-        <span className="timer-fs__flame timer-fs__flame--e" />
-        <span className="timer-fs__flame timer-fs__flame--f" />
-        <span className="timer-fs__flame timer-fs__flame--g" />
+      <div className="timer-fs__hazard" aria-hidden>
+        <span className="timer-fs__hazard-band" />
+        <span className="timer-fs__hazard-glow" />
+      </div>
+
+      <div className="timer-fs__ash" aria-hidden>
+        <span className="timer-fs__spark timer-fs__spark--a" />
+        <span className="timer-fs__spark timer-fs__spark--b" />
+        <span className="timer-fs__spark timer-fs__spark--c" />
+        <span className="timer-fs__spark timer-fs__spark--d" />
+        <span className="timer-fs__spark timer-fs__spark--e" />
+        <span className="timer-fs__spark timer-fs__spark--f" />
+        <span className="timer-fs__spark timer-fs__spark--g" />
+        <span className="timer-fs__spark timer-fs__spark--h" />
       </div>
 
       <div className="timer-fs__frame" aria-hidden>
