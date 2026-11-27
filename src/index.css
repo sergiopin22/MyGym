@@ -5399,10 +5399,14 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   margin: 0;
 }
 
-/* Variante: Temach logo — negro + logo blanco */
+/* Variante: Temach logo — negro limpio + marca blanca */
 .timer-fs--temach-logo {
   background: #000;
   color: #fff;
+  justify-content: center;
+  gap: 0.55rem;
+  padding-top: max(2.2rem, calc(env(safe-area-inset-top) + 1.2rem));
+  padding-bottom: max(1.8rem, calc(env(safe-area-inset-bottom) + 1.1rem));
 }
 
 .timer-fs--temach-logo.timer-fs--final,
@@ -5410,111 +5414,121 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   background: #000;
 }
 
-.timer-fs--temach-logo .timer-fs__soot,
-.timer-fs--temach-logo .timer-fs__embers,
-.timer-fs--temach-logo .timer-fs__heat,
-.timer-fs--temach-logo .timer-fs__mist,
-.timer-fs--temach-logo .timer-fs__hazard,
-.timer-fs--temach-logo .timer-fs__ash {
-  display: none;
-}
-
-.timer-fs--temach-logo .timer-fs__grain {
-  opacity: 0.1;
-}
-
-.timer-fs--temach-logo .timer-fs__scan {
-  opacity: 0.06;
+.timer-fs--temach-logo .timer-fs__soot {
+  background: radial-gradient(
+    ellipse 90% 55% at 50% 0%,
+    #1a1a1a 0%,
+    transparent 70%
+  );
 }
 
 .timer-fs--temach-logo .timer-fs__vignette {
-  box-shadow: inset 0 0 140px 48px #000;
+  box-shadow: inset 0 0 100px 36px #000;
 }
 
-.timer-fs__logo-wrap {
+.timer-fs__logo-wash {
   position: absolute;
-  top: max(1.1rem, calc(env(safe-area-inset-top) + 0.55rem));
-  left: 50%;
-  z-index: 7;
-  width: min(78vw, 17.5rem);
-  transform: translateX(-50%);
+  inset: 0;
+  z-index: 1;
+  display: grid;
+  place-items: center;
   pointer-events: none;
-  opacity: 1;
+  opacity: 0.08;
+}
+
+.timer-fs__logo-wash .temach-mark__sigil {
+  width: min(92vw, 26rem);
+}
+
+.timer-fs__logo-slot {
+  position: relative;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  width: min(46vw, 9.5rem);
+  margin: 0 0 0.15rem;
+  color: #fff;
+  pointer-events: none;
+}
+
+.timer-fs--running .timer-fs__logo-slot {
+  animation: timer-fs-logo-pulse 3.2s ease-in-out infinite;
+}
+
+.timer-fs--final .timer-fs__logo-slot,
+.timer-fs--done .timer-fs__logo-slot {
+  animation: none;
+}
+
+.temach-mark {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.45rem;
+  width: 100%;
   color: #fff;
 }
 
-.timer-fs--running .timer-fs__logo-wrap {
-  animation: timer-fs-logo-pulse 2.8s ease-in-out infinite;
-}
-
-.timer-fs--final .timer-fs__logo-wrap,
-.timer-fs--done .timer-fs__logo-wrap {
-  opacity: 1;
-  animation: timer-fs-logo-pulse 1.1s ease-in-out infinite;
-}
-
-.timer-fs__logo {
+.temach-mark__sigil {
   display: block;
   width: 100%;
   height: auto;
+  aspect-ratio: 1;
+}
+
+.temach-mark__word {
+  margin: 0;
   color: #fff;
-  filter: drop-shadow(0 0 22px rgba(255, 255, 255, 0.35));
+  font-family: var(--font-display), Arial Black, Impact, sans-serif;
+  font-size: clamp(0.95rem, 3.8vw, 1.15rem);
+  font-weight: 800;
+  letter-spacing: 0.34em;
+  line-height: 1;
+  text-indent: 0.34em;
+  text-transform: uppercase;
+  opacity: 0.92;
 }
 
 @keyframes timer-fs-logo-pulse {
   0%,
   100% {
-    transform: translateX(-50%) scale(1);
+    transform: scale(1);
     opacity: 1;
   }
   50% {
-    transform: translateX(-50%) scale(1.04);
+    transform: scale(1.02);
     opacity: 1;
   }
 }
 
-.timer-fs--temach-logo .timer-fs__frame {
-  border-color: #ffffff33;
-}
-
-.timer-fs--temach-logo .timer-fs__corner {
-  border-color: #fff;
-}
-
-.timer-fs--temach-logo .timer-fs__stamp {
-  border-color: #ffffffaa;
-  color: #fff;
-  background: transparent;
-  mix-blend-mode: normal;
-}
-
-.timer-fs--temach-logo.timer-fs--final .timer-fs__stamp,
-.timer-fs--temach-logo.timer-fs--done .timer-fs__stamp {
-  color: #000;
-  border-color: #fff;
-  background: #fff;
-}
-
-.timer-fs--temach-logo .timer-fs__kicker {
-  color: #fff;
-  text-shadow: 1px 1px 0 #000;
-  margin-top: min(28vh, 13.5rem);
-}
-
 .timer-fs--temach-logo .timer-fs__meta {
-  color: #bdbdbd;
+  position: relative;
+  z-index: 8;
+  color: #9a9a9a;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+}
+
+.timer-fs--temach-logo .timer-fs__stage {
+  position: relative;
+  z-index: 8;
+  width: min(62vw, 16rem);
+  margin: 0.35rem 0 0.7rem;
 }
 
 .timer-fs--temach-logo .timer-fs__stage-glow {
-  background: radial-gradient(circle, #ffffff18, transparent 68%);
+  background: radial-gradient(circle, #ffffff14, transparent 70%);
+  animation: none;
 }
 
 .timer-fs--temach-logo .timer-fs__ring {
-  filter: drop-shadow(0 0 10px #ffffff55);
+  filter: none;
 }
 
 .timer-fs--temach-logo .timer-fs__ring-track {
-  stroke: #2a2a2a;
+  stroke: #222;
+  stroke-dasharray: none;
 }
 
 .timer-fs--temach-logo .timer-fs__ring-value {
@@ -5524,45 +5538,54 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 .timer-fs--temach-logo.timer-fs--final .timer-fs__ring-value,
 .timer-fs--temach-logo.timer-fs--done .timer-fs__ring-value {
   stroke: #fff;
-  filter: drop-shadow(0 0 12px #fff);
+  filter: none;
 }
 
 .timer-fs--temach-logo .timer-fs__clock {
   color: #fff;
-  text-shadow:
-    0 0 1px #fff,
-    2px 0 0 #ffffff33,
-    -2px 0 0 #ffffff22,
-    0 0 22px #ffffff66;
+  letter-spacing: 0.06em;
+  text-shadow: none;
+  font-size: clamp(2.6rem, 12vw, 3.8rem);
+}
+
+.timer-fs--temach-logo.timer-fs--running .timer-fs__clock {
+  animation: none;
 }
 
 .timer-fs--temach-logo.timer-fs--final .timer-fs__clock,
 .timer-fs--temach-logo.timer-fs--done .timer-fs__clock {
   color: #fff;
-  text-shadow:
-    0 0 3px #fff,
-    3px 0 0 #ffffff55,
-    -3px 0 0 #ffffff33,
-    0 0 28px #ffffff88;
+  text-shadow: none;
+  animation: timer-fs-clock-urgent 0.55s ease-in-out infinite;
+}
+
+.timer-fs--temach-logo .timer-fs__actions {
+  z-index: 8;
+  width: min(100%, 18rem);
 }
 
 .timer-fs--temach-logo .timer-fs__primary {
-  border-color: #fff;
+  border: 1px solid #fff;
+  border-radius: 0;
   background: #fff;
   color: #000;
-  box-shadow:
-    0 0 0 1px #000,
-    0 0 24px #ffffff33,
-    inset 0 1px 0 #ffffff88;
+  clip-path: none;
+  box-shadow: none;
+  letter-spacing: 0.16em;
+  font-size: 0.92rem;
 }
 
 .timer-fs--temach-logo .timer-fs__secondary {
-  border-color: #ffffff55;
-  color: #fff;
+  border: 1px solid #333;
+  border-radius: 0;
+  color: #cfcfcf;
+  background: transparent;
 }
 
 .timer-fs--temach-logo .timer-fs__footer {
-  color: #8a8a8a;
+  z-index: 8;
+  color: #666;
+  letter-spacing: 0.08em;
 }
 
 /* Variante: campo de batalla (óxidos / escombros) */
@@ -5819,16 +5842,20 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   .timer-fs__debris,
   .timer-fs__grain,
   .timer-fs__stamp,
-  .timer-fs__logo-wrap,
+  .timer-fs__logo-slot,
   .timer-fs__stage-glow,
   .timer-fs__ring,
   .timer-fs__clock {
     animation: none !important;
   }
 
-  .timer-fs__logo-wrap {
+  .timer-fs__logo-slot {
     opacity: 1 !important;
-    transform: translateX(-50%) !important;
+    transform: none !important;
+  }
+
+  .timer-fs__logo-wash {
+    opacity: 0.08 !important;
   }
 
   .timer-fs__debris {

@@ -113,11 +113,11 @@ export function isTimerDesignId(value: string): value is TimerDesignId {
 
 export function getTimerDesign(): TimerDesignId {
   try {
-    // Una vez: nuevo diseño logo blanco como preferido.
-    if (!localStorage.getItem('mi-gym-timer-design-logo-v1')) {
-      localStorage.setItem('mi-gym-timer-design-logo-v1', '1')
-      localStorage.setItem(TIMER_DESIGN_KEY, DEFAULT_TIMER_DESIGN)
-      return DEFAULT_TIMER_DESIGN
+    // Forzar Temach Logo (negro + logo blanco) una vez más.
+    if (!localStorage.getItem('mi-gym-timer-design-logo-v2')) {
+      localStorage.setItem('mi-gym-timer-design-logo-v2', '1')
+      localStorage.setItem(TIMER_DESIGN_KEY, 'temach-logo')
+      return 'temach-logo'
     }
     const raw = localStorage.getItem(TIMER_DESIGN_KEY)
     if (raw && isTimerDesignId(raw)) return raw

@@ -5,6 +5,7 @@ import {
   getTimerDesign,
   type TimerDesignId,
 } from '../../utils/restTimer'
+import { TemachLogoMark } from './TemachLogoMark'
 
 interface TimerFullscreenProps {
   phase: 'running' | 'done'
@@ -63,8 +64,7 @@ function doneLabel(design: TimerDesignId) {
 }
 
 function metaPrefix(design: TimerDesignId) {
-  if (design === 'temach-logo') return 'TEMACH'
-  if (design === 'temach') return 'TEMACH'
+  if (design === 'temach-logo' || design === 'temach') return 'TEMACH'
   return 'WAR'
 }
 
@@ -120,8 +120,12 @@ export function TimerFullscreen({
           <div className="timer-fs__mist" aria-hidden />
         </>
       ) : null}
-      <div className="timer-fs__grain" aria-hidden />
-      <div className="timer-fs__scan" aria-hidden />
+      {showBattleFx ? (
+        <>
+          <div className="timer-fs__grain" aria-hidden />
+          <div className="timer-fs__scan" aria-hidden />
+        </>
+      ) : null}
       <div className="timer-fs__vignette" aria-hidden />
 
       {showBattleFx ? (
@@ -141,63 +145,49 @@ export function TimerFullscreen({
         </>
       ) : null}
 
-      {showLogo ? (
-        <div className="timer-fs__logo-wrap" aria-hidden>
-          <svg
-            className="timer-fs__logo"
-            viewBox="0 0 320 360"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <g stroke="currentColor" strokeLinecap="square" strokeLinejoin="miter">
-              <circle cx="160" cy="150" r="118" strokeWidth="8" />
-              <path d="M160 48 L248 226 L72 226 Z" strokeWidth="8" />
-              <g strokeWidth="16">
-                <path d="M118 96 V198" />
-                <path d="M118 96 H158" />
-                <path d="M118 140 H152" />
-                <path d="M118 198 H158" />
-                <path d="M168 96 V198" />
-                <path d="M168 96 H208" />
-                <path d="M168 140 H202" />
-                <path d="M168 198 H208" />
-              </g>
-            </g>
-            <text
-              x="160"
-              y="318"
-              textAnchor="middle"
-              fill="currentColor"
-              fontFamily="var(--font-display), Arial Black, Impact, sans-serif"
-              fontSize="48"
-              fontWeight="900"
-              letterSpacing="0.2em"
-            >
-              TEMACH
-            </text>
-          </svg>
+      {showBattleFx ? (
+        <div className="timer-fs__frame" aria-hidden>
+          <span className="timer-fs__corner timer-fs__corner--tl" />
+          <span className="timer-fs__corner timer-fs__corner--tr" />
+          <span className="timer-fs__corner timer-fs__corner--bl" />
+          <span className="timer-fs__corner timer-fs__corner--br" />
         </div>
       ) : null}
 
-      <div className="timer-fs__frame" aria-hidden>
-        <span className="timer-fs__corner timer-fs__corner--tl" />
-        <span className="timer-fs__corner timer-fs__corner--tr" />
-        <span className="timer-fs__corner timer-fs__corner--bl" />
-        <span className="timer-fs__corner timer-fs__corner--br" />
-      </div>
+      {showBattleFx ? (
+        <p className="timer-fs__stamp" aria-hidden>
+          {stamp}
+        </p>
+      ) : null}
 
-      <p className="timer-fs__stamp" aria-hidden>
-        {stamp}
-      </p>
+      {showLogo ? (
+        <div className="timer-fs__logo-wash" aria-hidden>
+          <TemachLogoMark showWord={false} />
+        </div>
+      ) : null}
 
-      <p className="timer-fs__kicker">
-        {phase === 'done' ? doneLabel(design) : title.toUpperCase()}
-      </p>
+      {showLogo ? (
+        <div className="timer-fs__logo-slot">
+          <TemachLogoMark />
+        </div>
+      ) : (
+        <p className="timer-fs__kicker">
+          {phase === 'done' ? doneLabel(design) : title.toUpperCase()}
+        </p>
+      )}
+
       <p className="timer-fs__meta">
-        {metaPrefix(design)} // {formatRestTargetLabel(targetSec).toUpperCase()}
-        {phase === 'running'
-          ? ` // ${formatRestClock(remaining)} LEFT`
-          : null}
+        {showLogo
+          ? `${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
+              phase === 'running'
+                ? ` · ${formatRestClock(remaining)} LEFT`
+                : ''
+            }`
+          : `${metaPrefix(design)} // ${formatRestTargetLabel(targetSec).toUpperCase()}${
+              phase === 'running'
+                ? ` // ${formatRestClock(remaining)} LEFT`
+                : ''
+            }`}
       </p>
 
       <div className="timer-fs__stage">
@@ -209,7 +199,7 @@ export function TimerFullscreen({
             cy="60"
             r="54"
             fill="none"
-            strokeWidth="6"
+            strokeWidth="5"
           />
           <circle
             className="timer-fs__ring-value"
@@ -217,7 +207,7 @@ export function TimerFullscreen({
             cy="60"
             r="54"
             fill="none"
-            strokeWidth="6"
+            strokeWidth="5"
             strokeDasharray={`${ring}`}
             strokeDashoffset={dash}
             strokeLinecap="butt"
