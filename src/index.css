@@ -5585,8 +5585,34 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   z-index: 8;
 }
 
+.timer-fs--running .timer-fs__logo-slot--war {
+  animation: timer-fs-war-logo-hit 2.8s ease-in-out infinite;
+}
+
+.timer-fs--final .timer-fs__logo-slot--war,
+.timer-fs--done .timer-fs__logo-slot--war {
+  animation: timer-fs-war-logo-hit 0.9s ease-in-out infinite;
+}
+
 .timer-fs__logo-main--war {
   filter: drop-shadow(0 0 14px rgba(225, 6, 0, 0.35));
+}
+
+.timer-fs__war-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 40%, #e1060066, transparent 62%);
+  opacity: 0;
+}
+
+.timer-fs--done .timer-fs__war-flash {
+  animation: timer-fs-war-flash 0.85s ease-out 1 both;
+}
+
+.timer-fs--final .timer-fs__war-flash {
+  animation: timer-fs-war-flash-soft 0.7s ease-in-out infinite;
 }
 
 .timer-fs__war-head {
@@ -5613,6 +5639,18 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   text-shadow: 0 0 18px rgba(225, 6, 0, 0.45);
 }
 
+.timer-fs--running .timer-fs__war-title {
+  animation: timer-fs-war-pulse 1.35s ease-in-out infinite;
+}
+
+.timer-fs--final .timer-fs__war-title {
+  animation: timer-fs-war-pulse 0.55s ease-in-out infinite;
+}
+
+.timer-fs--done .timer-fs__war-title {
+  animation: timer-fs-war-pulse 0.85s ease-in-out infinite;
+}
+
 .timer-fs__war-army {
   margin: 0;
   color: #fff;
@@ -5633,6 +5671,12 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   font-weight: 700;
   letter-spacing: 0.02em;
   line-height: 1.35;
+  animation: timer-fs-war-stencil 0.38s steps(2, end) both;
+}
+
+.timer-fs--final .timer-fs__war-quote {
+  color: #fff;
+  text-shadow: 0 0 12px rgba(225, 6, 0, 0.55);
 }
 
 .timer-fs--temach .timer-fs__meta {
@@ -5657,10 +5701,90 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   color: #fff;
   border-color: #e10600;
   background: #e10600;
+  animation: timer-fs-stamp-flash 0.4s steps(2) infinite;
+}
+
+.timer-fs--temach.timer-fs--final .timer-fs__clock {
+  animation: timer-fs-clock-glitch 0.14s steps(2, end) infinite;
+}
+
+.timer-fs--temach.timer-fs--done .timer-fs__clock {
+  animation: timer-fs-clock-urgent 0.5s ease-in-out infinite;
 }
 
 .timer-fs--temach .timer-fs__actions {
   z-index: 8;
+}
+
+@keyframes timer-fs-war-logo-hit {
+  0%,
+  72%,
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  78% {
+    transform: scale(1.08);
+    filter: brightness(1.35);
+  }
+  86% {
+    transform: scale(0.97);
+    filter: brightness(1.1);
+  }
+  94% {
+    transform: scale(1.03);
+    filter: brightness(1.2);
+  }
+}
+
+@keyframes timer-fs-war-pulse {
+  0%,
+  100% {
+    opacity: 0.82;
+    text-shadow: 0 0 12px rgba(225, 6, 0, 0.35);
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    text-shadow: 0 0 26px rgba(225, 6, 0, 0.75);
+    transform: scale(1.03);
+  }
+}
+
+@keyframes timer-fs-war-stencil {
+  0% {
+    opacity: 0;
+    transform: translateX(-10px) skewX(-8deg);
+    filter: contrast(1.4);
+  }
+  45% {
+    opacity: 1;
+    transform: translateX(3px) skewX(4deg);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0) skewX(0);
+    filter: none;
+  }
+}
+
+@keyframes timer-fs-war-flash {
+  0% {
+    opacity: 0.85;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes timer-fs-war-flash-soft {
+  0%,
+  100% {
+    opacity: 0.08;
+  }
+  50% {
+    opacity: 0.28;
+  }
 }
 
 @media (max-height: 760px) {
@@ -5936,6 +6060,9 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   .timer-fs__grain,
   .timer-fs__stamp,
   .timer-fs__logo-slot,
+  .timer-fs__war-title,
+  .timer-fs__war-quote,
+  .timer-fs__war-flash,
   .timer-fs__stage-glow,
   .timer-fs__ring,
   .timer-fs__clock {
@@ -5949,6 +6076,10 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 
   .timer-fs__logo-wash {
     opacity: 0.08 !important;
+  }
+
+  .timer-fs__war-flash {
+    opacity: 0 !important;
   }
 
   .timer-fs__debris {

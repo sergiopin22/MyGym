@@ -120,6 +120,7 @@ export function TimerFullscreen({
         </>
       ) : null}
       <div className="timer-fs__vignette" aria-hidden />
+      {isTemachWar ? <div className="timer-fs__war-flash" aria-hidden /> : null}
 
       {showBattleFx ? (
         <>
@@ -181,7 +182,11 @@ export function TimerFullscreen({
         <div className="timer-fs__war-head">
           <p className="timer-fs__war-title">MODO GUERRA</p>
           <p className="timer-fs__war-army">EJÉRCITO DE LOS COMPAS</p>
-          <p className="timer-fs__war-quote" aria-live="polite">
+          <p
+            key={warQuote}
+            className="timer-fs__war-quote"
+            aria-live="polite"
+          >
             {warQuote}
           </p>
         </div>
