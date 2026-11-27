@@ -6,6 +6,7 @@ import {
   type TimerDesignId,
 } from '../../utils/restTimer'
 import { TemachLogoMark } from './TemachLogoMark'
+import { temachWarQuote, temachWarStamp } from './temachWarCopy'
 
 interface TimerFullscreenProps {
   phase: 'running' | 'done'
@@ -42,15 +43,8 @@ const DEBRIS = [
 ] as const
 
 function stampFor(design: TimerDesignId, phase: 'running' | 'done', final: boolean) {
-  if (design === 'temach-logo') {
-    if (phase === 'done') return 'GO'
-    if (final) return 'FOCUS'
-    return 'TEMACH'
-  }
-  if (design === 'temach') {
-    if (phase === 'done') return 'TEMACH'
-    if (final) return 'DISCIPLINA'
-    return 'MODO GUERRA'
+  if (design === 'temach' || design === 'temach-logo') {
+    return temachWarStamp(phase, final)
   }
   if (phase === 'done') return 'ENGAGE'
   if (final) return 'CRITICAL'
@@ -58,14 +52,9 @@ function stampFor(design: TimerDesignId, phase: 'running' | 'done', final: boole
 }
 
 function doneLabel(design: TimerDesignId) {
+  if (design === 'temach') return 'VICTORIOSO'
   if (design === 'temach-logo') return 'GO'
-  if (design === 'temach') return 'GUERRA'
   return 'ENGAGE'
-}
-
-function metaPrefix(design: TimerDesignId) {
-  if (design === 'temach-logo' || design === 'temach') return 'TEMACH'
-  return 'WAR'
 }
 
 /** Pantalla completa del timer: Temach logo, Temach guerra o campo de batalla. */
@@ -89,8 +78,16 @@ export function TimerFullscreen({
   const ring = 2 * Math.PI * 54
   const dash = ring * (1 - progress)
   const stamp = stampFor(design, phase, inFinalTicks)
-  const showLogo = design === 'temach-logo'
-  const showBattleFx = design !== 'temach-logo'
+  const isTemachWar = design === 'temach'
+  const isTemachLogo = design === 'temach-logo'
+  const showLogo = isTemachWar || isTemachLogo
+  const showBattleFx = !isTemachLogo
+  const warQuote =
+    phase === 'done'
+      ? 'Exhausto y victorioso'
+      : inFinalTicks
+        ? 'Disciplina > motivación'
+        : temachWarQuote(elapsedSec)
 
   return (
     <div
@@ -118,10 +115,6 @@ export function TimerFullscreen({
           <div className="timer-fs__embers" aria-hidden />
           <div className="timer-fs__heat" aria-hidden />
           <div className="timer-fs__mist" aria-hidden />
-        </>
-      ) : null}
-      {showBattleFx ? (
-        <>
           <div className="timer-fs__grain" aria-hidden />
           <div className="timer-fs__scan" aria-hidden />
         </>
@@ -160,34 +153,62 @@ export function TimerFullscreen({
         </p>
       ) : null}
 
-      {showLogo ? (
+      {isTemachLogo ? (
         <div className="timer-fs__logo-wash" aria-hidden>
           <TemachLogoMark decorative className="timer-fs__logo-wash-img" />
         </div>
       ) : null}
 
       {showLogo ? (
-        <div className="timer-fs__logo-slot">
-          <TemachLogoMark className="timer-fs__logo-main" />
+        <div
+          className={
+            isTemachWar
+              ? 'timer-fs__logo-slot timer-fs__logo-slot--war'
+              : 'timer-fs__logo-slot'
+          }
+        >
+          <TemachLogoMark
+            className={
+              isTemachWar
+                ? 'timer-fs__logo-main timer-fs__logo-main--war'
+                : 'timer-fs__logo-main'
+            }
+          />
         </div>
-      ) : (
+      ) : null}
+
+      {isTemachWar ? (
+        <div className="timer-fs__war-head">
+          <p className="timer-fs__war-title">MODO GUERRA</p>
+          <p className="timer-fs__war-army">EJÉRCITO DE LOS COMPAS</p>
+          <p className="timer-fs__war-quote" aria-live="polite">
+            {warQuote}
+          </p>
+        </div>
+      ) : !isTemachLogo ? (
         <p className="timer-fs__kicker">
           {phase === 'done' ? doneLabel(design) : title.toUpperCase()}
         </p>
-      )}
+      ) : null}
 
       <p className="timer-fs__meta">
-        {showLogo
-          ? `${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
+        {isTemachWar
+          ? `COMPA · ${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
               phase === 'running'
                 ? ` · ${formatRestClock(remaining)} LEFT`
                 : ''
             }`
-          : `${metaPrefix(design)} // ${formatRestTargetLabel(targetSec).toUpperCase()}${
-              phase === 'running'
-                ? ` // ${formatRestClock(remaining)} LEFT`
-                : ''
-            }`}
+          : isTemachLogo
+            ? `${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
+                phase === 'running'
+                  ? ` · ${formatRestClock(remaining)} LEFT`
+                  : ''
+              }`
+            : `WAR // ${formatRestTargetLabel(targetSec).toUpperCase()}${
+                phase === 'running'
+                  ? ` // ${formatRestClock(remaining)} LEFT`
+                  : ''
+              }`}
       </p>
 
       <div className="timer-fs__stage">

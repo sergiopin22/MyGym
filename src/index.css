@@ -5572,6 +5572,115 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   letter-spacing: 0.08em;
 }
 
+/* Variante: Modo Guerra Temach */
+.timer-fs--temach {
+  justify-content: flex-start;
+  gap: 0.4rem;
+  padding-top: max(2.4rem, calc(env(safe-area-inset-top) + 1.4rem));
+}
+
+.timer-fs__logo-slot--war {
+  width: min(42vw, 8.75rem);
+  margin-bottom: 0.1rem;
+  z-index: 8;
+}
+
+.timer-fs__logo-main--war {
+  filter: drop-shadow(0 0 14px rgba(225, 6, 0, 0.35));
+}
+
+.timer-fs__war-head {
+  position: relative;
+  z-index: 8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.28rem;
+  max-width: 22rem;
+  text-align: center;
+}
+
+.timer-fs__war-title {
+  margin: 0;
+  color: #e10600;
+  font-family: var(--font-display);
+  font-size: clamp(1.35rem, 6.5vw, 1.85rem);
+  font-weight: 900;
+  letter-spacing: 0.22em;
+  line-height: 1;
+  text-indent: 0.22em;
+  text-transform: uppercase;
+  text-shadow: 0 0 18px rgba(225, 6, 0, 0.45);
+}
+
+.timer-fs__war-army {
+  margin: 0;
+  color: #fff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+
+.timer-fs__war-quote {
+  margin: 0.35rem 0 0;
+  max-width: 28ch;
+  color: #cfcfcf;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+}
+
+.timer-fs--temach .timer-fs__meta {
+  z-index: 8;
+  color: #fda4af;
+  font-size: 0.72rem;
+}
+
+.timer-fs--temach .timer-fs__stage {
+  z-index: 8;
+  width: min(58vw, 15rem);
+  margin: 0.25rem 0 0.65rem;
+}
+
+.timer-fs--temach .timer-fs__stamp {
+  border-color: #e10600;
+  color: #e10600;
+}
+
+.timer-fs--temach.timer-fs--final .timer-fs__stamp,
+.timer-fs--temach.timer-fs--done .timer-fs__stamp {
+  color: #fff;
+  border-color: #e10600;
+  background: #e10600;
+}
+
+.timer-fs--temach .timer-fs__actions {
+  z-index: 8;
+}
+
+@media (max-height: 760px) {
+  .timer-fs__logo-slot--war {
+    width: min(32vw, 6.5rem);
+  }
+
+  .timer-fs__war-title {
+    font-size: 1.2rem;
+  }
+
+  .timer-fs__war-quote {
+    font-size: 0.82rem;
+  }
+
+  .timer-fs--temach .timer-fs__stage {
+    width: min(48vw, 12.5rem);
+  }
+}
+
 /* Variante: campo de batalla (óxidos / escombros) */
 .timer-fs--war {
   color: #ffe4e6;

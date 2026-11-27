@@ -24,14 +24,14 @@ export const TIMER_DESIGNS: Array<{
   tagline: string
 }> = [
   {
-    id: 'temach-logo',
-    label: 'Temach Logo',
-    tagline: 'Negro · logo blanco',
+    id: 'temach',
+    label: 'Modo Guerra Temach',
+    tagline: 'Ejército de los Compas · disciplina · logo',
   },
   {
-    id: 'temach',
-    label: 'Temach Guerra',
-    tagline: 'Modo guerra · negro · rojo · blanco',
+    id: 'temach-logo',
+    label: 'Temach Logo',
+    tagline: 'Negro · logo blanco limpio',
   },
   {
     id: 'war',
@@ -40,7 +40,7 @@ export const TIMER_DESIGNS: Array<{
   },
 ]
 
-export const DEFAULT_TIMER_DESIGN: TimerDesignId = 'temach-logo'
+export const DEFAULT_TIMER_DESIGN: TimerDesignId = 'temach'
 
 function clampRestSeconds(sec: number): number {
   if (!Number.isFinite(sec)) return DEFAULT_REST_SECONDS
@@ -113,11 +113,11 @@ export function isTimerDesignId(value: string): value is TimerDesignId {
 
 export function getTimerDesign(): TimerDesignId {
   try {
-    // Forzar Temach Logo (negro + logo blanco) una vez más.
-    if (!localStorage.getItem('mi-gym-timer-design-logo-v2')) {
-      localStorage.setItem('mi-gym-timer-design-logo-v2', '1')
-      localStorage.setItem(TIMER_DESIGN_KEY, 'temach-logo')
-      return 'temach-logo'
+    // Preferir Modo Guerra Temach (logo + frases + estética guerra).
+    if (!localStorage.getItem('mi-gym-timer-design-war-v3')) {
+      localStorage.setItem('mi-gym-timer-design-war-v3', '1')
+      localStorage.setItem(TIMER_DESIGN_KEY, 'temach')
+      return 'temach'
     }
     const raw = localStorage.getItem(TIMER_DESIGN_KEY)
     if (raw && isTimerDesignId(raw)) return raw
