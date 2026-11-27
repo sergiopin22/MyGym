@@ -5433,11 +5433,13 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   display: grid;
   place-items: center;
   pointer-events: none;
-  opacity: 0.08;
+  opacity: 0.12;
 }
 
-.timer-fs__logo-wash .temach-mark__sigil {
-  width: min(92vw, 26rem);
+.timer-fs__logo-wash-img {
+  width: min(88vw, 24rem);
+  height: auto;
+  object-fit: contain;
 }
 
 .timer-fs__logo-slot {
@@ -5445,10 +5447,16 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   z-index: 8;
   display: grid;
   place-items: center;
-  width: min(46vw, 9.5rem);
-  margin: 0 0 0.15rem;
-  color: #fff;
+  width: min(58vw, 13.5rem);
+  margin: 0 0 0.25rem;
   pointer-events: none;
+}
+
+.timer-fs__logo-main {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  filter: drop-shadow(0 0 16px rgba(255, 255, 255, 0.18));
 }
 
 .timer-fs--running .timer-fs__logo-slot {
@@ -5461,32 +5469,8 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 }
 
 .temach-mark {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.45rem;
-  width: 100%;
-  color: #fff;
-}
-
-.temach-mark__sigil {
   display: block;
-  width: 100%;
-  height: auto;
-  aspect-ratio: 1;
-}
-
-.temach-mark__word {
-  margin: 0;
-  color: #fff;
-  font-family: var(--font-display), Arial Black, Impact, sans-serif;
-  font-size: clamp(0.95rem, 3.8vw, 1.15rem);
-  font-weight: 800;
-  letter-spacing: 0.34em;
-  line-height: 1;
-  text-indent: 0.34em;
-  text-transform: uppercase;
-  opacity: 0.92;
+  max-width: 100%;
 }
 
 @keyframes timer-fs-logo-pulse {

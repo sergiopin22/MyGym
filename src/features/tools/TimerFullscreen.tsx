@@ -162,13 +162,13 @@ export function TimerFullscreen({
 
       {showLogo ? (
         <div className="timer-fs__logo-wash" aria-hidden>
-          <TemachLogoMark showWord={false} />
+          <TemachLogoMark decorative className="timer-fs__logo-wash-img" />
         </div>
       ) : null}
 
       {showLogo ? (
         <div className="timer-fs__logo-slot">
-          <TemachLogoMark />
+          <TemachLogoMark className="timer-fs__logo-main" />
         </div>
       ) : (
         <p className="timer-fs__kicker">
