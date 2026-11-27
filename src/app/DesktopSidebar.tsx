@@ -13,6 +13,7 @@ const LINKS: Array<{
   { to: '/caminadora', label: 'Caminadora', hint: 'Cardio' },
   { to: '/discos', label: 'Discos', hint: 'Calculadora' },
   { to: '/temporizador', label: 'Temporizador', hint: 'Descanso suelto' },
+  { to: '/temporizador/preview', label: 'Preview timer', hint: 'Probar sonido' },
   { to: '/historial/resumen-semanal', label: 'Resumen', hint: 'Semana vs semana' },
   { to: '/progreso', label: 'Ajustes', hint: 'Cuenta y temas' },
 ]

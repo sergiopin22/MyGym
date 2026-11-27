@@ -3,13 +3,23 @@ import { Link } from 'react-router-dom'
 import { Button } from '../../components/Button'
 import { PageHeader } from '../../ui/PageHeader'
 import {
-  formatRestClock,
+  FINAL_TICK_SECONDS,
   formatRestTargetLabel,
   getRestSeconds,
-  playRestDoneCue,
+  getTimerTone,
+  isTimerSoundEnabled,
+  playFinalTick,
+  playTimerDoneAlarm,
+  previewTimerTone,
   REST_PRESETS,
   setRestSeconds,
+  setTimerSoundEnabled,
+  setTimerTone,
+  stopTimerAlarm,
+  TIMER_TONES,
+  type TimerToneId,
 } from '../../utils/restTimer'
+import { TimerFullscreen } from './TimerFullscreen'
 
 type Phase = 'idle' | 'running' | 'done'
 
@@ -21,7 +31,10 @@ export function StandaloneTimerPage() {
   const [targetSec, setTargetSec] = useState(() => getRestSeconds())
   const [startedAt, setStartedAt] = useState(0)
   const [elapsedMs, setElapsedMs] = useState(0)
+  const [tone, setTone] = useState<TimerToneId>(() => getTimerTone())
+  const [soundOn, setSoundOn] = useState(() => isTimerSoundEnabled())
   const cuedRef = useRef(false)
+  const lastTickSecRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (phase !== 'running') return
@@ -29,20 +42,38 @@ export function StandaloneTimerPage() {
     function tick() {
       const elapsed = Math.max(0, Date.now() - startedAt)
       setElapsedMs(elapsed)
+      const elapsedSec = elapsed / 1000
+      const remaining = Math.max(0, targetSec - elapsedSec)
+      const remainFloor = Math.ceil(remaining)
+
+      if (
+        remaining > 0 &&
+        remainFloor <= FINAL_TICK_SECONDS &&
+        remainFloor >= 1 &&
+        lastTickSecRef.current !== remainFloor
+      ) {
+        lastTickSecRef.current = remainFloor
+        playFinalTick()
+      }
+
       if (elapsed >= targetSec * 1000 && !cuedRef.current) {
         cuedRef.current = true
-        playRestDoneCue()
+        playTimerDoneAlarm(tone)
         setPhase('done')
       }
     }
 
     tick()
-    const id = window.setInterval(tick, 200)
+    const id = window.setInterval(tick, 150)
     return () => window.clearInterval(id)
-  }, [phase, startedAt, targetSec])
+  }, [phase, startedAt, targetSec, tone])
+
+  useEffect(() => () => stopTimerAlarm(), [])
 
   function start() {
+    stopTimerAlarm()
     cuedRef.current = false
+    lastTickSecRef.current = null
     const saved = setRestSeconds(targetSec)
     setTargetSec(saved)
     setStartedAt(Date.now())
@@ -50,32 +81,70 @@ export function StandaloneTimerPage() {
     setPhase('running')
   }
 
-  function stop() {
+  function stopToIdle() {
+    stopTimerAlarm()
     cuedRef.current = true
     setPhase('idle')
     setElapsedMs(0)
+    lastTickSecRef.current = null
+  }
+
+  function acknowledgeDone() {
+    stopTimerAlarm()
+    cuedRef.current = true
+    setPhase('idle')
+    setElapsedMs(0)
+    lastTickSecRef.current = null
   }
 
   function pickPreset(sec: number) {
     const saved = setRestSeconds(sec)
     setTargetSec(saved)
-    if (phase === 'running') {
-      cuedRef.current = false
-      setStartedAt(Date.now())
-      setElapsedMs(0)
-    }
+  }
+
+  function pickTone(next: TimerToneId) {
+    setTone(setTimerTone(next))
+  }
+
+  function toggleSound() {
+    const next = !soundOn
+    setTimerSoundEnabled(next)
+    setSoundOn(next)
+    if (!next) stopTimerAlarm()
   }
 
   const elapsedSec = elapsedMs / 1000
-  const progress =
-    targetSec > 0 ? Math.min(1, Math.max(0, elapsedSec / targetSec)) : 0
+
+  if (phase === 'running' || phase === 'done') {
+    return (
+      <TimerFullscreen
+        phase={phase}
+        elapsedSec={elapsedSec}
+        targetSec={targetSec}
+        title="Temporizador"
+        primaryLabel={
+          phase === 'done' ? 'Empezar serie' : 'Detener'
+        }
+        onPrimary={phase === 'done' ? acknowledgeDone : stopToIdle}
+        secondaryLabel={phase === 'running' ? 'Cancelar' : undefined}
+        onSecondary={phase === 'running' ? stopToIdle : undefined}
+        footer={
+          phase === 'done' ? (
+            <p>Toca para callar la alarma y seguir.</p>
+          ) : (
+            <p>Últimos {FINAL_TICK_SECONDS}s con tick · tono {tone === 'bell' ? 'campana' : 'beep'}</p>
+          )
+        }
+      />
+    )
+  }
 
   return (
     <div className="standalone-timer space-y-5">
       <PageHeader
         kicker="Focus · Tools"
         title="Temporizador"
-        subtitle="Independiente del entreno. Úsalo cuando quieras."
+        subtitle="Pantalla completa al arrancar. Independiente del entreno."
         back={
           <Link
             to="/"
@@ -86,32 +155,10 @@ export function StandaloneTimerPage() {
         }
       />
 
-      <div
-        className={[
-          'standalone-timer__card',
-          phase === 'done' ? 'standalone-timer__card--done' : '',
-        ]
-          .filter(Boolean)
-          .join(' ')}
-      >
-        <div
-          className="standalone-timer__bar"
-          style={{ transform: `scaleX(${phase === 'idle' ? 0 : progress})` }}
-          aria-hidden
-        />
-        <p className="standalone-timer__kicker">
-          {phase === 'done'
-            ? 'Listo'
-            : phase === 'running'
-              ? `Meta ${formatRestTargetLabel(targetSec)}`
-              : 'Elige meta y arranca'}
-        </p>
+      <div className="standalone-timer__card">
+        <p className="standalone-timer__kicker">Meta</p>
         <p className="standalone-timer__clock" aria-live="polite">
-          {phase === 'done'
-            ? '¡Ya!'
-            : phase === 'running'
-              ? formatRestClock(elapsedSec)
-              : formatRestClock(0)}
+          {formatRestTargetLabel(targetSec)}
         </p>
       </div>
 
@@ -133,19 +180,65 @@ export function StandaloneTimerPage() {
         ))}
       </div>
 
-      {phase === 'idle' || phase === 'done' ? (
-        <Button fullWidth onClick={start}>
-          Empezar · {formatRestTargetLabel(targetSec)}
-        </Button>
-      ) : (
-        <Button fullWidth variant="ghost" onClick={stop}>
-          Detener
-        </Button>
-      )}
+      <div className="timer-setup">
+        <p className="timer-setup__label">Tono de alarma</p>
+        <div className="timer-setup__tones">
+          {TIMER_TONES.map((row) => (
+            <button
+              key={row.id}
+              type="button"
+              className={[
+                'timer-setup__tone',
+                tone === row.id ? 'timer-setup__tone--active' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onClick={() => pickTone(row.id)}
+            >
+              {row.label}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="timer-setup__tone timer-setup__tone--preview"
+            onClick={() => previewTimerTone(tone)}
+          >
+            Probar
+          </button>
+        </div>
+
+        <button
+          type="button"
+          className={[
+            'timer-setup__silence',
+            soundOn ? '' : 'timer-setup__silence--on',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+          onClick={toggleSound}
+        >
+          {soundOn
+            ? 'Sonido activado · vibra + tono'
+            : 'Silencio automático · solo vibra'}
+        </button>
+      </div>
+
+      <Button fullWidth onClick={start}>
+        Empezar · {formatRestTargetLabel(targetSec)}
+      </Button>
+
+      <Link to="/temporizador/preview" className="timer-preview-link">
+        <span className="timer-preview-link__copy">
+          <span className="timer-preview-link__title">Preview del timer</span>
+          <span className="timer-preview-link__sub">
+            Prueba 10–20 s a pantalla completa (tick + alarma)
+          </span>
+        </span>
+        <span aria-hidden>→</span>
+      </Link>
 
       <p className="text-center text-xs text-muted">
-        En el entreno también puedes usar “Descanso 3 min” al marcar una serie.
-        Este de acá es aparte.
+        Al terminar: tick final + alarma. “Empezar serie” corta el sonido.
       </p>
     </div>
   )

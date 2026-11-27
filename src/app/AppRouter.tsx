@@ -14,6 +14,7 @@ import { WorkoutPage } from '../features/workout/WorkoutPage'
 import { TreadmillPage } from '../features/cardio/TreadmillPage'
 import { PlateCalculatorPage } from '../features/tools/PlateCalculatorPage'
 import { StandaloneTimerPage } from '../features/tools/StandaloneTimerPage'
+import { TimerPreviewPage } from '../features/tools/TimerPreviewPage'
 import { CoachPage } from '../features/coach/CoachPage'
 import { PrCelebrationPreviewPage } from '../features/workout/PrCelebrationPreviewPage'
 
@@ -51,6 +52,10 @@ export function AppRouter() {
         <Route path="historial/:sessionId" element={<HistoryDetailPage />} />
         <Route path="discos" element={<PlateCalculatorPage />} />
         <Route path="temporizador" element={<StandaloneTimerPage />} />
+        <Route
+          path="temporizador/preview"
+          element={<TimerPreviewPage />}
+        />
         <Route path="progreso" element={<ProgressPage />} />
         <Route
           path="progreso/animacion-pr"

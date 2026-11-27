@@ -4598,6 +4598,352 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   box-shadow: none;
 }
 
+.timer-preview-link {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  border-radius: 1.15rem;
+  padding: 0.9rem 1rem;
+  background: color-mix(in srgb, var(--color-brand) 14%, var(--color-surface));
+  color: var(--color-fg);
+  text-decoration: none;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-brand) 35%, var(--color-line));
+}
+
+.timer-preview-link__copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.timer-preview-link__title {
+  display: block;
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.timer-preview-link__sub {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.timer-preview-link > span:last-child {
+  flex-shrink: 0;
+  font-weight: 800;
+  opacity: 0.7;
+}
+
+.timer-preview-banner {
+  border-radius: 1.15rem;
+  padding: 0.9rem 1rem;
+  background: color-mix(in srgb, var(--color-chrome, #1a1a1a) 90%, black);
+  color: var(--color-chrome-fg, #fff);
+}
+
+.timer-preview-banner__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+}
+
+.timer-preview-banner__sub {
+  margin: 0.3rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+.timer-setup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.timer-setup__label {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.timer-setup__tones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.timer-setup__tone {
+  min-height: 2.4rem;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  background: var(--color-surface);
+  color: var(--color-fg);
+  font-size: 0.88rem;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.timer-setup__tone--active {
+  background: var(--color-chrome, #1a1a1a);
+  color: var(--color-chrome-fg, #fff);
+  box-shadow: none;
+}
+
+.timer-setup__tone--preview {
+  background: color-mix(in srgb, var(--color-brand) 22%, var(--color-surface));
+}
+
+.timer-setup__silence {
+  min-height: 2.6rem;
+  border: 0;
+  border-radius: 1rem;
+  padding: 0.55rem 0.9rem;
+  text-align: left;
+  background: var(--color-surface);
+  color: var(--color-fg);
+  font-size: 0.88rem;
+  font-weight: 700;
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.timer-setup__silence--on {
+  background: #3f3f46;
+  color: #fff;
+  box-shadow: none;
+}
+
+/* Pantalla completa del timer */
+.timer-fs {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: max(1.25rem, env(safe-area-inset-top)) 1.25rem
+    max(1.5rem, env(safe-area-inset-bottom));
+  background: #0b0d10;
+  color: #fff;
+  overflow: hidden;
+}
+
+.timer-fs--done {
+  background: linear-gradient(160deg, #0b0d10 20%, #14532d 140%);
+}
+
+.timer-fs--final {
+  background: linear-gradient(160deg, #0b0d10 10%, #7f1d1d 150%);
+}
+
+.timer-fs__pulse {
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(
+    circle at 50% 42%,
+    color-mix(in srgb, var(--color-brand) 28%, transparent),
+    transparent 55%
+  );
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.timer-fs--running .timer-fs__pulse {
+  animation: timer-fs-breathe 2.4s ease-in-out infinite;
+}
+
+.timer-fs--done .timer-fs__pulse {
+  animation: timer-fs-flash 0.9s ease-out infinite;
+  background: radial-gradient(
+    circle at 50% 42%,
+    color-mix(in srgb, #22c55e 35%, transparent),
+    transparent 55%
+  );
+}
+
+.timer-fs__kicker {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+
+.timer-fs__meta {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  opacity: 0.78;
+}
+
+.timer-fs__stage {
+  position: relative;
+  z-index: 1;
+  width: min(72vw, 18rem);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  margin: 0.6rem 0 1rem;
+}
+
+.timer-fs__ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.timer-fs__ring-track {
+  stroke: color-mix(in srgb, white 14%, transparent);
+}
+
+.timer-fs__ring-value {
+  stroke: var(--color-brand, #22c55e);
+  transition: stroke-dashoffset 0.18s linear;
+}
+
+.timer-fs--final .timer-fs__ring-value {
+  stroke: #f87171;
+}
+
+.timer-fs--done .timer-fs__ring-value {
+  stroke: #4ade80;
+}
+
+.timer-fs__clock {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: clamp(2.8rem, 14vw, 4.4rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.timer-fs--running .timer-fs__clock {
+  animation: timer-fs-clock-pulse 1s ease-in-out infinite;
+}
+
+.timer-fs--final .timer-fs__clock {
+  animation: timer-fs-clock-urgent 0.55s ease-in-out infinite;
+}
+
+.timer-fs__actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: min(100%, 22rem);
+}
+
+.timer-fs__primary {
+  min-height: 3.3rem;
+  border: 0;
+  border-radius: 1.15rem;
+  padding: 0.75rem 1.1rem;
+  background: var(--color-brand, #16a34a);
+  color: #fff;
+  font-family: var(--font-display);
+  font-size: 1.12rem;
+  font-weight: 800;
+}
+
+.timer-fs__primary:active {
+  transform: scale(0.98);
+}
+
+.timer-fs__secondary {
+  min-height: 2.8rem;
+  border: 0;
+  border-radius: 1rem;
+  padding: 0.55rem 1rem;
+  background: color-mix(in srgb, white 12%, transparent);
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.timer-fs__footer {
+  position: relative;
+  z-index: 1;
+  margin-top: 0.35rem;
+  max-width: 22rem;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.timer-fs__footer p {
+  margin: 0;
+}
+
+@keyframes timer-fs-breathe {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.06);
+  }
+}
+
+@keyframes timer-fs-flash {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@keyframes timer-fs-clock-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+@keyframes timer-fs-clock-urgent {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.88;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .timer-fs__pulse,
+  .timer-fs__ring,
+  .timer-fs__clock {
+    animation: none !important;
+  }
+}
+
 @keyframes weekly-pop {
   from {
     opacity: 0;

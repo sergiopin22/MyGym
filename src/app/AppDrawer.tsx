@@ -238,6 +238,12 @@ export function AppDrawer({
                   onClick={() => go('/temporizador')}
                 />
                 <DrawerActionItem
+                  icon="🔊"
+                  label="Preview del timer"
+                  subtitle="Prueba tono, tick y alarma en 10 s"
+                  onClick={() => go('/temporizador/preview')}
+                />
+                <DrawerActionItem
                   icon="👑"
                   label="Resumen semanal"
                   subtitle="Subidas y bajadas vs semana pasada"
