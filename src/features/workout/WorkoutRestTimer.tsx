@@ -9,6 +9,7 @@ import {
   REST_PRESETS,
   setRestSeconds,
   stopTimerAlarm,
+  unlockTimerAudio,
 } from '../../utils/restTimer'
 import { TimerFullscreen } from '../tools/TimerFullscreen'
 
@@ -84,6 +85,7 @@ export function WorkoutRestTimer({ offerToken }: WorkoutRestTimerProps) {
 
   function startRest() {
     stopTimerAlarm()
+    void unlockTimerAudio()
     cuedRef.current = false
     lastTickSecRef.current = null
     const sec = getRestSeconds()

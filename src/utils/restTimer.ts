@@ -63,11 +63,10 @@ export function setTimerTone(tone: TimerToneId): TimerToneId {
   return tone
 }
 
-/** false = silencio automático (solo vibra). Respeta también el mute de PR. */
+/** Solo el mute del timer (no el de PR). Por defecto: sonido ON. */
 export function isTimerSoundEnabled(): boolean {
   try {
     if (localStorage.getItem(TIMER_SOUND_KEY) === '0') return false
-    if (localStorage.getItem('mi-gym-pr-sound') === '0') return false
   } catch {
     /* ignore */
   }
@@ -117,6 +116,7 @@ function getAudioContextCtor(): typeof AudioContext | null {
 
 let sharedCtx: AudioContext | null = null
 const pendingStops: Array<() => void> = []
+const liveOscillators = new Set<OscillatorNode>()
 
 function ensureCtx(): AudioContext | null {
   const AC = getAudioContextCtor()
@@ -124,15 +124,55 @@ function ensureCtx(): AudioContext | null {
   if (!sharedCtx || sharedCtx.state === 'closed') {
     sharedCtx = new AC()
   }
-  void sharedCtx.resume()
   return sharedCtx
+}
+
+async function resumeCtx(ctx: AudioContext): Promise<boolean> {
+  try {
+    if (ctx.state === 'suspended') {
+      await ctx.resume()
+    }
+    return ctx.state === 'running'
+  } catch {
+    return false
+  }
 }
 
 function trackStop(fn: () => void) {
   pendingStops.push(fn)
 }
 
-/** Corta alarma / ticks al tocar “Empezar serie” u otro dismiss. */
+function trackOsc(osc: OscillatorNode) {
+  liveOscillators.add(osc)
+  osc.onended = () => {
+    liveOscillators.delete(osc)
+  }
+}
+
+/**
+ * Hay que llamarlo en un click (Empezar / Preview / Descanso).
+ * En iPhone sin esto el audio no suena al terminar el timer.
+ */
+export async function unlockTimerAudio(): Promise<void> {
+  if (typeof window === 'undefined') return
+  const ctx = ensureCtx()
+  if (!ctx) return
+  await resumeCtx(ctx)
+  try {
+    const buffer = ctx.createBuffer(1, 1, ctx.sampleRate)
+    const src = ctx.createBufferSource()
+    src.buffer = buffer
+    const g = ctx.createGain()
+    g.gain.value = 0.0001
+    src.connect(g)
+    g.connect(ctx.destination)
+    src.start(0)
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Corta alarma / ticks al tocar “Empezar serie”. No suspende el AudioContext. */
 export function stopTimerAlarm(): void {
   while (pendingStops.length) {
     const fn = pendingStops.pop()
@@ -142,12 +182,18 @@ export function stopTimerAlarm(): void {
       /* ignore */
     }
   }
-  if (sharedCtx && sharedCtx.state !== 'closed') {
+  for (const osc of [...liveOscillators]) {
     try {
-      sharedCtx.suspend()
+      osc.stop()
     } catch {
-      /* ignore */
+      /* already stopped */
     }
+    liveOscillators.delete(osc)
+  }
+  try {
+    navigator.vibrate?.(0)
+  } catch {
+    /* ignore */
   }
 }
 
@@ -161,37 +207,42 @@ function vibratePattern(pattern: number | number[]) {
   }
 }
 
-function toneBeep(ctx: AudioContext, at: number, gain = 0.14) {
+function rampGain(g: GainNode, at: number, peak: number, dur: number) {
+  g.gain.cancelScheduledValues(at)
+  g.gain.setValueAtTime(0.0001, at)
+  g.gain.linearRampToValueAtTime(peak, at + Math.min(0.02, dur * 0.1))
+  g.gain.linearRampToValueAtTime(0.0001, at + dur)
+}
+
+function toneBeep(ctx: AudioContext, at: number, gain = 0.22) {
   const osc = ctx.createOscillator()
   const g = ctx.createGain()
   osc.type = 'sine'
   osc.frequency.setValueAtTime(880, at)
-  osc.frequency.exponentialRampToValueAtTime(520, at + 0.2)
-  g.gain.setValueAtTime(0.0001, at)
-  g.gain.exponentialRampToValueAtTime(gain, at + 0.015)
-  g.gain.exponentialRampToValueAtTime(0.0001, at + 0.28)
+  osc.frequency.linearRampToValueAtTime(520, at + 0.22)
+  rampGain(g, at, gain, 0.3)
   osc.connect(g)
   g.connect(ctx.destination)
+  trackOsc(osc)
   osc.start(at)
-  osc.stop(at + 0.32)
+  osc.stop(at + 0.35)
 }
 
 /** Campana de box aproximada (parciales metálicos). */
-function toneBell(ctx: AudioContext, at: number, gain = 0.18) {
+function toneBell(ctx: AudioContext, at: number, gain = 0.28) {
   const freqs = [520, 780, 1040]
-  const gains = [gain, gain * 0.45, gain * 0.22]
+  const gains = [gain, gain * 0.5, gain * 0.28]
   for (let i = 0; i < freqs.length; i++) {
     const osc = ctx.createOscillator()
     const g = ctx.createGain()
     osc.type = i === 0 ? 'triangle' : 'sine'
     osc.frequency.setValueAtTime(freqs[i]!, at)
-    g.gain.setValueAtTime(0.0001, at)
-    g.gain.exponentialRampToValueAtTime(gains[i]!, at + 0.01)
-    g.gain.exponentialRampToValueAtTime(0.0001, at + 1.1)
+    rampGain(g, at, gains[i]!, 1.05)
     osc.connect(g)
     g.connect(ctx.destination)
+    trackOsc(osc)
     osc.start(at)
-    osc.stop(at + 1.15)
+    osc.stop(at + 1.1)
   }
 }
 
@@ -199,101 +250,95 @@ function toneTick(ctx: AudioContext, at: number) {
   const osc = ctx.createOscillator()
   const g = ctx.createGain()
   osc.type = 'square'
-  osc.frequency.setValueAtTime(1200, at)
-  g.gain.setValueAtTime(0.0001, at)
-  g.gain.exponentialRampToValueAtTime(0.07, at + 0.008)
-  g.gain.exponentialRampToValueAtTime(0.0001, at + 0.07)
+  osc.frequency.setValueAtTime(1400, at)
+  rampGain(g, at, 0.12, 0.08)
   osc.connect(g)
   g.connect(ctx.destination)
+  trackOsc(osc)
   osc.start(at)
-  osc.stop(at + 0.09)
+  osc.stop(at + 0.1)
 }
 
-/** Tick de los últimos segundos (siempre vibra un toque; audio si no hay silencio). */
+async function withRunningCtx(
+  play: (ctx: AudioContext) => void,
+): Promise<void> {
+  const ctx = ensureCtx()
+  if (!ctx) return
+  const ok = await resumeCtx(ctx)
+  if (!ok) return
+  play(ctx)
+}
+
+/** Tick de los últimos segundos. */
 export function playFinalTick(): void {
   if (typeof window === 'undefined') return
-  vibratePattern(18)
+  vibratePattern(25)
   if (!isTimerSoundEnabled()) return
-  try {
-    const ctx = ensureCtx()
-    if (!ctx) return
+  void withRunningCtx((ctx) => {
     toneTick(ctx, ctx.currentTime)
-  } catch {
-    /* audio bloqueado */
-  }
+  })
 }
 
 /**
- * Alarma al terminar. Se puede cortar con stopTimerAlarm()
+ * Alarma al terminar. Se corta con stopTimerAlarm()
  * (botón “Empezar serie”).
  */
 export function playTimerDoneAlarm(tone: TimerToneId = getTimerTone()): void {
   if (typeof window === 'undefined') return
 
   stopTimerAlarm()
-  vibratePattern([50, 80, 50, 80, 120])
+  vibratePattern([60, 80, 60, 80, 140])
 
   if (!isTimerSoundEnabled()) return
 
-  try {
-    const ctx = ensureCtx()
-    if (!ctx) return
-    void ctx.resume()
-
+  void withRunningCtx((ctx) => {
     let cancelled = false
     const timers: number[] = []
     trackStop(() => {
       cancelled = true
       for (const id of timers) window.clearTimeout(id)
-      try {
-        navigator.vibrate?.(0)
-      } catch {
-        /* ignore */
-      }
     })
 
     const playOnce = (whenMs: number) => {
       const id = window.setTimeout(() => {
         if (cancelled) return
-        const at = ctx.currentTime
-        if (tone === 'bell') toneBell(ctx, at)
-        else {
-          toneBeep(ctx, at)
-          toneBeep(ctx, at + 0.22, 0.12)
-        }
-        vibratePattern(tone === 'bell' ? [40, 60, 100] : [35, 40, 35])
+        void resumeCtx(ctx).then((ok) => {
+          if (!ok || cancelled) return
+          const at = ctx.currentTime
+          if (tone === 'bell') toneBell(ctx, at)
+          else {
+            toneBeep(ctx, at)
+            toneBeep(ctx, at + 0.2, 0.18)
+          }
+          vibratePattern(tone === 'bell' ? [50, 70, 120] : [40, 45, 40])
+        })
       }, whenMs)
       timers.push(id)
     }
 
-    /* Repite un par de veces hasta que toquen Empezar serie */
     playOnce(0)
-    playOnce(1400)
-    playOnce(2800)
-  } catch {
-    /* audio bloqueado */
-  }
+    playOnce(1300)
+    playOnce(2600)
+  })
 }
 
-/** Preview de tono (desde la UI de ajustes del timer). */
+/** Preview de tono (desde un click → sí tiene gesto de usuario). */
 export function previewTimerTone(tone: TimerToneId): void {
   if (typeof window === 'undefined') return
   stopTimerAlarm()
-  vibratePattern(30)
+  vibratePattern(35)
   if (!isTimerSoundEnabled()) return
-  try {
+  void (async () => {
+    await unlockTimerAudio()
     const ctx = ensureCtx()
     if (!ctx) return
-    void ctx.resume()
     const at = ctx.currentTime
-    if (tone === 'bell') toneBell(ctx, at, 0.16)
+    if (tone === 'bell') toneBell(ctx, at, 0.26)
     else {
-      toneBeep(ctx, at, 0.14)
-      toneBeep(ctx, at + 0.2, 0.11)
+      toneBeep(ctx, at, 0.22)
+      toneBeep(ctx, at + 0.2, 0.16)
     }
-  } catch {
-    /* ignore */
-  }
+  })()
 }
 
 /** @deprecated usar playTimerDoneAlarm */

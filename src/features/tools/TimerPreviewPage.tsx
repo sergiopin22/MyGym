@@ -13,6 +13,7 @@ import {
   setTimerSoundEnabled,
   setTimerTone,
   stopTimerAlarm,
+  unlockTimerAudio,
   TIMER_TONES,
   type TimerToneId,
 } from '../../utils/restTimer'
@@ -72,6 +73,7 @@ export function TimerPreviewPage() {
 
   function startPreview() {
     stopTimerAlarm()
+    void unlockTimerAudio()
     cuedRef.current = false
     lastTickSecRef.current = null
     setStartedAt(Date.now())
@@ -222,6 +224,11 @@ export function TimerPreviewPage() {
             ? 'Sonido activado · vibra + tono'
             : 'Silencio automático · solo vibra'}
         </button>
+        {!soundOn ? (
+          <p className="text-xs font-medium text-danger">
+            El sonido está apagado. Actívalo arriba para oír la alarma.
+          </p>
+        ) : null}
       </div>
 
       <Button fullWidth onClick={startPreview}>

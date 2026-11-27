@@ -16,6 +16,7 @@ import {
   setTimerSoundEnabled,
   setTimerTone,
   stopTimerAlarm,
+  unlockTimerAudio,
   TIMER_TONES,
   type TimerToneId,
 } from '../../utils/restTimer'
@@ -72,6 +73,7 @@ export function StandaloneTimerPage() {
 
   function start() {
     stopTimerAlarm()
+    void unlockTimerAudio()
     cuedRef.current = false
     lastTickSecRef.current = null
     const saved = setRestSeconds(targetSec)
@@ -221,6 +223,11 @@ export function StandaloneTimerPage() {
             ? 'Sonido activado · vibra + tono'
             : 'Silencio automático · solo vibra'}
         </button>
+        {!soundOn ? (
+          <p className="text-xs font-medium text-danger">
+            El sonido está apagado. Actívalo arriba o prueba el tono.
+          </p>
+        ) : null}
       </div>
 
       <Button fullWidth onClick={start}>
