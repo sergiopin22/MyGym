@@ -13,7 +13,7 @@ interface TimerFullscreenProps {
   footer?: ReactNode
 }
 
-/** Pantalla completa del temporizador (entreno o herramienta). */
+/** Pantalla completa del temporizador — negro + llamas. */
 export function TimerFullscreen({
   phase,
   elapsedSec,
@@ -50,15 +50,25 @@ export function TimerFullscreen({
           : `${title} ${formatRestClock(elapsedSec)}`
       }
     >
-      <div className="timer-fs__pulse" aria-hidden />
+      <div className="timer-fs__embers" aria-hidden />
+      <div className="timer-fs__heat" aria-hidden />
+
+      <div className="timer-fs__flames" aria-hidden>
+        <span className="timer-fs__flame timer-fs__flame--a" />
+        <span className="timer-fs__flame timer-fs__flame--b" />
+        <span className="timer-fs__flame timer-fs__flame--c" />
+        <span className="timer-fs__flame timer-fs__flame--d" />
+        <span className="timer-fs__flame timer-fs__flame--e" />
+        <span className="timer-fs__flame timer-fs__flame--f" />
+      </div>
 
       <p className="timer-fs__kicker">
-        {phase === 'done' ? 'Listo' : title}
+        {phase === 'done' ? 'GO' : title}
       </p>
       <p className="timer-fs__meta">
-        Meta {formatRestTargetLabel(targetSec)}
+        REST {formatRestTargetLabel(targetSec)}
         {phase === 'running'
-          ? ` · quedan ${formatRestClock(remaining)}`
+          ? ` · ${formatRestClock(remaining)} left`
           : null}
       </p>
 
@@ -86,7 +96,7 @@ export function TimerFullscreen({
           />
         </svg>
         <p className="timer-fs__clock" aria-live="polite">
-          {phase === 'done' ? '¡Ya!' : formatRestClock(elapsedSec)}
+          {phase === 'done' ? 'GO' : formatRestClock(elapsedSec)}
         </p>
       </div>
 
