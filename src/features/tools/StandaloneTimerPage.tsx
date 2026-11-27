@@ -6,6 +6,7 @@ import {
   FINAL_TICK_SECONDS,
   formatRestTargetLabel,
   getRestSeconds,
+  getTimerDesign,
   getTimerTone,
   isTimerSoundEnabled,
   playFinalTick,
@@ -13,11 +14,14 @@ import {
   previewTimerTone,
   REST_PRESETS,
   setRestSeconds,
+  setTimerDesign,
   setTimerSoundEnabled,
   setTimerTone,
   stopTimerAlarm,
   unlockTimerAudio,
+  TIMER_DESIGNS,
   TIMER_TONES,
+  type TimerDesignId,
   type TimerToneId,
 } from '../../utils/restTimer'
 import { TimerFullscreen } from './TimerFullscreen'
@@ -33,6 +37,7 @@ export function StandaloneTimerPage() {
   const [startedAt, setStartedAt] = useState(0)
   const [elapsedMs, setElapsedMs] = useState(0)
   const [tone, setTone] = useState<TimerToneId>(() => getTimerTone())
+  const [design, setDesign] = useState<TimerDesignId>(() => getTimerDesign())
   const [soundOn, setSoundOn] = useState(() => isTimerSoundEnabled())
   const cuedRef = useRef(false)
   const lastTickSecRef = useRef<number | null>(null)
@@ -108,6 +113,10 @@ export function StandaloneTimerPage() {
     setTone(setTimerTone(next))
   }
 
+  function pickDesign(next: TimerDesignId) {
+    setDesign(setTimerDesign(next))
+  }
+
   function toggleSound() {
     const next = !soundOn
     setTimerSoundEnabled(next)
@@ -123,6 +132,7 @@ export function StandaloneTimerPage() {
         phase={phase}
         elapsedSec={elapsedSec}
         targetSec={targetSec}
+        design={design}
         title="Temporizador"
         primaryLabel={
           phase === 'done' ? 'Empezar serie' : 'Detener'
@@ -183,6 +193,26 @@ export function StandaloneTimerPage() {
       </div>
 
       <div className="timer-setup">
+        <p className="timer-setup__label">Diseño pantalla completa</p>
+        <div className="timer-setup__designs">
+          {TIMER_DESIGNS.map((row) => (
+            <button
+              key={row.id}
+              type="button"
+              className={[
+                'timer-setup__design',
+                design === row.id ? 'timer-setup__design--active' : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              onClick={() => pickDesign(row.id)}
+            >
+              <strong>{row.label}</strong>
+              <span>{row.tagline}</span>
+            </button>
+          ))}
+        </div>
+
         <p className="timer-setup__label">Tono de alarma</p>
         <div className="timer-setup__tones">
           {TIMER_TONES.map((row) => (

@@ -4723,7 +4723,47 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   box-shadow: none;
 }
 
-/* Pantalla completa del timer — modo guerra / campo de batalla */
+.timer-setup__designs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.timer-setup__design {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: 0.55rem;
+  padding: 0.55rem 0.85rem;
+  text-align: left;
+  background: var(--color-surface);
+  color: var(--color-fg);
+  box-shadow: inset 0 0 0 1px var(--color-line);
+}
+
+.timer-setup__design strong {
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.timer-setup__design span {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-fg-muted);
+}
+
+.timer-setup__design--active {
+  background: color-mix(in srgb, var(--color-brand) 18%, var(--color-surface));
+  box-shadow: inset 0 0 0 2px var(--color-brand);
+}
+
+/* Pantalla completa del timer — Temach (default) + variantes */
 .timer-fs {
   position: fixed;
   inset: 0;
@@ -4735,18 +4775,18 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   gap: 0.65rem;
   padding: max(1.35rem, env(safe-area-inset-top)) 1.15rem
     max(1.6rem, env(safe-area-inset-bottom));
-  background: #010101;
-  color: #ffe4e6;
+  background: #000;
+  color: #fff;
   overflow: hidden;
   isolation: isolate;
 }
 
 .timer-fs--final {
-  background: #120202;
+  background: #0a0000;
 }
 
 .timer-fs--done {
-  background: #140404;
+  background: #0f0000;
 }
 
 .timer-fs__soot {
@@ -4766,9 +4806,9 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   pointer-events: none;
   z-index: 0;
   background:
-    radial-gradient(ellipse 110% 55% at 50% 118%, #7f1d1dcc, transparent 58%),
-    radial-gradient(ellipse 60% 38% at 8% 108%, #991b1bbb, transparent 52%),
-    radial-gradient(ellipse 60% 38% at 92% 108%, #b91c1cbb, transparent 52%);
+    radial-gradient(ellipse 110% 55% at 50% 118%, #e10600aa, transparent 58%),
+    radial-gradient(ellipse 60% 38% at 8% 108%, #99040099, transparent 52%),
+    radial-gradient(ellipse 60% 38% at 92% 108%, #b9050099, transparent 52%);
   opacity: 0.95;
 }
 
@@ -4780,9 +4820,9 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 .timer-fs--done .timer-fs__embers {
   opacity: 1;
   background:
-    radial-gradient(ellipse 120% 65% at 50% 120%, #dc2626dd, transparent 56%),
-    radial-gradient(ellipse 75% 48% at 8% 110%, #ef4444cc, transparent 48%),
-    radial-gradient(ellipse 75% 48% at 92% 110%, #f97316cc, transparent 48%);
+    radial-gradient(ellipse 120% 65% at 50% 120%, #e10600dd, transparent 56%),
+    radial-gradient(ellipse 75% 48% at 8% 110%, #ff2222cc, transparent 48%),
+    radial-gradient(ellipse 75% 48% at 92% 110%, #e10600cc, transparent 48%);
   animation: timer-fs-embers-hot 0.95s ease-in-out infinite;
 }
 
@@ -4791,7 +4831,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   inset: -12%;
   pointer-events: none;
   z-index: 0;
-  background: radial-gradient(circle at 50% 42%, #dc262628, transparent 58%);
+  background: radial-gradient(circle at 50% 42%, #e1060028, transparent 58%);
   opacity: 0.55;
 }
 
@@ -4803,8 +4843,8 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 .timer-fs--done .timer-fs__heat {
   background: radial-gradient(
     circle at 50% 40%,
-    #ef444488,
-    #dc262644 42%,
+    #e1060088,
+    #99040044 42%,
     transparent 64%
   );
   animation: timer-fs-flash 0.75s ease-out infinite;
@@ -4819,9 +4859,9 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   pointer-events: none;
   z-index: 1;
   background:
-    linear-gradient(to top, #450a0acc 0%, #7f1d1d66 28%, transparent 78%),
-    radial-gradient(ellipse 100% 80% at 50% 100%, #991b1b99, transparent 70%);
-  opacity: 0.7;
+    linear-gradient(to top, #4a0000cc 0%, #e1060044 28%, transparent 78%),
+    radial-gradient(ellipse 100% 80% at 50% 100%, #e1060088, transparent 70%);
+  opacity: 0.72;
   filter: blur(1px);
 }
 
@@ -4833,8 +4873,8 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 .timer-fs--done .timer-fs__mist {
   opacity: 0.95;
   background:
-    linear-gradient(to top, #7f1d1dee 0%, #dc262688 32%, transparent 82%),
-    radial-gradient(ellipse 110% 90% at 50% 100%, #ef4444aa, transparent 72%);
+    linear-gradient(to top, #6a0000ee 0%, #e1060088 32%, transparent 82%),
+    radial-gradient(ellipse 110% 90% at 50% 100%, #e10600aa, transparent 72%);
   animation: timer-fs-embers-hot 1s ease-in-out infinite;
 }
 
@@ -4900,11 +4940,11 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   border-bottom: 2px solid #000;
   background: repeating-linear-gradient(
     -32deg,
-    #050505 0 14px,
-    #dc2626 14px 28px
+    #000 0 14px,
+    #e10600 14px 28px
   );
-  opacity: 0.88;
-  box-shadow: 0 0 34px #dc262666;
+  opacity: 0.9;
+  box-shadow: 0 0 34px #e1060066;
 }
 
 .timer-fs__hazard-glow {
@@ -4915,7 +4955,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   height: 100%;
   background:
     linear-gradient(to top, #000 0%, transparent 55%),
-    radial-gradient(ellipse 95% 75% at 50% 100%, #991b1b77, transparent 70%);
+    radial-gradient(ellipse 95% 75% at 50% 100%, #e1060077, transparent 70%);
   opacity: 0.9;
 }
 
@@ -4923,11 +4963,11 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 .timer-fs--done .timer-fs__hazard-band {
   opacity: 1;
   animation: timer-fs-hazard-pulse 0.45s steps(2) infinite;
-  box-shadow: 0 0 42px #ef4444aa;
+  box-shadow: 0 0 42px #e10600aa;
   background: repeating-linear-gradient(
     -32deg,
-    #050505 0 14px,
-    #ef4444 14px 28px
+    #000 0 14px,
+    #ff1a1a 14px 28px
   );
 }
 
@@ -4935,7 +4975,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 .timer-fs--done .timer-fs__hazard-glow {
   background:
     linear-gradient(to top, #000 0%, transparent 48%),
-    radial-gradient(ellipse 110% 85% at 50% 100%, #ef444499, #dc262655 45%, transparent 72%);
+    radial-gradient(ellipse 110% 85% at 50% 100%, #e1060099, #99040055 45%, transparent 72%);
 }
 
 .timer-fs__ash {
@@ -4952,10 +4992,10 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   width: 7px;
   height: 7px;
   border-radius: 1px;
-  background: #fda4af;
+  background: #ff6b6b;
   box-shadow:
-    0 0 10px #ef4444,
-    0 0 2px #fff1f2;
+    0 0 10px #e10600,
+    0 0 2px #fff;
   opacity: 0;
   animation: timer-fs-ash-rise 3.4s linear infinite;
 }
@@ -5097,9 +5137,9 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 
 .timer-fs--final .timer-fs__debris,
 .timer-fs--done .timer-fs__debris {
-  background: #fecaca;
+  background: #fff;
   box-shadow:
-    0 0 14px #ef4444,
+    0 0 14px #e10600,
     0 0 3px #fff;
   animation-duration: 1.45s;
 }
@@ -5110,7 +5150,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
     max(0.85rem, env(safe-area-inset-bottom));
   pointer-events: none;
   z-index: 5;
-  border: 1px solid #ef444455;
+  border: 1px solid #e1060055;
   box-shadow: inset 0 0 0 1px #000000aa;
 }
 
@@ -5118,7 +5158,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   position: absolute;
   width: 1.1rem;
   height: 1.1rem;
-  border-color: #ef4444;
+  border-color: #e10600;
   border-style: solid;
   border-width: 0;
 }
@@ -5154,24 +5194,26 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   z-index: 6;
   margin: 0;
   padding: 0.2rem 0.45rem;
-  border: 2px solid #ef4444aa;
-  color: #ef4444cc;
+  border: 2px solid #e10600aa;
+  color: #e10600;
   font-family: var(--font-display);
   font-size: 0.62rem;
   font-weight: 900;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   transform: rotate(12deg);
-  opacity: 0.85;
+  opacity: 0.9;
   mix-blend-mode: screen;
 }
 
 .timer-fs--final .timer-fs__stamp,
 .timer-fs--done .timer-fs__stamp {
-  color: #fecaca;
-  border-color: #ef4444;
+  color: #fff;
+  border-color: #e10600;
+  background: #e10600;
   opacity: 1;
   animation: timer-fs-stamp-flash 0.4s steps(2) infinite;
+  mix-blend-mode: normal;
 }
 
 .timer-fs__kicker {
@@ -5183,9 +5225,9 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   font-weight: 900;
   letter-spacing: 0.32em;
   text-transform: uppercase;
-  color: #f87171;
+  color: #e10600;
   text-shadow:
-    0 0 14px #ef444499,
+    0 0 14px #e1060099,
     1px 1px 0 #000;
 }
 
@@ -5198,7 +5240,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: #fda4af;
+  color: #cfcfcf;
   opacity: 0.92;
 }
 
@@ -5216,7 +5258,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   position: absolute;
   inset: 8%;
   border-radius: 50%;
-  background: radial-gradient(circle, #ef444433, transparent 68%);
+  background: radial-gradient(circle, #e1060033, transparent 68%);
   filter: blur(8px);
   animation: timer-fs-breathe 2.2s ease-in-out infinite;
 }
@@ -5226,26 +5268,26 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   inset: 0;
   width: 100%;
   height: 100%;
-  filter: drop-shadow(0 0 12px #b91c1c99);
+  filter: drop-shadow(0 0 12px #e1060099);
 }
 
 .timer-fs__ring-track {
-  stroke: #450a0acc;
+  stroke: #2a0808cc;
   stroke-dasharray: 4 3;
 }
 
 .timer-fs__ring-value {
-  stroke: #ef4444;
+  stroke: #e10600;
   transition: stroke-dashoffset 0.18s linear;
 }
 
 .timer-fs--final .timer-fs__ring-value {
-  stroke: #fecaca;
-  filter: drop-shadow(0 0 12px #ef4444);
+  stroke: #fff;
+  filter: drop-shadow(0 0 12px #e10600);
 }
 
 .timer-fs--done .timer-fs__ring-value {
-  stroke: #fca5a5;
+  stroke: #ff4444;
 }
 
 .timer-fs__clock {
@@ -5257,13 +5299,13 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   font-weight: 900;
   letter-spacing: 0.1em;
   line-height: 1;
-  color: #fff1f2;
+  color: #fff;
   text-transform: uppercase;
   text-shadow:
     0 0 1px #fff,
-    3px 0 0 #7f1d1daa,
-    -3px 0 0 #ef444488,
-    0 0 28px #dc2626cc;
+    3px 0 0 #e10600aa,
+    -3px 0 0 #ffffff55,
+    0 0 28px #e10600cc;
 }
 
 .timer-fs--running .timer-fs__clock {
@@ -5271,17 +5313,17 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 }
 
 .timer-fs--final .timer-fs__clock {
-  color: #fecaca;
+  color: #fff;
   animation: timer-fs-clock-glitch 0.14s steps(2, end) infinite;
 }
 
 .timer-fs--done .timer-fs__clock {
-  color: #fecaca;
+  color: #fff;
   text-shadow:
-    0 0 3px #ef4444,
-    4px 0 0 #7f1d1d,
-    -4px 0 0 #f97316,
-    0 0 34px #ef4444cc;
+    0 0 3px #e10600,
+    4px 0 0 #990400,
+    -4px 0 0 #fff,
+    0 0 34px #e10600cc;
   animation: timer-fs-clock-urgent 0.45s ease-in-out infinite;
 }
 
@@ -5296,11 +5338,11 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 
 .timer-fs__primary {
   min-height: 3.35rem;
-  border: 2px solid #f87171;
+  border: 2px solid #fff;
   border-radius: 0.35rem;
   padding: 0.75rem 1.1rem;
-  background: linear-gradient(180deg, #b91c1c 0%, #7f1d1d 100%);
-  color: #fff1f2;
+  background: linear-gradient(180deg, #e10600 0%, #990400 100%);
+  color: #fff;
   font-family: var(--font-display);
   font-size: 1.05rem;
   font-weight: 900;
@@ -5308,8 +5350,8 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   text-transform: uppercase;
   box-shadow:
     0 0 0 1px #000,
-    0 0 28px #ef444466,
-    inset 0 1px 0 #fda4af66;
+    0 0 28px #e1060066,
+    inset 0 1px 0 #ffffff44;
   clip-path: polygon(
     0 0,
     calc(100% - 12px) 0,
@@ -5326,11 +5368,11 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 
 .timer-fs__secondary {
   min-height: 2.75rem;
-  border: 1px solid #991b1b88;
+  border: 1px solid #ffffff44;
   border-radius: 0.25rem;
   padding: 0.55rem 1rem;
   background: #00000099;
-  color: #fda4af;
+  color: #fff;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 0.82rem;
   font-weight: 700;
@@ -5349,12 +5391,97 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #c2410c;
+  color: #e10600;
   opacity: 0.9;
 }
 
 .timer-fs__footer p {
   margin: 0;
+}
+
+/* Variante: campo de batalla (óxidos / escombros) */
+.timer-fs--war {
+  color: #ffe4e6;
+}
+
+.timer-fs--war.timer-fs--final {
+  background: #120202;
+}
+
+.timer-fs--war.timer-fs--done {
+  background: #140404;
+}
+
+.timer-fs--war .timer-fs__embers {
+  background:
+    radial-gradient(ellipse 110% 55% at 50% 118%, #7f1d1dcc, transparent 58%),
+    radial-gradient(ellipse 60% 38% at 8% 108%, #991b1bbb, transparent 52%),
+    radial-gradient(ellipse 60% 38% at 92% 108%, #b91c1cbb, transparent 52%);
+}
+
+.timer-fs--war.timer-fs--final .timer-fs__embers,
+.timer-fs--war.timer-fs--done .timer-fs__embers {
+  background:
+    radial-gradient(ellipse 120% 65% at 50% 120%, #dc2626dd, transparent 56%),
+    radial-gradient(ellipse 75% 48% at 8% 110%, #ef4444cc, transparent 48%),
+    radial-gradient(ellipse 75% 48% at 92% 110%, #f97316cc, transparent 48%);
+}
+
+.timer-fs--war .timer-fs__hazard-band {
+  background: repeating-linear-gradient(
+    -32deg,
+    #050505 0 14px,
+    #dc2626 14px 28px
+  );
+  box-shadow: 0 0 34px #dc262666;
+}
+
+.timer-fs--war.timer-fs--final .timer-fs__hazard-band,
+.timer-fs--war.timer-fs--done .timer-fs__hazard-band {
+  background: repeating-linear-gradient(
+    -32deg,
+    #050505 0 14px,
+    #ef4444 14px 28px
+  );
+  box-shadow: 0 0 42px #ef4444aa;
+}
+
+.timer-fs--war .timer-fs__debris {
+  background: #fda4af;
+  box-shadow:
+    0 0 10px #ef4444,
+    0 0 2px #fff1f2;
+}
+
+.timer-fs--war .timer-fs__stamp {
+  border-color: #ef4444aa;
+  color: #ef4444cc;
+}
+
+.timer-fs--war .timer-fs__kicker {
+  color: #f87171;
+}
+
+.timer-fs--war .timer-fs__meta {
+  color: #fda4af;
+}
+
+.timer-fs--war .timer-fs__ring-value {
+  stroke: #ef4444;
+}
+
+.timer-fs--war .timer-fs__primary {
+  border-color: #f87171;
+  background: linear-gradient(180deg, #b91c1c 0%, #7f1d1d 100%);
+  box-shadow:
+    0 0 0 1px #000,
+    0 0 28px #ef444466,
+    inset 0 1px 0 #fda4af66;
+}
+
+.timer-fs--war .timer-fs__secondary {
+  border-color: #991b1b88;
+  color: #fda4af;
 }
 
 @keyframes timer-fs-breathe {

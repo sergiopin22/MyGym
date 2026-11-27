@@ -1,5 +1,10 @@
 import type { ReactNode } from 'react'
-import { formatRestClock, formatRestTargetLabel } from '../../utils/restTimer'
+import {
+  formatRestClock,
+  formatRestTargetLabel,
+  getTimerDesign,
+  type TimerDesignId,
+} from '../../utils/restTimer'
 
 interface TimerFullscreenProps {
   phase: 'running' | 'done'
@@ -11,6 +16,7 @@ interface TimerFullscreenProps {
   secondaryLabel?: string
   onSecondary?: () => void
   footer?: ReactNode
+  design?: TimerDesignId
 }
 
 const DEBRIS = [
@@ -34,7 +40,26 @@ const DEBRIS = [
   'r',
 ] as const
 
-/** Pantalla completa modo guerra: campo de batalla, hazard, escombros. */
+function stampFor(design: TimerDesignId, phase: 'running' | 'done', final: boolean) {
+  if (design === 'temach') {
+    if (phase === 'done') return 'TEMACH'
+    if (final) return 'DISCIPLINA'
+    return 'MODO GUERRA'
+  }
+  if (phase === 'done') return 'ENGAGE'
+  if (final) return 'CRITICAL'
+  return 'WAR MODE'
+}
+
+function doneLabel(design: TimerDesignId) {
+  return design === 'temach' ? 'GUERRA' : 'ENGAGE'
+}
+
+function metaPrefix(design: TimerDesignId) {
+  return design === 'temach' ? 'TEMACH' : 'WAR'
+}
+
+/** Pantalla completa del timer: Temach o campo de batalla. */
 export function TimerFullscreen({
   phase,
   elapsedSec,
@@ -45,27 +70,29 @@ export function TimerFullscreen({
   secondaryLabel,
   onSecondary,
   footer,
+  design: designProp,
 }: TimerFullscreenProps) {
+  const design = designProp ?? getTimerDesign()
   const progress =
     targetSec > 0 ? Math.min(1, Math.max(0, elapsedSec / targetSec)) : 0
   const remaining = Math.max(0, targetSec - elapsedSec)
   const inFinalTicks = phase === 'running' && remaining <= 5 && remaining > 0
   const ring = 2 * Math.PI * 54
   const dash = ring * (1 - progress)
-  const stamp =
-    phase === 'done' ? 'ENGAGE' : inFinalTicks ? 'CRITICAL' : 'WAR MODE'
+  const stamp = stampFor(design, phase, inFinalTicks)
 
   return (
     <div
       className={[
         'timer-fs',
-        'timer-fs--war',
+        `timer-fs--${design}`,
         phase === 'done' ? 'timer-fs--done' : '',
         phase === 'running' ? 'timer-fs--running' : '',
         inFinalTicks ? 'timer-fs--final' : '',
       ]
         .filter(Boolean)
         .join(' ')}
+      data-timer-design={design}
       role="dialog"
       aria-modal="true"
       aria-label={
@@ -108,10 +135,10 @@ export function TimerFullscreen({
       </p>
 
       <p className="timer-fs__kicker">
-        {phase === 'done' ? 'ENGAGE' : title.toUpperCase()}
+        {phase === 'done' ? doneLabel(design) : title.toUpperCase()}
       </p>
       <p className="timer-fs__meta">
-        WAR // {formatRestTargetLabel(targetSec).toUpperCase()}
+        {metaPrefix(design)} // {formatRestTargetLabel(targetSec).toUpperCase()}
         {phase === 'running'
           ? ` // ${formatRestClock(remaining)} LEFT`
           : null}

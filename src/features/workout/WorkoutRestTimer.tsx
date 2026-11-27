@@ -3,6 +3,7 @@ import {
   FINAL_TICK_SECONDS,
   formatRestTargetLabel,
   getRestSeconds,
+  getTimerDesign,
   getTimerTone,
   playFinalTick,
   playTimerDoneAlarm,
@@ -113,6 +114,7 @@ export function WorkoutRestTimer({ offerToken }: WorkoutRestTimerProps) {
         phase={phase}
         elapsedSec={elapsedSec}
         targetSec={targetSec}
+        design={getTimerDesign()}
         title="Descanso"
         primaryLabel="Empezar serie"
         onPrimary={dismiss}

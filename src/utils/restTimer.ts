@@ -3,6 +3,7 @@
 export const REST_SECONDS_KEY = 'mi-gym-rest-target-seconds'
 export const TIMER_TONE_KEY = 'mi-gym-timer-tone'
 export const TIMER_SOUND_KEY = 'mi-gym-timer-sound'
+export const TIMER_DESIGN_KEY = 'mi-gym-timer-design'
 export const DEFAULT_REST_SECONDS = 180
 export const MIN_REST_SECONDS = 15
 export const MAX_REST_SECONDS = 600
@@ -10,11 +11,31 @@ export const REST_PRESETS = [120, 180, 240, 300] as const
 export const FINAL_TICK_SECONDS = 5
 
 export type TimerToneId = 'beep' | 'bell'
+export type TimerDesignId = 'temach' | 'war'
 
 export const TIMER_TONES: Array<{ id: TimerToneId; label: string }> = [
   { id: 'beep', label: 'Beep' },
   { id: 'bell', label: 'Campana box' },
 ]
+
+export const TIMER_DESIGNS: Array<{
+  id: TimerDesignId
+  label: string
+  tagline: string
+}> = [
+  {
+    id: 'temach',
+    label: 'Temach',
+    tagline: 'Modo guerra · negro · rojo · blanco',
+  },
+  {
+    id: 'war',
+    label: 'Campo de batalla',
+    tagline: 'Hazard · escombros · bruma',
+  },
+]
+
+export const DEFAULT_TIMER_DESIGN: TimerDesignId = 'temach'
 
 function clampRestSeconds(sec: number): number {
   if (!Number.isFinite(sec)) return DEFAULT_REST_SECONDS
@@ -79,6 +100,30 @@ export function setTimerSoundEnabled(on: boolean): void {
   } catch {
     /* private mode */
   }
+}
+
+export function isTimerDesignId(value: string): value is TimerDesignId {
+  return value === 'temach' || value === 'war'
+}
+
+export function getTimerDesign(): TimerDesignId {
+  try {
+    const raw = localStorage.getItem(TIMER_DESIGN_KEY)
+    if (raw && isTimerDesignId(raw)) return raw
+  } catch {
+    /* ignore */
+  }
+  return DEFAULT_TIMER_DESIGN
+}
+
+export function setTimerDesign(design: TimerDesignId): TimerDesignId {
+  const next = isTimerDesignId(design) ? design : DEFAULT_TIMER_DESIGN
+  try {
+    localStorage.setItem(TIMER_DESIGN_KEY, next)
+  } catch {
+    /* private mode */
+  }
+  return next
 }
 
 /** Reloj tipo 0:00 / 3:00 (segundos enteros hacia abajo o arriba). */
