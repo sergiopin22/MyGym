@@ -1,32 +1,33 @@
 ﻿@import "tailwindcss";
 
 @theme {
-  --font-sans: "Sora", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
 
-  --color-fg: #0a0a0a;
-  --color-fg-muted: #4d6273;
-  --color-chrome: #0a0a0a;
-  --color-chrome-fg: #ffffff;
-  --color-chrome-soft: #1c1c1c;
-  --color-surface: #e7f3fb;
-  --color-surface-elevated: #ffffff;
-  --color-line: #c3daf0;
-  --color-brand: #2f8fd6;
-  --color-brand-soft: #d4ebfa;
-  --color-brand-strong: #1a6fad;
-  --color-accent: #16a34a;
-  --color-accent-strong: #15803d;
-  --color-accent-fg: #ffffff;
-  --color-pending: #6b7c8a;
-  --color-progress: #2563eb;
-  --color-done: #16a34a;
-  --color-success-soft: #dcfce7;
-  --color-progress-soft: #dbeafe;
-  --color-danger: #dc2626;
-  --color-danger-strong: #b91c1c;
-  --color-danger-fg: #ffffff;
-  --color-overlay: rgba(10, 10, 10, 0.45);
+  /* Base FOUC: dark gym + óxido (Focus Óxido) */
+  --color-fg: #ffedd5;
+  --color-fg-muted: #a89886;
+  --color-chrome: #ea580c;
+  --color-chrome-fg: #140a04;
+  --color-chrome-soft: #c2410c;
+  --color-surface: #12100e;
+  --color-surface-elevated: #1c1713;
+  --color-line: #3a2e24;
+  --color-brand: #ea580c;
+  --color-brand-soft: #2f1a0e;
+  --color-brand-strong: #fb923c;
+  --color-accent: #ea580c;
+  --color-accent-strong: #c2410c;
+  --color-accent-fg: #fff7ed;
+  --color-pending: #8a7d70;
+  --color-progress: #f97316;
+  --color-done: #ea580c;
+  --color-success-soft: #2f1a0e;
+  --color-progress-soft: #2a180c;
+  --color-danger: #ef4444;
+  --color-danger-strong: #dc2626;
+  --color-danger-fg: #fff7ed;
+  --color-overlay: rgba(6, 4, 2, 0.82);
 
   /* aliases legacy */
   --color-ink: var(--color-fg);
@@ -34,9 +35,9 @@
   --color-muted: var(--color-fg-muted);
 
   --body-background:
-    radial-gradient(1100px 520px at 8% -8%, #cfe8f9 0%, transparent 55%),
-    radial-gradient(900px 480px at 100% 0%, #eef6fc 0%, transparent 52%),
-    linear-gradient(180deg, #f4faff 0%, #e7f3fb 40%, #e7f3fb 100%);
+    radial-gradient(1100px 580px at 50% -18%, rgba(234, 88, 12, 0.18) 0%, transparent 55%),
+    radial-gradient(780px 460px at 100% 28%, rgba(90, 30, 8, 0.38) 0%, transparent 52%),
+    linear-gradient(180deg, #070605 0%, #0e0c0a 42%, #0a0908 100%);
 }
 
 @layer base {
@@ -69,7 +70,7 @@
   }
 
   html {
-    color-scheme: light;
+    color-scheme: dark;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
   }
@@ -1298,14 +1299,15 @@ html[data-ui-layout='focus'] .focus-home-kicker {
   align-items: center;
   gap: 0.45rem;
   margin: 0;
-  padding: 0.38rem 0.8rem;
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-brand) 16%, transparent);
+  padding: 0.32rem 0.7rem;
+  border-radius: 0.28rem;
+  border: 1px solid color-mix(in srgb, var(--color-brand) 35%, transparent);
+  background: color-mix(in srgb, var(--color-brand) 12%, transparent);
   color: var(--color-brand-strong);
-  font-family: var(--font-sans);
+  font-family: var(--font-display);
   font-size: 0.64rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
@@ -1340,13 +1342,13 @@ html[data-ui-layout='focus'] .ui-card {
   position: relative;
   overflow: hidden;
   margin-inline: 1.15rem;
-  border: 0 !important;
-  border-radius: 1.75rem;
+  border: 1px solid color-mix(in srgb, var(--color-brand) 18%, var(--color-line)) !important;
+  border-radius: 0.55rem;
   background: var(--color-surface-elevated);
   box-shadow:
-    inset 0 1px 0 color-mix(in srgb, white 6%, transparent),
-    0 28px 50px -36px rgba(0, 0, 0, 0.95);
-  padding: 1.25rem 1.2rem;
+    inset 0 1px 0 color-mix(in srgb, white 5%, transparent),
+    0 22px 40px -32px rgba(0, 0, 0, 0.92);
+  padding: 1.2rem 1.15rem;
 }
 
 html[data-ui-layout='focus'] .ui-card::before {
@@ -1354,19 +1356,20 @@ html[data-ui-layout='focus'] .ui-card::before {
 }
 
 html[data-ui-layout='focus'] .ui-btn {
-  min-height: 3.35rem;
-  border-radius: 1.15rem;
-  font-family: var(--font-sans);
-  font-size: 0.95rem;
+  min-height: 3.2rem;
+  border-radius: 0.45rem;
+  font-family: var(--font-display);
+  font-size: 0.92rem;
   font-weight: 700;
-  letter-spacing: -0.015em;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 html[data-ui-layout='focus'] .ui-btn--primary,
 html[data-ui-layout='focus'] .ui-btn--secondary {
   box-shadow:
-    0 14px 28px -14px color-mix(in srgb, var(--color-brand) 65%, black),
-    inset 0 1px 0 color-mix(in srgb, white 25%, transparent);
+    0 12px 24px -14px color-mix(in srgb, var(--color-brand) 70%, black),
+    inset 0 1px 0 color-mix(in srgb, white 18%, transparent);
 }
 
 html[data-ui-layout='focus'] .ui-btn--ghost {
@@ -1375,7 +1378,7 @@ html[data-ui-layout='focus'] .ui-btn--ghost {
 }
 
 html[data-ui-layout='focus'] .ui-field {
-  border-radius: 1.15rem;
+  border-radius: 0.45rem;
   border-width: 0;
   background: color-mix(in srgb, var(--color-surface) 92%, black);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-line) 70%, transparent);
@@ -1597,21 +1600,23 @@ html[data-ui-layout='focus'] .focus-arena {
 html[data-ui-layout='focus'] .focus-deck {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.35rem;
+  gap: 0.3rem;
   margin: 0 1.15rem;
-  padding: 0.3rem;
-  border-radius: 999px;
+  padding: 0.28rem;
+  border-radius: 0.45rem;
+  border: 1px solid color-mix(in srgb, var(--color-brand) 16%, var(--color-line));
   background: color-mix(in srgb, var(--color-surface-elevated) 90%, black);
   box-shadow: inset 0 1px 0 color-mix(in srgb, white 5%, transparent);
 }
 
 html[data-ui-layout='focus'] .focus-deck__tab {
-  min-height: 2.6rem;
+  min-height: 2.55rem;
   border: 0;
-  border-radius: 999px;
+  border-radius: 0.32rem;
   background: transparent;
   color: var(--color-fg-muted);
-  font-size: 0.78rem;
+  font-family: var(--font-display);
+  font-size: 0.76rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;

@@ -16,7 +16,8 @@ export const UI_LAYOUT_STORAGE_KEY = 'mi-gym-ui-layout'
 export const FOCUS_ACCENT_STORAGE_KEY = 'mi-gym-focus-accent'
 
 export const DEFAULT_UI_LAYOUT: UiLayoutId = 'focus'
-export const DEFAULT_FOCUS_ACCENT: FocusAccentId = 'green'
+export const DEFAULT_FOCUS_ACCENT: FocusAccentId = 'orange'
+export const OXIDE_STYLE_MIGRATION_KEY = 'mi-gym-style-oxide-v1'
 
 export function isUiLayoutId(value: string): value is UiLayoutId {
   return value === 'classic' || value === 'focus'
@@ -40,6 +41,12 @@ export function getStoredUiLayout(): UiLayoutId {
 
 export function getStoredFocusAccent(): FocusAccentId {
   try {
+    // Una vez: dark gym + óxido como look por defecto de la app.
+    if (!localStorage.getItem(OXIDE_STYLE_MIGRATION_KEY)) {
+      localStorage.setItem(OXIDE_STYLE_MIGRATION_KEY, '1')
+      localStorage.setItem(FOCUS_ACCENT_STORAGE_KEY, DEFAULT_FOCUS_ACCENT)
+      return DEFAULT_FOCUS_ACCENT
+    }
     const raw = localStorage.getItem(FOCUS_ACCENT_STORAGE_KEY)
     if (raw && isFocusAccentId(raw)) return raw
   } catch {
@@ -105,40 +112,40 @@ export const FOCUS_ACCENTS: Record<
   },
   orange: {
     id: 'orange',
-    name: 'Focus Ámbar',
-    tagline: 'Calor y potencia',
-    metaColor: '#120e0a',
-    swatch: ['#120e0a', '#241c14', '#fb923c', '#f6f0e8'],
+    name: 'Focus Óxido',
+    tagline: 'Dark gym · hollín · naranja óxido',
+    metaColor: '#0a0908',
+    swatch: ['#0a0908', '#1a1410', '#ea580c', '#ffedd5'],
     vars: {
       ...FOCUS_FONTS,
-      '--color-fg': '#f6f0e8',
-      '--color-fg-muted': '#a3988c',
-      '--color-chrome': '#fb923c',
-      '--color-chrome-fg': '#1a1008',
-      '--color-chrome-soft': '#f97316',
-      '--color-surface': '#18140f',
-      '--color-surface-elevated': '#241c16',
-      '--color-line': '#3f342a',
-      '--color-brand': '#fb923c',
-      '--color-brand-soft': '#3a2818',
-      '--color-brand-strong': '#fdba74',
-      '--color-accent': '#fb923c',
-      '--color-accent-strong': '#f97316',
-      '--color-accent-fg': '#1a1008',
-      '--color-pending': '#8f857a',
-      '--color-progress': '#38bdf8',
-      '--color-done': '#fb923c',
-      '--color-success-soft': '#3a2818',
-      '--color-progress-soft': '#1a2a38',
-      '--color-danger': '#fb7185',
-      '--color-danger-strong': '#f43f5e',
-      '--color-danger-fg': '#ffffff',
-      '--color-overlay': 'rgba(10, 6, 3, 0.78)',
+      '--color-fg': '#ffedd5',
+      '--color-fg-muted': '#a89886',
+      '--color-chrome': '#ea580c',
+      '--color-chrome-fg': '#140a04',
+      '--color-chrome-soft': '#c2410c',
+      '--color-surface': '#12100e',
+      '--color-surface-elevated': '#1c1713',
+      '--color-line': '#3a2e24',
+      '--color-brand': '#ea580c',
+      '--color-brand-soft': '#2f1a0e',
+      '--color-brand-strong': '#fb923c',
+      '--color-accent': '#ea580c',
+      '--color-accent-strong': '#c2410c',
+      '--color-accent-fg': '#fff7ed',
+      '--color-pending': '#8a7d70',
+      '--color-progress': '#f97316',
+      '--color-done': '#ea580c',
+      '--color-success-soft': '#2f1a0e',
+      '--color-progress-soft': '#2a180c',
+      '--color-danger': '#ef4444',
+      '--color-danger-strong': '#dc2626',
+      '--color-danger-fg': '#fff7ed',
+      '--color-overlay': 'rgba(6, 4, 2, 0.82)',
       '--color-ink': 'var(--color-fg)',
       '--color-ink-soft': 'var(--color-chrome-soft)',
       '--color-muted': 'var(--color-fg-muted)',
       '--body-background':
-        'radial-gradient(1200px 640px at 50% -20%, rgba(251,146,60,0.24) 0%, transparent 55%), radial-gradient(800px 500px at 100% 30%, rgba(80,40,10,0.4) 0%, transparent 50%), radial-gradient(700px 400px at 0% 80%, rgba(50,30,10,0.35) 0%, transparent 45%), linear-gradient(180deg, #0e0a07 0%, #14100c 40%, #100c08 100%)',
+        'radial-gradient(1100px 580px at 50% -18%, rgba(234,88,12,0.18) 0%, transparent 55%), radial-gradient(780px 460px at 100% 28%, rgba(90,30,8,0.38) 0%, transparent 52%), radial-gradient(700px 400px at 0% 85%, rgba(40,20,10,0.4) 0%, transparent 48%), linear-gradient(180deg, #070605 0%, #0e0c0a 42%, #0a0908 100%)',
     },
   },
   dark: {

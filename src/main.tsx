@@ -56,6 +56,6 @@ window.setTimeout(() => {
   if (!boot) return
   boot.innerHTML =
     '<p style="margin:0 0 12px;font-weight:600">No cargó la app</p>' +
-    '<p style="margin:0 0 16px;font-size:14px;color:#4d6273">Borra caché: Safari → Ajustes → Avanzado → Datos de sitios → busca tu URL → Eliminar. Luego recarga.</p>' +
-    '<button type="button" onclick="location.reload()" style="min-height:44px;padding:0 20px;border:none;border-radius:12px;background:#2f8fd6;color:#fff;font-weight:600">Reintentar</button>'
+    '<p style="margin:0 0 16px;font-size:14px;color:#a89886">Borra caché: Safari → Ajustes → Avanzado → Datos de sitios → busca tu URL → Eliminar. Luego recarga.</p>' +
+    '<button type="button" onclick="location.reload()" style="min-height:44px;padding:0 20px;border:none;border-radius:8px;background:#ea580c;color:#fff7ed;font-weight:700">Reintentar</button>'
 }, 10000)

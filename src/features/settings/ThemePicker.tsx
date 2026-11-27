@@ -11,7 +11,8 @@ export function ThemePicker() {
         <div>
           <h2 className="font-display text-lg font-bold">Acento Focus</h2>
           <p className="mt-1 text-sm text-muted">
-            Lima, Ámbar, Dark, Blue, Red, Violet o Teal. Cambia cuando quieras.
+            Por defecto: Óxido (dark gym). También lima, dark, blue, red, violet o
+            teal.
           </p>
         </div>
         <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
