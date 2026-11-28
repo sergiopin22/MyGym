@@ -21,12 +21,100 @@ import {
   setActiveCustomSkinId,
   TIMER_ACCENT_PRESETS,
   TIMER_ANIM_OPTIONS,
+  TIMER_FONT_OPTIONS,
+  TIMER_LAYOUT_OPTIONS,
+  TIMER_MEDIA_POS_OPTIONS,
+  TIMER_OVERLAY_OPTIONS,
   TIMER_SCENE_OPTIONS,
   upsertCustomSkin,
   type TimerCustomAnim,
+  type TimerCustomFont,
+  type TimerCustomLayout,
+  type TimerCustomMediaPos,
+  type TimerCustomOverlay,
   type TimerCustomScene,
   type TimerCustomSkinMeta,
 } from './timerCustomSkin'
+
+function OptionGrid<T extends string>({
+  options,
+  value,
+  onChange,
+  cols = 'sm:grid-cols-3',
+}: {
+  options: Array<{ id: T; label: string; tagline: string }>
+  value: T
+  onChange: (id: T) => void
+  cols?: string
+}) {
+  return (
+    <div className={`grid gap-2 ${cols}`}>
+      {options.map((row) => {
+        const active = value === row.id
+        return (
+          <button
+            key={row.id}
+            type="button"
+            onClick={() => onChange(row.id)}
+            className={[
+              'rounded-xl px-3 py-3 text-left ring-1 transition',
+              active ? 'ring-brand bg-brand-soft' : 'ring-line bg-surface',
+            ].join(' ')}
+          >
+            <p className="font-display text-sm font-bold uppercase">
+              {row.label}
+            </p>
+            <p className="text-xs text-muted">{row.tagline}</p>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+function ColorField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: string
+  onChange: (color: string) => void
+}) {
+  return (
+    <label className="block space-y-1">
+      <span className="text-xs font-bold uppercase tracking-wide text-muted">
+        {label}
+      </span>
+      <div className="flex items-center gap-2">
+        <input
+          type="color"
+          value={value.length === 4 ? expandHex(value) : value}
+          onChange={(e) => onChange(e.target.value)}
+          className="h-11 w-14 cursor-pointer rounded-lg border-0 bg-transparent"
+        />
+        <input
+          className="ui-field min-w-0 flex-1 rounded-xl border-0 bg-surface px-3 py-3 font-mono text-sm text-fg"
+          value={value}
+          onChange={(e) => {
+            const next = e.target.value.trim()
+            if (/^#([0-9a-fA-F]{0,6})$/.test(next)) onChange(next)
+          }}
+          maxLength={7}
+          spellCheck={false}
+        />
+      </div>
+    </label>
+  )
+}
+
+function expandHex(hex: string): string {
+  if (hex.length !== 4) return hex
+  const r = hex[1]
+  const g = hex[2]
+  const b = hex[3]
+  return `#${r}${r}${g}${g}${b}${b}`
+}
 
 export function TimerCustomSkinEditor() {
   const { skinId } = useParams()
@@ -187,7 +275,7 @@ export function TimerCustomSkinEditor() {
       <PageHeader
         kicker="Focus · Timer"
         title={isNew ? 'Crear diseño' : 'Editar diseño'}
-        subtitle="GIF, color, textos y estilo para tu timer fullscreen."
+        subtitle="Color libre, layout, tipografía, fondo, overlay y media."
         back={
           <Link
             to="/temporizador/personalizar"
@@ -223,7 +311,7 @@ export function TimerCustomSkinEditor() {
           </p>
           <div className="flex flex-wrap gap-2">
             {TIMER_ACCENT_PRESETS.map((row) => {
-              const active = draft.accent === row.color
+              const active = draft.accent.toLowerCase() === row.color.toLowerCase()
               return (
                 <button
                   key={row.id}
@@ -244,6 +332,18 @@ export function TimerCustomSkinEditor() {
                 </button>
               )
             })}
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <ColorField
+              label="Acento libre"
+              value={draft.accent}
+              onChange={(accent) => patch({ accent })}
+            />
+            <ColorField
+              label="Secundario (texto)"
+              value={draft.accentSecondary}
+              onChange={(accentSecondary) => patch({ accentSecondary })}
+            />
           </div>
         </div>
 
@@ -273,6 +373,33 @@ export function TimerCustomSkinEditor() {
           />
         </label>
 
+        <div className="grid gap-3 sm:grid-cols-2">
+          <label className="block space-y-1">
+            <span className="text-xs font-bold uppercase tracking-wide text-muted">
+              Sello
+            </span>
+            <input
+              className="ui-field w-full rounded-xl border-0 bg-surface px-3 py-3 text-fg"
+              value={draft.stamp}
+              onChange={(e) => patch({ stamp: e.target.value })}
+              maxLength={16}
+              placeholder="ROUND"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-xs font-bold uppercase tracking-wide text-muted">
+              Texto al terminar
+            </span>
+            <input
+              className="ui-field w-full rounded-xl border-0 bg-surface px-3 py-3 text-fg"
+              value={draft.doneText}
+              onChange={(e) => patch({ doneText: e.target.value })}
+              maxLength={12}
+              placeholder="GO"
+            />
+          </label>
+        </div>
+
         <label className="block space-y-1">
           <span className="text-xs font-bold uppercase tracking-wide text-muted">
             Frases (una por línea)
@@ -284,73 +411,157 @@ export function TimerCustomSkinEditor() {
             placeholder={'Disciplina > motivación\nUn round más'}
           />
         </label>
+      </Card>
 
-        <div className="space-y-2">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted">
-            Escena
+      <Card className="space-y-4">
+        <div>
+          <h2 className="font-display text-lg font-bold">Layout del reloj</h2>
+          <p className="mt-1 text-sm text-muted">
+            Elige cómo se ve el tiempo en pantalla completa.
           </p>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {TIMER_SCENE_OPTIONS.map((row) => {
-              const active = draft.scene === row.id
-              return (
-                <button
-                  key={row.id}
-                  type="button"
-                  onClick={() => patch({ scene: row.id as TimerCustomScene })}
-                  className={[
-                    'rounded-xl px-3 py-3 text-left ring-1 transition',
-                    active
-                      ? 'ring-brand bg-brand-soft'
-                      : 'ring-line bg-surface',
-                  ].join(' ')}
-                >
-                  <p className="font-display text-sm font-bold uppercase">
-                    {row.label}
-                  </p>
-                  <p className="text-xs text-muted">{row.tagline}</p>
-                </button>
-              )
-            })}
-          </div>
         </div>
+        <OptionGrid
+          options={TIMER_LAYOUT_OPTIONS}
+          value={draft.layout}
+          onChange={(layout: TimerCustomLayout) => patch({ layout })}
+          cols="sm:grid-cols-2"
+        />
+      </Card>
 
-        <div className="space-y-2">
-          <p className="text-xs font-bold uppercase tracking-wide text-muted">
-            Animación
-          </p>
-          <div className="grid gap-2 sm:grid-cols-3">
-            {TIMER_ANIM_OPTIONS.map((row) => {
-              const active = draft.anim === row.id
-              return (
-                <button
-                  key={row.id}
-                  type="button"
-                  onClick={() => patch({ anim: row.id as TimerCustomAnim })}
-                  className={[
-                    'rounded-xl px-3 py-3 text-left ring-1 transition',
-                    active
-                      ? 'ring-brand bg-brand-soft'
-                      : 'ring-line bg-surface',
-                  ].join(' ')}
-                >
-                  <p className="font-display text-sm font-bold uppercase">
-                    {row.label}
-                  </p>
-                  <p className="text-xs text-muted">{row.tagline}</p>
-                </button>
-              )
-            })}
-          </div>
+      <Card className="space-y-4">
+        <div>
+          <h2 className="font-display text-lg font-bold">Tipografía</h2>
         </div>
+        <OptionGrid
+          options={TIMER_FONT_OPTIONS}
+          value={draft.font}
+          onChange={(font: TimerCustomFont) => patch({ font })}
+        />
+      </Card>
+
+      <Card className="space-y-4">
+        <div>
+          <h2 className="font-display text-lg font-bold">Animación</h2>
+        </div>
+        <OptionGrid
+          options={TIMER_ANIM_OPTIONS}
+          value={draft.anim}
+          onChange={(anim: TimerCustomAnim) => patch({ anim })}
+          cols="sm:grid-cols-2"
+        />
+      </Card>
+
+      <Card className="space-y-4">
+        <div>
+          <h2 className="font-display text-lg font-bold">Escena</h2>
+          <p className="mt-1 text-sm text-muted">FX de atmósfera (aparte del fondo).</p>
+        </div>
+        <OptionGrid
+          options={TIMER_SCENE_OPTIONS}
+          value={draft.scene}
+          onChange={(scene: TimerCustomScene) => patch({ scene })}
+        />
+      </Card>
+
+      <Card className="space-y-4">
+        <div>
+          <h2 className="font-display text-lg font-bold">Fondo</h2>
+          <p className="mt-1 text-sm text-muted">
+            Independiente del GIF/imagen.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              { id: 'solid', label: 'Sólido' },
+              { id: 'gradient', label: 'Gradiente' },
+            ] as const
+          ).map((row) => (
+            <button
+              key={row.id}
+              type="button"
+              onClick={() => patch({ bgMode: row.id })}
+              className={[
+                'min-h-10 rounded-xl px-3 text-sm font-semibold ring-1',
+                draft.bgMode === row.id
+                  ? 'ring-brand bg-brand-soft'
+                  : 'ring-line bg-surface',
+              ].join(' ')}
+            >
+              {row.label}
+            </button>
+          ))}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <ColorField
+            label={draft.bgMode === 'gradient' ? 'Color 1' : 'Color de fondo'}
+            value={draft.bgColor}
+            onChange={(bgColor) => patch({ bgColor })}
+          />
+          {draft.bgMode === 'gradient' ? (
+            <ColorField
+              label="Color 2"
+              value={draft.bgColor2}
+              onChange={(bgColor2) => patch({ bgColor2 })}
+            />
+          ) : null}
+        </div>
+        <div
+          className="h-16 rounded-2xl ring-1 ring-line"
+          style={{
+            background:
+              draft.bgMode === 'gradient'
+                ? `linear-gradient(160deg, ${draft.bgColor}, ${draft.bgColor2})`
+                : draft.bgColor,
+          }}
+          aria-hidden
+        />
+      </Card>
+
+      <Card className="space-y-4">
+        <div>
+          <h2 className="font-display text-lg font-bold">Overlay</h2>
+          <p className="mt-1 text-sm text-muted">
+            Capa encima del fondo. Intensidad {draft.overlayIntensity}%.
+          </p>
+        </div>
+        <OptionGrid
+          options={TIMER_OVERLAY_OPTIONS}
+          value={draft.overlay}
+          onChange={(overlay: TimerCustomOverlay) => patch({ overlay })}
+          cols="sm:grid-cols-2"
+        />
+        <label className="block space-y-2">
+          <span className="text-xs font-bold uppercase tracking-wide text-muted">
+            Intensidad
+          </span>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={draft.overlayIntensity}
+            onChange={(e) =>
+              patch({ overlayIntensity: Number(e.target.value) })
+            }
+            className="w-full"
+          />
+        </label>
       </Card>
 
       <Card className="space-y-3">
         <div>
-          <h2 className="font-display text-lg font-bold">GIF</h2>
+          <h2 className="font-display text-lg font-bold">GIF / imagen / video</h2>
           <p className="mt-1 text-sm text-muted">
-            Busca en Giphy o sube un archivo. Se muestra arriba del reloj.
+            Giphy o archivo. Posición independiente del fondo.
           </p>
         </div>
+
+        <OptionGrid
+          options={TIMER_MEDIA_POS_OPTIONS}
+          value={draft.mediaPos}
+          onChange={(mediaPos: TimerCustomMediaPos) => patch({ mediaPos })}
+          cols="sm:grid-cols-2"
+        />
 
         {previewUrl ? (
           <div className="flex items-center gap-3 rounded-2xl bg-black p-2 ring-1 ring-white/20">
@@ -377,7 +588,7 @@ export function TimerCustomSkinEditor() {
                 Listo
               </p>
               <p className="truncate text-sm font-medium text-white">
-                {gifTitle ?? 'GIF del timer'}
+                {gifTitle ?? 'Media del timer'}
               </p>
             </div>
             <button
@@ -390,7 +601,7 @@ export function TimerCustomSkinEditor() {
             </button>
           </div>
         ) : (
-          <p className="text-sm text-muted">Todavía no hay GIF.</p>
+          <p className="text-sm text-muted">Todavía no hay media.</p>
         )}
 
         <GiphyAvatarPicker
@@ -409,7 +620,7 @@ export function TimerCustomSkinEditor() {
         <input
           ref={fileRef}
           type="file"
-          accept="image/gif,image/webp,image/png,video/mp4,video/webm"
+          accept="image/gif,image/webp,image/png,image/jpeg,image/jpg,video/mp4,video/webm"
           className="hidden"
           onChange={(e) => {
             const file = e.target.files?.[0]
@@ -423,7 +634,7 @@ export function TimerCustomSkinEditor() {
           onClick={() => fileRef.current?.click()}
           disabled={saving}
         >
-          Subir archivo
+          Subir GIF / imagen / video
         </button>
       </Card>
 

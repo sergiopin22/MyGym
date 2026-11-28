@@ -10,6 +10,7 @@ import { ippoRingQuote, ippoRingStamp } from './ippoRingCopy'
 import { TemachLogoMark } from './TemachLogoMark'
 import { temachWarQuote, temachWarStamp } from './temachWarCopy'
 import {
+  createEmptyCustomSkin,
   customSkinQuote,
   getActiveCustomSkin,
   type TimerCustomSkinMeta,
@@ -50,15 +51,8 @@ const DEBRIS = [
 ] as const
 
 const FALLBACK_CUSTOM: TimerCustomSkinMeta = {
+  ...createEmptyCustomSkin(),
   id: '',
-  name: 'Mi diseño',
-  accent: '#e10600',
-  title: 'MI ROUND',
-  subtitle: 'PERSONAL',
-  quotes: ['Disciplina > motivación', 'Un round más', 'Sigue adelante'],
-  scene: 'clean',
-  anim: 'combo',
-  hasGif: false,
   updatedAt: 0,
 }
 
@@ -66,11 +60,12 @@ function stampFor(
   design: TimerDesignId,
   phase: 'running' | 'done',
   final: boolean,
+  custom?: TimerCustomSkinMeta | null,
 ) {
   if (design === 'custom') {
-    if (phase === 'done') return 'GO'
+    if (phase === 'done') return custom?.doneText || 'GO'
     if (final) return 'CRITICAL'
-    return 'ROUND'
+    return custom?.stamp || 'ROUND'
   }
   if (design === 'ippo') return ippoRingStamp(phase, final)
   if (design === 'temach' || design === 'temach-logo') {
@@ -81,12 +76,44 @@ function stampFor(
   return 'WAR MODE'
 }
 
-function doneLabel(design: TimerDesignId) {
+function doneLabel(design: TimerDesignId, custom?: TimerCustomSkinMeta | null) {
   if (design === 'ippo') return 'BELL'
   if (design === 'temach') return 'VICTORIOSO'
   if (design === 'temach-logo') return 'GO'
-  if (design === 'custom') return 'GO'
+  if (design === 'custom') return custom?.doneText || 'GO'
   return 'ENGAGE'
+}
+
+function CustomMedia({
+  url,
+  mime,
+  className,
+}: {
+  url: string
+  mime: string
+  className: string
+}) {
+  if (mime.startsWith('video/')) {
+    return (
+      <video
+        className={className}
+        src={url}
+        muted
+        loop
+        autoPlay
+        playsInline
+      />
+    )
+  }
+  return (
+    <img
+      className={className}
+      src={url}
+      alt=""
+      draggable={false}
+      decoding="async"
+    />
+  )
 }
 
 /** Pantalla completa del timer: custom, Ippo, Temach o campo de batalla. */
@@ -109,7 +136,6 @@ export function TimerFullscreen({
   const inFinalTicks = phase === 'running' && remaining <= 5 && remaining > 0
   const ring = 2 * Math.PI * 54
   const dash = ring * (1 - progress)
-  const stamp = stampFor(design, phase, inFinalTicks)
   const isCustom = design === 'custom'
   const isIppo = design === 'ippo'
   const isTemachWar = design === 'temach'
@@ -118,15 +144,28 @@ export function TimerFullscreen({
   const customSkin = isCustom
     ? (getActiveCustomSkin() ?? FALLBACK_CUSTOM)
     : null
+  const stamp = stampFor(design, phase, inFinalTicks, customSkin)
+  const layout = customSkin?.layout ?? 'classic'
+  const mediaPos = customSkin?.mediaPos ?? 'top'
+  const customAnim = customSkin?.anim ?? 'none'
   const showBattleFx =
     isTemachWar ||
     design === 'war' ||
-    (isCustom && customSkin?.scene === 'war')
-  const showRopes = isIppo || (isCustom && customSkin?.scene === 'ring')
+    (isCustom && (customSkin?.scene === 'war' || layout === 'war'))
+  const showRopes =
+    isIppo ||
+    (isCustom && (customSkin?.scene === 'ring' || layout === 'boxing'))
   const showFrameStamp =
-    showBattleFx || isIppo || (isCustom && customSkin?.scene !== 'clean')
-  const customAnim = customSkin?.anim ?? 'none'
-  const showCustomFlash = isCustom && customAnim === 'combo'
+    !isCustom
+      ? showBattleFx || isIppo
+      : layout !== 'minimal' && layout !== 'big'
+  const showCustomFlash =
+    isCustom && (customAnim === 'combo' || customAnim === 'glitch')
+  const showCustomHead =
+    isCustom && customSkin && layout !== 'minimal'
+  const showRing = !isCustom || layout === 'classic' || layout === 'boxing' || layout === 'war' || layout === 'poster'
+  const showBars = isCustom && layout === 'bars'
+  const showBigClock = isCustom && (layout === 'big' || layout === 'minimal')
   const [customGifUrl, setCustomGifUrl] = useState<string | null>(null)
   const [customGifMime, setCustomGifMime] = useState('image/gif')
 
@@ -168,18 +207,38 @@ export function TimerFullscreen({
         : ippoRingQuote(elapsedSec)
 
   const customQuote = customSkin
-    ? customSkinQuote(
-        customSkin,
-        elapsedSec,
-        phase,
-        inFinalTicks,
-      )
+    ? customSkinQuote(customSkin, elapsedSec, phase, inFinalTicks)
     : ''
+
+  const clockText =
+    phase === 'done'
+      ? isCustom
+        ? customSkin?.doneText || 'GO'
+        : 'GO'
+      : formatRestClock(elapsedSec)
 
   const customStyle =
     isCustom && customSkin
-      ? ({ '--timer-accent': customSkin.accent } as CSSProperties)
+      ? ({
+          '--timer-accent': customSkin.accent,
+          '--timer-accent-2': customSkin.accentSecondary,
+          '--timer-bg': customSkin.bgColor,
+          '--timer-bg-2': customSkin.bgColor2,
+          '--timer-overlay': `${customSkin.overlayIntensity / 100}`,
+        } as CSSProperties)
       : undefined
+
+  const showTopMedia =
+    isCustom &&
+    customGifUrl &&
+    mediaPos === 'top' &&
+    layout !== 'minimal'
+  const showPosterMedia =
+    isCustom && customGifUrl && (mediaPos === 'top' || mediaPos === 'background') && layout === 'poster'
+  const showWatermark =
+    isCustom && customGifUrl && mediaPos === 'watermark'
+  const showBgMedia =
+    isCustom && customGifUrl && mediaPos === 'background' && layout !== 'poster'
 
   return (
     <div
@@ -188,6 +247,13 @@ export function TimerFullscreen({
         `timer-fs--${design}`,
         isCustom && customSkin ? `timer-fs--custom-scene-${customSkin.scene}` : '',
         isCustom ? `timer-fs--custom-anim-${customAnim}` : '',
+        isCustom ? `timer-fs--custom-layout-${layout}` : '',
+        isCustom && customSkin ? `timer-fs--custom-font-${customSkin.font}` : '',
+        isCustom && customSkin ? `timer-fs--custom-bg-${customSkin.bgMode}` : '',
+        isCustom && customSkin
+          ? `timer-fs--custom-overlay-${customSkin.overlay}`
+          : '',
+        isCustom ? `timer-fs--custom-media-${mediaPos}` : '',
         phase === 'done' ? 'timer-fs--done' : '',
         phase === 'running' ? 'timer-fs--running' : '',
         inFinalTicks ? 'timer-fs--final' : '',
@@ -205,6 +271,31 @@ export function TimerFullscreen({
       }
     >
       <div className="timer-fs__soot" aria-hidden />
+
+      {showBgMedia && customGifUrl ? (
+        <div className="timer-fs__custom-bg-media" aria-hidden>
+          <CustomMedia
+            url={customGifUrl}
+            mime={customGifMime}
+            className="timer-fs__custom-bg-media-el"
+          />
+        </div>
+      ) : null}
+
+      {showWatermark && customGifUrl ? (
+        <div className="timer-fs__custom-watermark" aria-hidden>
+          <CustomMedia
+            url={customGifUrl}
+            mime={customGifMime}
+            className="timer-fs__custom-watermark-el"
+          />
+        </div>
+      ) : null}
+
+      {isCustom ? (
+        <div className="timer-fs__custom-overlay-layer" aria-hidden />
+      ) : null}
+
       {showBattleFx ? (
         <>
           <div className="timer-fs__embers" aria-hidden />
@@ -296,44 +387,43 @@ export function TimerFullscreen({
         </div>
       ) : null}
 
-      {isCustom && customGifUrl ? (
-        <div className="timer-fs__custom-gif-wrap">
-          {customGifMime.startsWith('video/') ? (
-            <video
-              className="timer-fs__custom-gif"
-              src={customGifUrl}
-              muted
-              loop
-              autoPlay
-              playsInline
-            />
-          ) : (
-            <img
-              className="timer-fs__custom-gif"
-              src={customGifUrl}
-              alt=""
-              draggable={false}
-              decoding="async"
-            />
-          )}
+      {showPosterMedia && customGifUrl ? (
+        <div className="timer-fs__custom-poster">
+          <CustomMedia
+            url={customGifUrl}
+            mime={customGifMime}
+            className="timer-fs__custom-poster-el"
+          />
         </div>
       ) : null}
 
-      {isCustom && customSkin ? (
+      {showTopMedia && !showPosterMedia && customGifUrl ? (
+        <div className="timer-fs__custom-gif-wrap">
+          <CustomMedia
+            url={customGifUrl}
+            mime={customGifMime}
+            className="timer-fs__custom-gif"
+          />
+        </div>
+      ) : null}
+
+      {showCustomHead && customSkin ? (
         <div className="timer-fs__custom-head">
           <p className="timer-fs__custom-title">
-            {phase === 'done' ? 'GO' : customSkin.title}
+            {phase === 'done' ? customSkin.doneText || 'GO' : customSkin.title}
           </p>
           {customSkin.subtitle ? (
             <p className="timer-fs__custom-sub">{customSkin.subtitle}</p>
           ) : null}
-          <p
-            key={customQuote}
-            className="timer-fs__custom-quote"
-            aria-live="polite"
-          >
-            {customQuote}
-          </p>
+          {layout !== 'big' ? (
+            <p
+              key={customQuote}
+              className="timer-fs__custom-quote"
+              aria-live="polite"
+            >
+              {customQuote}
+            </p>
+          ) : null}
         </div>
       ) : isIppo ? (
         <div className="timer-fs__ippo-head">
@@ -361,72 +451,98 @@ export function TimerFullscreen({
             {warQuote}
           </p>
         </div>
-      ) : !isTemachLogo ? (
+      ) : !isTemachLogo && !isCustom ? (
         <p className="timer-fs__kicker">
-          {phase === 'done' ? doneLabel(design) : title.toUpperCase()}
+          {phase === 'done' ? doneLabel(design, customSkin) : title.toUpperCase()}
         </p>
       ) : null}
 
-      <p className="timer-fs__meta">
-        {isCustom
-          ? `${(customSkin?.name ?? 'CUSTOM').toUpperCase()} · ${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
-              phase === 'running'
-                ? ` · ${formatRestClock(remaining)} LEFT`
-                : ''
-            }`
-          : isIppo
-            ? `ROUND · ${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
+      {!(isCustom && layout === 'minimal') ? (
+        <p className="timer-fs__meta">
+          {isCustom
+            ? `${(customSkin?.name ?? 'CUSTOM').toUpperCase()} · ${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
                 phase === 'running'
                   ? ` · ${formatRestClock(remaining)} LEFT`
                   : ''
               }`
-            : isTemachWar
-              ? `COMPA · ${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
+            : isIppo
+              ? `ROUND · ${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
                   phase === 'running'
                     ? ` · ${formatRestClock(remaining)} LEFT`
                     : ''
                 }`
-              : isTemachLogo
-                ? `${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
+              : isTemachWar
+                ? `COMPA · ${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
                     phase === 'running'
                       ? ` · ${formatRestClock(remaining)} LEFT`
                       : ''
                   }`
-                : `WAR // ${formatRestTargetLabel(targetSec).toUpperCase()}${
-                    phase === 'running'
-                      ? ` // ${formatRestClock(remaining)} LEFT`
-                      : ''
-                  }`}
-      </p>
-
-      <div className="timer-fs__stage">
-        <div className="timer-fs__stage-glow" aria-hidden />
-        <svg className="timer-fs__ring" viewBox="0 0 120 120" aria-hidden>
-          <circle
-            className="timer-fs__ring-track"
-            cx="60"
-            cy="60"
-            r="54"
-            fill="none"
-            strokeWidth="5"
-          />
-          <circle
-            className="timer-fs__ring-value"
-            cx="60"
-            cy="60"
-            r="54"
-            fill="none"
-            strokeWidth="5"
-            strokeDasharray={`${ring}`}
-            strokeDashoffset={dash}
-            strokeLinecap="butt"
-            transform="rotate(-90 60 60)"
-          />
-        </svg>
-        <p className="timer-fs__clock" aria-live="polite">
-          {phase === 'done' ? 'GO' : formatRestClock(elapsedSec)}
+                : isTemachLogo
+                  ? `${title.toUpperCase()} · ${formatRestTargetLabel(targetSec).toUpperCase()}${
+                      phase === 'running'
+                        ? ` · ${formatRestClock(remaining)} LEFT`
+                        : ''
+                    }`
+                  : `WAR // ${formatRestTargetLabel(targetSec).toUpperCase()}${
+                      phase === 'running'
+                        ? ` // ${formatRestClock(remaining)} LEFT`
+                        : ''
+                    }`}
         </p>
-      </div>
+      ) : null}
+
+      {showBars ? (
+        <div className="timer-fs__bars-wrap">
+          <p className="timer-fs__clock timer-fs__clock--bars" aria-live="polite">
+            {clockText}
+          </p>
+          <div className="timer-fs__bar" aria-hidden>
+            <div
+              className="timer-fs__bar-fill"
+              style={{ width: `${Math.round(progress * 100)}%` }}
+            />
+          </div>
+        </div>
+      ) : (
+        <div
+          className={[
+            'timer-fs__stage',
+            showBigClock ? 'timer-fs__stage--big' : '',
+            !showRing ? 'timer-fs__stage--norng' : '',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          <div className="timer-fs__stage-glow" aria-hidden />
+          {showRing ? (
+            <svg className="timer-fs__ring" viewBox="0 0 120 120" aria-hidden>
+              <circle
+                className="timer-fs__ring-track"
+                cx="60"
+                cy="60"
+                r="54"
+                fill="none"
+                strokeWidth="5"
+              />
+              <circle
+                className="timer-fs__ring-value"
+                cx="60"
+                cy="60"
+                r="54"
+                fill="none"
+                strokeWidth="5"
+                strokeDasharray={`${ring}`}
+                strokeDashoffset={dash}
+                strokeLinecap="butt"
+                transform="rotate(-90 60 60)"
+              />
+            </svg>
+          ) : null}
+          <p className="timer-fs__clock" aria-live="polite">
+            {clockText}
+          </p>
+        </div>
+      )}
 
       <div className="timer-fs__actions">
         <button

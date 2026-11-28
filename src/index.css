@@ -6326,22 +6326,160 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   }
 }
 
-/* Variante: diseño custom (GIF + acento + textos) */
+/* Variante: diseño custom (builder) */
 .timer-fs--custom {
   --timer-accent: #e10600;
+  --timer-accent-2: #ffffff;
+  --timer-bg: #050505;
+  --timer-bg-2: #1a0505;
+  --timer-overlay: 0.55;
+  --timer-font: var(--font-display);
   justify-content: flex-start;
   gap: 0.4rem;
   padding-top: max(2.4rem, calc(env(safe-area-inset-top) + 1.4rem));
 }
 
-.timer-fs--custom .timer-fs__soot {
-  background:
-    radial-gradient(ellipse 90% 70% at 50% 0%, #1a1a1acc, transparent 55%),
-    #050505;
+.timer-fs--custom-font-display {
+  --timer-font: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+}
+.timer-fs--custom-font-soft {
+  --timer-font: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+}
+.timer-fs--custom-font-mono {
+  --timer-font: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.timer-fs--custom-font-impact {
+  --timer-font: "Bebas Neue", Impact, Haettenschweiler, sans-serif;
+}
+.timer-fs--custom-font-rounded {
+  --timer-font: "Outfit", ui-sans-serif, system-ui, sans-serif;
+}
+
+.timer-fs--custom-bg-solid .timer-fs__soot {
+  background: var(--timer-bg);
+}
+
+.timer-fs--custom-bg-gradient .timer-fs__soot {
+  background: linear-gradient(165deg, var(--timer-bg), var(--timer-bg-2) 55%, #000);
 }
 
 .timer-fs--custom .timer-fs__vignette {
-  background: radial-gradient(ellipse at center, transparent 40%, #000000aa 100%);
+  opacity: 0.35;
+  background: radial-gradient(ellipse at center, transparent 42%, #000000bb 100%);
+}
+
+.timer-fs__custom-overlay-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: calc(var(--timer-overlay) * 0.95);
+}
+
+.timer-fs--custom-overlay-none .timer-fs__custom-overlay-layer {
+  display: none;
+}
+
+.timer-fs--custom-overlay-vignette .timer-fs__custom-overlay-layer {
+  background: radial-gradient(ellipse at center, transparent 35%, #000 100%);
+}
+
+.timer-fs--custom-overlay-grain .timer-fs__custom-overlay-layer {
+  background-image:
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 1px,
+      rgba(255, 255, 255, 0.03) 1px,
+      rgba(255, 255, 255, 0.03) 2px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 1px,
+      rgba(0, 0, 0, 0.05) 1px,
+      rgba(0, 0, 0, 0.05) 2px
+    );
+  mix-blend-mode: overlay;
+}
+
+.timer-fs--custom-overlay-scan .timer-fs__custom-overlay-layer {
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0 2px,
+    rgba(0, 0, 0, 0.28) 2px 3px
+  );
+}
+
+.timer-fs--custom-overlay-hazard .timer-fs__custom-overlay-layer {
+  background: repeating-linear-gradient(
+    -45deg,
+    color-mix(in srgb, var(--timer-accent) 35%, transparent) 0 12px,
+    transparent 12px 24px
+  );
+  opacity: calc(var(--timer-overlay) * 0.45);
+  mask-image: linear-gradient(to bottom, #000 0 14%, transparent 28% 72%, #000 88% 100%);
+}
+
+.timer-fs--custom-overlay-mist .timer-fs__custom-overlay-layer {
+  background:
+    radial-gradient(ellipse 80% 40% at 50% 100%, #ffffff33, transparent 60%),
+    radial-gradient(ellipse 60% 30% at 20% 80%, #ffffff22, transparent 55%);
+}
+
+.timer-fs--custom-overlay-tint .timer-fs__custom-overlay-layer {
+  background: color-mix(in srgb, var(--timer-accent) 28%, transparent);
+  mix-blend-mode: soft-light;
+}
+
+.timer-fs__custom-bg-media,
+.timer-fs__custom-watermark {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.timer-fs__custom-bg-media-el {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.38;
+  filter: saturate(0.85) brightness(0.55);
+}
+
+.timer-fs__custom-watermark {
+  display: grid;
+  place-items: center;
+}
+
+.timer-fs__custom-watermark-el {
+  width: min(70vw, 18rem);
+  height: min(70vw, 18rem);
+  object-fit: cover;
+  border-radius: 1.25rem;
+  opacity: 0.18;
+  filter: grayscale(0.2);
+}
+
+.timer-fs__custom-poster {
+  position: relative;
+  z-index: 8;
+  width: min(92vw, 22rem);
+  aspect-ratio: 16 / 10;
+  margin: 0.1rem 0 0.45rem;
+  overflow: hidden;
+  border-radius: 1.1rem;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--timer-accent) 45%, transparent),
+    0 14px 36px #000000cc;
+}
+
+.timer-fs__custom-poster-el {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .timer-fs__custom-gif-wrap {
@@ -6357,25 +6495,20 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
     0 10px 28px #000000aa;
 }
 
-.timer-fs--running .timer-fs__custom-gif-wrap {
+.timer-fs--custom-anim-combo.timer-fs--running .timer-fs__custom-gif-wrap,
+.timer-fs--custom-anim-impact.timer-fs--running .timer-fs__custom-gif-wrap {
   animation: timer-fs-war-logo-hit 2.8s ease-in-out infinite;
 }
 
-.timer-fs--custom-anim-none.timer-fs--running .timer-fs__custom-gif-wrap,
-.timer-fs--custom-anim-pulse.timer-fs--running .timer-fs__custom-gif-wrap {
-  animation: none;
-}
-
-.timer-fs--final .timer-fs__custom-gif-wrap,
-.timer-fs--done .timer-fs__custom-gif-wrap {
+.timer-fs--custom-anim-combo.timer-fs--final .timer-fs__custom-gif-wrap,
+.timer-fs--custom-anim-combo.timer-fs--done .timer-fs__custom-gif-wrap,
+.timer-fs--custom-anim-impact.timer-fs--final .timer-fs__custom-gif-wrap,
+.timer-fs--custom-anim-impact.timer-fs--done .timer-fs__custom-gif-wrap {
   animation: timer-fs-war-logo-hit 0.9s ease-in-out infinite;
 }
 
-.timer-fs--custom-anim-none.timer-fs--final .timer-fs__custom-gif-wrap,
-.timer-fs--custom-anim-none.timer-fs--done .timer-fs__custom-gif-wrap,
-.timer-fs--custom-anim-pulse.timer-fs--final .timer-fs__custom-gif-wrap,
-.timer-fs--custom-anim-pulse.timer-fs--done .timer-fs__custom-gif-wrap {
-  animation: none;
+.timer-fs--custom-anim-breathe.timer-fs--running .timer-fs__custom-gif-wrap {
+  animation: timer-fs-custom-breathe 3.2s ease-in-out infinite;
 }
 
 .timer-fs__custom-gif {
@@ -6399,19 +6532,31 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 .timer-fs__custom-title {
   margin: 0;
   color: var(--timer-accent);
-  font-family: var(--font-display);
+  font-family: var(--timer-font);
   font-size: clamp(1.35rem, 6.5vw, 1.85rem);
   font-weight: 900;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.14em;
   line-height: 1;
-  text-indent: 0.18em;
+  text-indent: 0.14em;
   text-transform: uppercase;
   text-shadow: 0 0 18px color-mix(in srgb, var(--timer-accent) 45%, transparent);
 }
 
+.timer-fs--custom-font-impact .timer-fs__custom-title {
+  letter-spacing: 0.08em;
+  text-indent: 0.08em;
+  font-weight: 400;
+  font-size: clamp(1.7rem, 8vw, 2.4rem);
+}
+
 .timer-fs--custom-anim-combo.timer-fs--running .timer-fs__custom-title,
-.timer-fs--custom-anim-pulse.timer-fs--running .timer-fs__custom-title {
+.timer-fs--custom-anim-pulse.timer-fs--running .timer-fs__custom-title,
+.timer-fs--custom-anim-breathe.timer-fs--running .timer-fs__custom-title {
   animation: timer-fs-custom-pulse 1.35s ease-in-out infinite;
+}
+
+.timer-fs--custom-anim-breathe.timer-fs--running .timer-fs__custom-title {
+  animation-duration: 2.8s;
 }
 
 .timer-fs--custom-anim-combo.timer-fs--final .timer-fs__custom-title,
@@ -6419,15 +6564,21 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   animation: timer-fs-custom-pulse 0.55s ease-in-out infinite;
 }
 
-.timer-fs--custom-anim-combo.timer-fs--done .timer-fs__custom-title,
-.timer-fs--custom-anim-pulse.timer-fs--done .timer-fs__custom-title {
-  animation: timer-fs-custom-pulse 0.85s ease-in-out infinite;
+.timer-fs--custom-anim-glitch.timer-fs--running .timer-fs__custom-title,
+.timer-fs--custom-anim-glitch.timer-fs--final .timer-fs__custom-title,
+.timer-fs--custom-anim-glitch.timer-fs--done .timer-fs__custom-title {
+  animation: timer-fs-custom-glitch 0.85s steps(2, end) infinite;
+}
+
+.timer-fs--custom-anim-shake.timer-fs--final .timer-fs__custom-title,
+.timer-fs--custom-anim-shake.timer-fs--final .timer-fs__clock {
+  animation: timer-fs-custom-shake 0.18s linear infinite;
 }
 
 .timer-fs__custom-sub {
   margin: 0;
-  color: #fff;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--timer-accent-2);
+  font-family: var(--timer-font);
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.18em;
@@ -6438,8 +6589,8 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 .timer-fs__custom-quote {
   margin: 0.35rem 0 0;
   max-width: 28ch;
-  color: #cfcfcf;
-  font-family: var(--font-display);
+  color: color-mix(in srgb, var(--timer-accent-2) 75%, #aaa);
+  font-family: var(--timer-font);
   font-size: 0.92rem;
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -6459,6 +6610,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 .timer-fs--custom .timer-fs__meta {
   z-index: 8;
   color: color-mix(in srgb, var(--timer-accent) 70%, #fff);
+  font-family: var(--timer-font);
   font-size: 0.72rem;
 }
 
@@ -6466,6 +6618,20 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   z-index: 8;
   width: min(58vw, 15rem);
   margin: 0.25rem 0 0.65rem;
+}
+
+.timer-fs--custom .timer-fs__stage--big {
+  width: min(92vw, 24rem);
+}
+
+.timer-fs--custom .timer-fs__stage--norng .timer-fs__clock {
+  position: relative;
+  font-size: clamp(4.2rem, 22vw, 6.5rem);
+}
+
+.timer-fs--custom .timer-fs__clock {
+  font-family: var(--timer-font);
+  color: var(--timer-accent-2);
 }
 
 .timer-fs--custom .timer-fs__ring-value {
@@ -6481,6 +6647,7 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
 .timer-fs--custom .timer-fs__stamp {
   border-color: var(--timer-accent);
   color: var(--timer-accent);
+  font-family: var(--timer-font);
 }
 
 .timer-fs--custom.timer-fs--final .timer-fs__stamp,
@@ -6498,13 +6665,15 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   background: var(--timer-accent);
   color: #0a0a0a;
   border-color: var(--timer-accent);
+  font-family: var(--timer-font);
 }
 
 .timer-fs--custom .timer-fs__actions {
   z-index: 8;
 }
 
-.timer-fs--custom-scene-ring .timer-fs__ropes span {
+.timer-fs--custom-scene-ring .timer-fs__ropes span,
+.timer-fs--custom-layout-boxing .timer-fs__ropes span {
   background: linear-gradient(
     90deg,
     transparent,
@@ -6521,6 +6690,60 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   );
 }
 
+.timer-fs__bars-wrap {
+  position: relative;
+  z-index: 8;
+  display: flex;
+  width: min(88vw, 22rem);
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+  margin: 0.4rem 0 0.8rem;
+}
+
+.timer-fs__clock--bars {
+  position: relative;
+  font-size: clamp(3.4rem, 16vw, 5rem);
+  font-family: var(--timer-font);
+  color: var(--timer-accent-2);
+  line-height: 1;
+}
+
+.timer-fs__bar {
+  width: 100%;
+  height: 0.55rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--timer-accent) 18%, #111);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--timer-accent) 35%, transparent);
+}
+
+.timer-fs__bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    var(--timer-accent),
+    color-mix(in srgb, var(--timer-accent) 55%, #fff)
+  );
+  transition: width 0.15s linear;
+}
+
+.timer-fs--custom-layout-war .timer-fs__clock {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.timer-fs--custom-layout-minimal {
+  justify-content: center;
+  gap: 1.2rem;
+}
+
+.timer-fs--custom-layout-poster {
+  gap: 0.3rem;
+}
+
 @keyframes timer-fs-custom-pulse {
   0%,
   100% {
@@ -6535,9 +6758,64 @@ html[data-ui-layout='focus'] .focus-pr-bill__merge {
   }
 }
 
+@keyframes timer-fs-custom-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.92;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+@keyframes timer-fs-custom-glitch {
+  0%,
+  100% {
+    transform: translate(0);
+    text-shadow: 0 0 12px color-mix(in srgb, var(--timer-accent) 40%, transparent);
+  }
+  25% {
+    transform: translate(-2px, 1px);
+    text-shadow:
+      -2px 0 #0ff,
+      2px 0 var(--timer-accent);
+  }
+  50% {
+    transform: translate(2px, -1px);
+  }
+  75% {
+    transform: translate(-1px, 2px);
+    text-shadow:
+      2px 0 #0ff,
+      -2px 0 var(--timer-accent);
+  }
+}
+
+@keyframes timer-fs-custom-shake {
+  0%,
+  100% {
+    transform: translate(0);
+  }
+  25% {
+    transform: translate(-3px, 1px);
+  }
+  50% {
+    transform: translate(3px, -1px);
+  }
+  75% {
+    transform: translate(-2px, 2px);
+  }
+}
+
 @media (max-height: 760px) {
   .timer-fs__custom-gif-wrap {
     width: min(32vw, 6.5rem);
+  }
+
+  .timer-fs__custom-poster {
+    width: min(84vw, 18rem);
   }
 
   .timer-fs__custom-title {

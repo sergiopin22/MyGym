@@ -25,7 +25,7 @@ export function TimerCustomSkinPage() {
       <PageHeader
         kicker="Focus · Timer"
         title="Mis diseños"
-        subtitle="Crea skins con tu GIF, color y frases. Hasta 8."
+        subtitle={`Layout, tipografía, fondo, overlay y media. Hasta ${MAX_TIMER_CUSTOM_SKINS}.`}
         back={
           <Link
             to="/temporizador"
@@ -73,8 +73,8 @@ export function TimerCustomSkinPage() {
                         {skin.subtitle ? ` · ${skin.subtitle}` : ''}
                       </p>
                       <p className="mt-1 text-xs uppercase tracking-wide text-muted">
-                        {skin.scene} · {skin.anim}
-                        {skin.hasGif ? ' · GIF' : ''}
+                        {skin.layout} · {skin.font} · {skin.anim}
+                        {skin.hasGif ? ' · media' : ''}
                         {active ? ' · Activo' : ''}
                       </p>
                     </div>
