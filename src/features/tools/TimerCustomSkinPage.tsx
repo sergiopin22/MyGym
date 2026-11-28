@@ -25,7 +25,7 @@ export function TimerCustomSkinPage() {
       <PageHeader
         kicker="Focus · Timer"
         title="Mis diseños"
-        subtitle={`Layout, tipografía, fondo, overlay y media. Hasta ${MAX_TIMER_CUSTOM_SKINS}.`}
+        subtitle={`Plantillas listas + retoques. Hasta ${MAX_TIMER_CUSTOM_SKINS}.`}
         back={
           <Link
             to="/temporizador"

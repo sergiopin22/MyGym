@@ -152,6 +152,259 @@ export const TIMER_OVERLAY_OPTIONS: Array<{
   { id: 'tint', label: 'Tint', tagline: 'Baño del acento' },
 ]
 
+/** Combos curados: un toque y ya combina bien. */
+export type TimerThemePackId =
+  | 'guerra'
+  | 'ring'
+  | 'oxido'
+  | 'neon'
+  | 'cyber'
+  | 'oro'
+  | 'anime'
+  | 'clean'
+
+export interface TimerThemePack {
+  id: TimerThemePackId
+  label: string
+  tagline: string
+  swatches: [string, string, string]
+  patch: Omit<
+    TimerCustomSkinMeta,
+    'id' | 'hasGif' | 'updatedAt' | 'name'
+  > & { name?: string }
+}
+
+export const TIMER_THEME_PACKS: TimerThemePack[] = [
+  {
+    id: 'guerra',
+    label: 'Guerra',
+    tagline: 'Rojo Temach · HUD · combo',
+    swatches: ['#e10600', '#050505', '#ffffff'],
+    patch: {
+      name: 'Modo Guerra',
+      accent: '#e10600',
+      accentSecondary: '#ffffff',
+      title: 'MODO GUERRA',
+      subtitle: 'EJÉRCITO DE LOS COMPAS',
+      stamp: 'ROUND',
+      doneText: 'GO',
+      quotes: [
+        'Disciplina > motivación',
+        'Exhausto y victorioso',
+        'Un round más',
+      ],
+      scene: 'war',
+      anim: 'combo',
+      layout: 'war',
+      font: 'impact',
+      mediaPos: 'top',
+      bgMode: 'gradient',
+      bgColor: '#0a0000',
+      bgColor2: '#1a0505',
+      overlay: 'hazard',
+      overlayIntensity: 45,
+    },
+  },
+  {
+    id: 'ring',
+    label: 'Ring',
+    tagline: 'Box · cuerdas · impacto',
+    swatches: ['#c41e3a', '#080808', '#f8fafc'],
+    patch: {
+      name: 'Ring',
+      accent: '#c41e3a',
+      accentSecondary: '#f8fafc',
+      title: 'IPPO',
+      subtitle: 'KAMOGAWA BOXING GYM',
+      stamp: 'ROUND',
+      doneText: 'BELL',
+      quotes: ['El espíritu de lucha', 'Último round', 'Nunca te rindas'],
+      scene: 'ring',
+      anim: 'impact',
+      layout: 'boxing',
+      font: 'display',
+      mediaPos: 'top',
+      bgMode: 'solid',
+      bgColor: '#070707',
+      bgColor2: '#1a0a0a',
+      overlay: 'vignette',
+      overlayIntensity: 60,
+    },
+  },
+  {
+    id: 'oxido',
+    label: 'Óxido',
+    tagline: 'Gym dark · clássico · pulse',
+    swatches: ['#ea580c', '#0a0908', '#ffedd5'],
+    patch: {
+      name: 'Óxido',
+      accent: '#ea580c',
+      accentSecondary: '#ffedd5',
+      title: 'FOCUS',
+      subtitle: 'MI GYM',
+      stamp: 'WORK',
+      doneText: 'GO',
+      quotes: ['Una serie más', 'Constancia', 'Hoy toca'],
+      scene: 'clean',
+      anim: 'pulse',
+      layout: 'classic',
+      font: 'display',
+      mediaPos: 'top',
+      bgMode: 'gradient',
+      bgColor: '#0a0908',
+      bgColor2: '#1c120a',
+      overlay: 'grain',
+      overlayIntensity: 40,
+    },
+  },
+  {
+    id: 'neon',
+    label: 'Neón',
+    tagline: 'Lima · dígitos grandes · breathe',
+    swatches: ['#a3e635', '#030712', '#ecfccb'],
+    patch: {
+      name: 'Neón',
+      accent: '#a3e635',
+      accentSecondary: '#ecfccb',
+      title: 'CHARGE',
+      subtitle: 'ENERGY',
+      stamp: 'LIVE',
+      doneText: 'GO',
+      quotes: ['Sigue el ritmo', 'Carga completa', 'Otro round'],
+      scene: 'clean',
+      anim: 'breathe',
+      layout: 'big',
+      font: 'rounded',
+      mediaPos: 'watermark',
+      bgMode: 'solid',
+      bgColor: '#030712',
+      bgColor2: '#052e16',
+      overlay: 'tint',
+      overlayIntensity: 25,
+    },
+  },
+  {
+    id: 'cyber',
+    label: 'Cyber',
+    tagline: 'Azul · barras · glitch',
+    swatches: ['#38bdf8', '#020617', '#e0f2fe'],
+    patch: {
+      name: 'Cyber',
+      accent: '#38bdf8',
+      accentSecondary: '#e0f2fe',
+      title: 'SYSTEM',
+      subtitle: 'ONLINE',
+      stamp: 'SYNC',
+      doneText: 'OK',
+      quotes: ['Procesando…', 'Casi listo', 'Ejecutar'],
+      scene: 'clean',
+      anim: 'glitch',
+      layout: 'bars',
+      font: 'mono',
+      mediaPos: 'hidden',
+      bgMode: 'gradient',
+      bgColor: '#020617',
+      bgColor2: '#0c4a6e',
+      overlay: 'scan',
+      overlayIntensity: 50,
+    },
+  },
+  {
+    id: 'oro',
+    label: 'Oro',
+    tagline: 'Minimal · elegante · sin ruido',
+    swatches: ['#fbbf24', '#09090b', '#fef3c7'],
+    patch: {
+      name: 'Oro',
+      accent: '#fbbf24',
+      accentSecondary: '#fef3c7',
+      title: 'LEGACY',
+      subtitle: 'ELITE',
+      stamp: 'PR',
+      doneText: 'GO',
+      quotes: ['Calma y fuerza', 'Precisión', 'Dominio'],
+      scene: 'clean',
+      anim: 'none',
+      layout: 'minimal',
+      font: 'soft',
+      mediaPos: 'hidden',
+      bgMode: 'solid',
+      bgColor: '#09090b',
+      bgColor2: '#1c1917',
+      overlay: 'vignette',
+      overlayIntensity: 35,
+    },
+  },
+  {
+    id: 'anime',
+    label: 'Anime',
+    tagline: 'Poster · soft · niebla',
+    swatches: ['#a78bfa', '#0f0a1a', '#f5f3ff'],
+    patch: {
+      name: 'Anime',
+      accent: '#a78bfa',
+      accentSecondary: '#f5f3ff',
+      title: 'SHONEN',
+      subtitle: 'TRAINING ARC',
+      stamp: 'ARC',
+      doneText: 'GO',
+      quotes: ['Power up', 'No te rindas', 'Nuevo nivel'],
+      scene: 'clean',
+      anim: 'breathe',
+      layout: 'poster',
+      font: 'rounded',
+      mediaPos: 'top',
+      bgMode: 'gradient',
+      bgColor: '#0f0a1a',
+      bgColor2: '#2e1065',
+      overlay: 'mist',
+      overlayIntensity: 45,
+    },
+  },
+  {
+    id: 'clean',
+    label: 'Clean',
+    tagline: 'Blanco · simple · sin FX',
+    swatches: ['#ffffff', '#000000', '#e5e5e5'],
+    patch: {
+      name: 'Clean',
+      accent: '#ffffff',
+      accentSecondary: '#e5e5e5',
+      title: 'TIMER',
+      subtitle: '',
+      stamp: 'SET',
+      doneText: 'GO',
+      quotes: ['Respira', 'Enfócate', 'Listo'],
+      scene: 'clean',
+      anim: 'none',
+      layout: 'classic',
+      font: 'soft',
+      mediaPos: 'top',
+      bgMode: 'solid',
+      bgColor: '#000000',
+      bgColor2: '#171717',
+      overlay: 'none',
+      overlayIntensity: 0,
+    },
+  },
+]
+
+export function applyThemePack(
+  skin: TimerCustomSkinMeta,
+  packId: TimerThemePackId,
+): TimerCustomSkinMeta {
+  const pack = TIMER_THEME_PACKS.find((p) => p.id === packId)
+  if (!pack) return skin
+  return {
+    ...skin,
+    ...pack.patch,
+    name: pack.patch.name ?? skin.name,
+    id: skin.id,
+    hasGif: skin.hasGif,
+    updatedAt: skin.updatedAt,
+  }
+}
+
 function clampIntensity(n: unknown): number {
   const v = typeof n === 'number' ? n : Number(n)
   if (!Number.isFinite(v)) return 55
@@ -167,29 +420,30 @@ export function createEmptyCustomSkin(): TimerCustomSkinMeta {
     typeof crypto !== 'undefined' && 'randomUUID' in crypto
       ? crypto.randomUUID()
       : `skin-${Date.now()}`
-  return {
+  const base: TimerCustomSkinMeta = {
     id,
     name: 'Mi diseño',
-    accent: '#e10600',
-    accentSecondary: '#ffffff',
-    title: 'MI ROUND',
-    subtitle: 'PERSONAL',
-    stamp: 'ROUND',
+    accent: '#ea580c',
+    accentSecondary: '#ffedd5',
+    title: 'FOCUS',
+    subtitle: 'MI GYM',
+    stamp: 'WORK',
     doneText: 'GO',
-    quotes: ['Disciplina > motivación', 'Un round más', 'Sigue adelante'],
+    quotes: ['Una serie más', 'Constancia', 'Hoy toca'],
     scene: 'clean',
-    anim: 'combo',
+    anim: 'pulse',
     layout: 'classic',
     font: 'display',
     mediaPos: 'top',
-    bgMode: 'solid',
-    bgColor: '#050505',
-    bgColor2: '#1a0505',
-    overlay: 'vignette',
-    overlayIntensity: 55,
+    bgMode: 'gradient',
+    bgColor: '#0a0908',
+    bgColor2: '#1c120a',
+    overlay: 'grain',
+    overlayIntensity: 40,
     hasGif: false,
     updatedAt: Date.now(),
   }
+  return base
 }
 
 export function listCustomSkins(): TimerCustomSkinMeta[] {
