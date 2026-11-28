@@ -10,7 +10,7 @@ export const MAX_REST_SECONDS = 600
 export const REST_PRESETS = [120, 180, 240, 300] as const
 export const FINAL_TICK_SECONDS = 5
 
-export type TimerToneId = 'focus' | 'box' | 'guerra' | 'suave'
+export type TimerToneId = 'focus' | 'box' | 'guerra' | 'impulso'
 export type TimerDesignId = 'ippo' | 'temach' | 'temach-logo' | 'classic'
 
 export const TIMER_TONES: Array<{
@@ -21,22 +21,22 @@ export const TIMER_TONES: Array<{
   {
     id: 'focus',
     label: 'Focus',
-    tagline: 'Ascendente + triple ping',
+    tagline: 'Arpegio mayor · fanfarria GO',
   },
   {
     id: 'box',
     label: 'Box',
-    tagline: 'Metronomo + campana round',
+    tagline: 'Corner tap · campana de round',
   },
   {
     id: 'guerra',
     label: 'Guerra',
-    tagline: 'Urgente + ping fuerte',
+    tagline: 'Stomp urgente · cuerno de guerra',
   },
   {
-    id: 'suave',
-    label: 'Suave',
-    tagline: 'Pulse calmado + ding limpio',
+    id: 'impulso',
+    label: 'Impulso',
+    tagline: 'Quintas energéticas · GO doble',
   },
 ]
 
@@ -104,7 +104,7 @@ function isTimerToneId(value: string): value is TimerToneId {
     value === 'focus' ||
     value === 'box' ||
     value === 'guerra' ||
-    value === 'suave'
+    value === 'impulso'
   )
 }
 
@@ -113,6 +113,7 @@ export function getTimerTone(): TimerToneId {
     const raw = localStorage.getItem(TIMER_TONE_KEY)
     if (raw === 'bell') return 'box'
     if (raw === 'beep') return 'focus'
+    if (raw === 'suave') return 'impulso'
     if (raw && isTimerToneId(raw)) return raw
   } catch {
     /* ignore */
@@ -355,40 +356,93 @@ function blip(
   osc.stop(at + dur + 0.05)
 }
 
-/** Campana de box aproximada (parciales metálicos). */
-function toneBell(ctx: AudioContext, at: number, gain = 0.28) {
-  const freqs = [520, 780, 1040]
-  const gains = [gain, gain * 0.5, gain * 0.28]
-  for (let i = 0; i < freqs.length; i++) {
+/** Nota con armónicos (suena más “musical” / motivador). */
+function note(
+  ctx: AudioContext,
+  at: number,
+  freq: number,
+  {
+    gain = 0.2,
+    dur = 0.22,
+    type = 'triangle' as OscillatorType,
+  }: { gain?: number; dur?: number; type?: OscillatorType } = {},
+) {
+  blip(ctx, at, { freq, type, gain, dur })
+  blip(ctx, at, {
+    freq: freq * 2,
+    type: 'sine',
+    gain: gain * 0.28,
+    dur: dur * 0.85,
+  })
+}
+
+/** Campana de round más gruesa (parciales + decay largo). */
+function toneBell(ctx: AudioContext, at: number, gain = 0.32) {
+  const partials: Array<[number, number, OscillatorType]> = [
+    [523.25, gain, 'triangle'],
+    [784.0, gain * 0.55, 'sine'],
+    [1046.5, gain * 0.32, 'sine'],
+    [1568.0, gain * 0.16, 'sine'],
+  ]
+  for (const [freq, gPeak, type] of partials) {
     const osc = ctx.createOscillator()
     const g = ctx.createGain()
-    osc.type = i === 0 ? 'triangle' : 'sine'
-    osc.frequency.setValueAtTime(freqs[i]!, at)
-    rampGain(g, at, gains[i]!, 1.05)
+    osc.type = type
+    osc.frequency.setValueAtTime(freq, at)
+    g.gain.setValueAtTime(0.0001, at)
+    g.gain.linearRampToValueAtTime(gPeak, at + 0.02)
+    g.gain.exponentialRampToValueAtTime(0.0001, at + 1.35)
     osc.connect(g)
     g.connect(ctx.destination)
     trackOsc(osc)
     osc.start(at)
-    osc.stop(at + 1.1)
+    osc.stop(at + 1.4)
   }
 }
 
-function toneTriplePing(ctx: AudioContext, at: number, strong = false) {
-  const base = strong ? 0.26 : 0.2
-  const freqs = strong ? [760, 980, 1240] : [880, 1100, 1320]
+/** Fanfarria corta mayor (C–E–G–C): sensación de victoria / GO. */
+function toneFanfare(ctx: AudioContext, at: number) {
+  const freqs = [523.25, 659.25, 783.99, 1046.5]
   freqs.forEach((freq, i) => {
-    blip(ctx, at + i * 0.14, {
-      freq,
-      type: 'sine',
-      gain: base - i * 0.02,
-      dur: 0.16,
+    note(ctx, at + i * 0.09, freq, {
+      gain: 0.2 + i * 0.02,
+      dur: 0.2 + i * 0.04,
+      type: i === 3 ? 'sine' : 'triangle',
     })
   })
 }
 
-function toneSoftDing(ctx: AudioContext, at: number) {
-  blip(ctx, at, { freq: 660, type: 'triangle', gain: 0.18, dur: 0.28 })
-  blip(ctx, at + 0.22, { freq: 880, type: 'sine', gain: 0.14, dur: 0.32 })
+/** Cuerno / blast motivador (quinta + octava). */
+function toneWarHorn(ctx: AudioContext, at: number) {
+  blip(ctx, at, {
+    freq: 220,
+    type: 'sawtooth',
+    gain: 0.16,
+    dur: 0.45,
+    slideTo: 330,
+  })
+  blip(ctx, at + 0.05, {
+    freq: 330,
+    type: 'square',
+    gain: 0.12,
+    dur: 0.4,
+    slideTo: 440,
+  })
+  note(ctx, at + 0.35, 660, { gain: 0.22, dur: 0.28, type: 'triangle' })
+  note(ctx, at + 0.48, 880, { gain: 0.18, dur: 0.35, type: 'sine' })
+}
+
+/** Doble GO energético (quinta). */
+function tonePowerGo(ctx: AudioContext, at: number) {
+  note(ctx, at, 392, { gain: 0.22, dur: 0.18, type: 'triangle' })
+  note(ctx, at + 0.12, 587.33, { gain: 0.24, dur: 0.22, type: 'triangle' })
+  note(ctx, at + 0.28, 784, { gain: 0.2, dur: 0.35, type: 'sine' })
+  blip(ctx, at + 0.28, {
+    freq: 1175,
+    type: 'sine',
+    gain: 0.1,
+    dur: 0.25,
+  })
 }
 
 function toneTickForPack(
@@ -398,56 +452,73 @@ function toneTickForPack(
   remainSec: number,
 ) {
   const step = Math.min(5, Math.max(1, Math.round(remainSec)))
+  const urgency = 5 - step // 0..4
+
   if (pack === 'box') {
-    blip(ctx, at, { freq: 920, type: 'triangle', gain: 0.14, dur: 0.07 })
-    return
-  }
-  if (pack === 'suave') {
+    // Corner tap: click + armónico agudo
+    blip(ctx, at, { freq: 180, type: 'square', gain: 0.08, dur: 0.04 })
     blip(ctx, at, {
-      freq: 520 + step * 28,
-      type: 'sine',
-      gain: 0.1,
-      dur: 0.14,
+      freq: 980 + urgency * 40,
+      type: 'triangle',
+      gain: 0.16,
+      dur: 0.08,
     })
     return
   }
+
   if (pack === 'guerra') {
-    const freq = 700 + (5 - step) * 160
-    blip(ctx, at, {
-      freq,
+    // Stomp + rising bite
+    blip(ctx, at, { freq: 90 + urgency * 8, type: 'sawtooth', gain: 0.14, dur: 0.08 })
+    blip(ctx, at + 0.03, {
+      freq: 620 + urgency * 120,
       type: 'square',
-      gain: 0.11 + (5 - step) * 0.02,
-      dur: 0.09,
-      slideTo: freq + 80,
+      gain: 0.12 + urgency * 0.015,
+      dur: 0.1,
+      slideTo: 720 + urgency * 120,
     })
     return
   }
-  // focus: ascendente limpio
-  const freq = 720 + (5 - step) * 140
-  blip(ctx, at, { freq, type: 'sine', gain: 0.14, dur: 0.1 })
+
+  if (pack === 'impulso') {
+    // Quintas que suben: te empujan
+    const root = 330 + urgency * 55
+    note(ctx, at, root, { gain: 0.14, dur: 0.12, type: 'triangle' })
+    note(ctx, at + 0.05, root * 1.5, { gain: 0.12, dur: 0.14, type: 'sine' })
+    return
+  }
+
+  // Focus: arpegio mayor fragmentado (más brillante cada segundo)
+  const chord = [523.25, 659.25, 783.99, 1046.5]
+  const idx = Math.min(chord.length - 1, urgency)
+  note(ctx, at, chord[idx]!, {
+    gain: 0.15 + urgency * 0.02,
+    dur: 0.14,
+    type: 'triangle',
+  })
+  if (urgency >= 3) {
+    note(ctx, at + 0.06, chord[Math.min(idx + 1, chord.length - 1)]!, {
+      gain: 0.12,
+      dur: 0.12,
+      type: 'sine',
+    })
+  }
 }
 
 function toneAlarmForPack(ctx: AudioContext, at: number, pack: TimerToneId) {
   if (pack === 'box') {
-    toneBell(ctx, at, 0.3)
-    return
-  }
-  if (pack === 'suave') {
-    toneSoftDing(ctx, at)
+    toneBell(ctx, at, 0.34)
+    toneBell(ctx, at + 0.55, 0.22)
     return
   }
   if (pack === 'guerra') {
-    toneTriplePing(ctx, at, true)
-    blip(ctx, at + 0.5, {
-      freq: 420,
-      type: 'sawtooth',
-      gain: 0.12,
-      dur: 0.22,
-      slideTo: 280,
-    })
+    toneWarHorn(ctx, at)
     return
   }
-  toneTriplePing(ctx, at, false)
+  if (pack === 'impulso') {
+    tonePowerGo(ctx, at)
+    return
+  }
+  toneFanfare(ctx, at)
 }
 
 async function withRunningCtx(
@@ -467,7 +538,7 @@ export function playFinalTick(
 ): void {
   if (typeof window === 'undefined') return
   const step = Math.min(5, Math.max(1, Math.round(remainSec)))
-  vibratePattern(tone === 'suave' ? 18 : tone === 'guerra' ? 35 : 25)
+  vibratePattern(tone === 'guerra' ? 40 : tone === 'impulso' ? 28 : 25)
   if (!isTimerSoundEnabled()) return
   void withRunningCtx((ctx) => {
     toneTickForPack(ctx, ctx.currentTime, tone, step)
@@ -483,13 +554,13 @@ export function playTimerDoneAlarm(tone: TimerToneId = getTimerTone()): void {
 
   stopTimerAlarm()
   vibratePattern(
-    tone === 'suave'
-      ? [40, 60, 80]
-      : tone === 'box'
-        ? [50, 70, 120]
-        : tone === 'guerra'
-          ? [70, 50, 70, 50, 160]
-          : [60, 80, 60, 80, 140],
+    tone === 'box'
+      ? [50, 70, 120, 60, 160]
+      : tone === 'guerra'
+        ? [80, 40, 80, 40, 180]
+        : tone === 'impulso'
+          ? [55, 50, 55, 50, 140]
+          : [50, 60, 50, 60, 150],
   )
 
   if (!isTimerSoundEnabled()) return
@@ -502,8 +573,9 @@ export function playTimerDoneAlarm(tone: TimerToneId = getTimerTone()): void {
       for (const id of timers) window.clearTimeout(id)
     })
 
+    // Una o dos vueltas potentes (no spam eterno).
     const repeats =
-      tone === 'suave' ? [0, 1600] : tone === 'box' ? [0, 1400] : [0, 1200, 2400]
+      tone === 'box' || tone === 'guerra' ? [0, 1500] : [0, 1300]
 
     for (const whenMs of repeats) {
       const id = window.setTimeout(() => {
@@ -512,11 +584,11 @@ export function playTimerDoneAlarm(tone: TimerToneId = getTimerTone()): void {
           if (!ok || cancelled) return
           toneAlarmForPack(ctx, ctx.currentTime, tone)
           vibratePattern(
-            tone === 'suave'
-              ? [30, 40, 50]
-              : tone === 'box'
-                ? [50, 70, 120]
-                : [40, 45, 40],
+            tone === 'box'
+              ? [50, 70, 140]
+              : tone === 'guerra'
+                ? [70, 40, 90]
+                : [45, 40, 70],
           )
         })
       }, whenMs)
