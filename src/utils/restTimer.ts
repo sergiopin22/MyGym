@@ -10,13 +10,37 @@ export const MAX_REST_SECONDS = 600
 export const REST_PRESETS = [120, 180, 240, 300] as const
 export const FINAL_TICK_SECONDS = 5
 
-export type TimerToneId = 'beep' | 'bell'
+export type TimerToneId = 'focus' | 'box' | 'guerra' | 'suave'
 export type TimerDesignId = 'ippo' | 'temach' | 'temach-logo' | 'classic'
 
-export const TIMER_TONES: Array<{ id: TimerToneId; label: string }> = [
-  { id: 'beep', label: 'Beep' },
-  { id: 'bell', label: 'Campana box' },
+export const TIMER_TONES: Array<{
+  id: TimerToneId
+  label: string
+  tagline: string
+}> = [
+  {
+    id: 'focus',
+    label: 'Focus',
+    tagline: 'Ascendente + triple ping',
+  },
+  {
+    id: 'box',
+    label: 'Box',
+    tagline: 'Metronomo + campana round',
+  },
+  {
+    id: 'guerra',
+    label: 'Guerra',
+    tagline: 'Urgente + ping fuerte',
+  },
+  {
+    id: 'suave',
+    label: 'Suave',
+    tagline: 'Pulse calmado + ding limpio',
+  },
 ]
+
+export const DEFAULT_TIMER_TONE: TimerToneId = 'focus'
 
 export const TIMER_DESIGNS: Array<{
   id: TimerDesignId
@@ -75,23 +99,35 @@ export function setRestSeconds(sec: number): number {
   return next
 }
 
+function isTimerToneId(value: string): value is TimerToneId {
+  return (
+    value === 'focus' ||
+    value === 'box' ||
+    value === 'guerra' ||
+    value === 'suave'
+  )
+}
+
 export function getTimerTone(): TimerToneId {
   try {
     const raw = localStorage.getItem(TIMER_TONE_KEY)
-    if (raw === 'bell' || raw === 'beep') return raw
+    if (raw === 'bell') return 'box'
+    if (raw === 'beep') return 'focus'
+    if (raw && isTimerToneId(raw)) return raw
   } catch {
     /* ignore */
   }
-  return 'bell'
+  return DEFAULT_TIMER_TONE
 }
 
 export function setTimerTone(tone: TimerToneId): TimerToneId {
+  const next = isTimerToneId(tone) ? tone : DEFAULT_TIMER_TONE
   try {
-    localStorage.setItem(TIMER_TONE_KEY, tone)
+    localStorage.setItem(TIMER_TONE_KEY, next)
   } catch {
     /* private mode */
   }
-  return tone
+  return next
 }
 
 /** Solo el mute del timer (no el de PR). Por defecto: sonido ON. */
@@ -287,18 +323,36 @@ function rampGain(g: GainNode, at: number, peak: number, dur: number) {
   g.gain.linearRampToValueAtTime(0.0001, at + dur)
 }
 
-function toneBeep(ctx: AudioContext, at: number, gain = 0.22) {
+function blip(
+  ctx: AudioContext,
+  at: number,
+  {
+    freq,
+    type = 'sine',
+    gain = 0.2,
+    dur = 0.12,
+    slideTo,
+  }: {
+    freq: number
+    type?: OscillatorType
+    gain?: number
+    dur?: number
+    slideTo?: number
+  },
+) {
   const osc = ctx.createOscillator()
   const g = ctx.createGain()
-  osc.type = 'sine'
-  osc.frequency.setValueAtTime(880, at)
-  osc.frequency.linearRampToValueAtTime(520, at + 0.22)
-  rampGain(g, at, gain, 0.3)
+  osc.type = type
+  osc.frequency.setValueAtTime(freq, at)
+  if (slideTo != null) {
+    osc.frequency.linearRampToValueAtTime(slideTo, at + dur * 0.85)
+  }
+  rampGain(g, at, gain, dur)
   osc.connect(g)
   g.connect(ctx.destination)
   trackOsc(osc)
   osc.start(at)
-  osc.stop(at + 0.35)
+  osc.stop(at + dur + 0.05)
 }
 
 /** Campana de box aproximada (parciales metálicos). */
@@ -319,17 +373,81 @@ function toneBell(ctx: AudioContext, at: number, gain = 0.28) {
   }
 }
 
-function toneTick(ctx: AudioContext, at: number) {
-  const osc = ctx.createOscillator()
-  const g = ctx.createGain()
-  osc.type = 'square'
-  osc.frequency.setValueAtTime(1400, at)
-  rampGain(g, at, 0.12, 0.08)
-  osc.connect(g)
-  g.connect(ctx.destination)
-  trackOsc(osc)
-  osc.start(at)
-  osc.stop(at + 0.1)
+function toneTriplePing(ctx: AudioContext, at: number, strong = false) {
+  const base = strong ? 0.26 : 0.2
+  const freqs = strong ? [760, 980, 1240] : [880, 1100, 1320]
+  freqs.forEach((freq, i) => {
+    blip(ctx, at + i * 0.14, {
+      freq,
+      type: 'sine',
+      gain: base - i * 0.02,
+      dur: 0.16,
+    })
+  })
+}
+
+function toneSoftDing(ctx: AudioContext, at: number) {
+  blip(ctx, at, { freq: 660, type: 'triangle', gain: 0.18, dur: 0.28 })
+  blip(ctx, at + 0.22, { freq: 880, type: 'sine', gain: 0.14, dur: 0.32 })
+}
+
+function toneTickForPack(
+  ctx: AudioContext,
+  at: number,
+  pack: TimerToneId,
+  remainSec: number,
+) {
+  const step = Math.min(5, Math.max(1, Math.round(remainSec)))
+  if (pack === 'box') {
+    blip(ctx, at, { freq: 920, type: 'triangle', gain: 0.14, dur: 0.07 })
+    return
+  }
+  if (pack === 'suave') {
+    blip(ctx, at, {
+      freq: 520 + step * 28,
+      type: 'sine',
+      gain: 0.1,
+      dur: 0.14,
+    })
+    return
+  }
+  if (pack === 'guerra') {
+    const freq = 700 + (5 - step) * 160
+    blip(ctx, at, {
+      freq,
+      type: 'square',
+      gain: 0.11 + (5 - step) * 0.02,
+      dur: 0.09,
+      slideTo: freq + 80,
+    })
+    return
+  }
+  // focus: ascendente limpio
+  const freq = 720 + (5 - step) * 140
+  blip(ctx, at, { freq, type: 'sine', gain: 0.14, dur: 0.1 })
+}
+
+function toneAlarmForPack(ctx: AudioContext, at: number, pack: TimerToneId) {
+  if (pack === 'box') {
+    toneBell(ctx, at, 0.3)
+    return
+  }
+  if (pack === 'suave') {
+    toneSoftDing(ctx, at)
+    return
+  }
+  if (pack === 'guerra') {
+    toneTriplePing(ctx, at, true)
+    blip(ctx, at + 0.5, {
+      freq: 420,
+      type: 'sawtooth',
+      gain: 0.12,
+      dur: 0.22,
+      slideTo: 280,
+    })
+    return
+  }
+  toneTriplePing(ctx, at, false)
 }
 
 async function withRunningCtx(
@@ -342,13 +460,17 @@ async function withRunningCtx(
   play(ctx)
 }
 
-/** Tick de los últimos segundos. */
-export function playFinalTick(): void {
+/** Tick de los últimos segundos (remainSec = 5..1). */
+export function playFinalTick(
+  remainSec = 5,
+  tone: TimerToneId = getTimerTone(),
+): void {
   if (typeof window === 'undefined') return
-  vibratePattern(25)
+  const step = Math.min(5, Math.max(1, Math.round(remainSec)))
+  vibratePattern(tone === 'suave' ? 18 : tone === 'guerra' ? 35 : 25)
   if (!isTimerSoundEnabled()) return
   void withRunningCtx((ctx) => {
-    toneTick(ctx, ctx.currentTime)
+    toneTickForPack(ctx, ctx.currentTime, tone, step)
   })
 }
 
@@ -360,7 +482,15 @@ export function playTimerDoneAlarm(tone: TimerToneId = getTimerTone()): void {
   if (typeof window === 'undefined') return
 
   stopTimerAlarm()
-  vibratePattern([60, 80, 60, 80, 140])
+  vibratePattern(
+    tone === 'suave'
+      ? [40, 60, 80]
+      : tone === 'box'
+        ? [50, 70, 120]
+        : tone === 'guerra'
+          ? [70, 50, 70, 50, 160]
+          : [60, 80, 60, 80, 140],
+  )
 
   if (!isTimerSoundEnabled()) return
 
@@ -372,30 +502,30 @@ export function playTimerDoneAlarm(tone: TimerToneId = getTimerTone()): void {
       for (const id of timers) window.clearTimeout(id)
     })
 
-    const playOnce = (whenMs: number) => {
+    const repeats =
+      tone === 'suave' ? [0, 1600] : tone === 'box' ? [0, 1400] : [0, 1200, 2400]
+
+    for (const whenMs of repeats) {
       const id = window.setTimeout(() => {
         if (cancelled) return
         void resumeCtx(ctx).then((ok) => {
           if (!ok || cancelled) return
-          const at = ctx.currentTime
-          if (tone === 'bell') toneBell(ctx, at)
-          else {
-            toneBeep(ctx, at)
-            toneBeep(ctx, at + 0.2, 0.18)
-          }
-          vibratePattern(tone === 'bell' ? [50, 70, 120] : [40, 45, 40])
+          toneAlarmForPack(ctx, ctx.currentTime, tone)
+          vibratePattern(
+            tone === 'suave'
+              ? [30, 40, 50]
+              : tone === 'box'
+                ? [50, 70, 120]
+                : [40, 45, 40],
+          )
         })
       }, whenMs)
       timers.push(id)
     }
-
-    playOnce(0)
-    playOnce(1300)
-    playOnce(2600)
   })
 }
 
-/** Preview de tono (desde un click → sí tiene gesto de usuario). */
+/** Preview de pack (ticks + alarma) desde un click. */
 export function previewTimerTone(tone: TimerToneId): void {
   if (typeof window === 'undefined') return
   stopTimerAlarm()
@@ -405,12 +535,16 @@ export function previewTimerTone(tone: TimerToneId): void {
     await unlockTimerAudio()
     const ctx = ensureCtx()
     if (!ctx) return
-    const at = ctx.currentTime
-    if (tone === 'bell') toneBell(ctx, at, 0.26)
-    else {
-      toneBeep(ctx, at, 0.22)
-      toneBeep(ctx, at + 0.2, 0.16)
-    }
+    const t0 = ctx.currentTime
+    toneTickForPack(ctx, t0, tone, 5)
+    toneTickForPack(ctx, t0 + 0.28, tone, 3)
+    toneTickForPack(ctx, t0 + 0.55, tone, 1)
+    window.setTimeout(() => {
+      void resumeCtx(ctx).then((ok) => {
+        if (!ok) return
+        toneAlarmForPack(ctx, ctx.currentTime, tone)
+      })
+    }, 900)
   })()
 }
 

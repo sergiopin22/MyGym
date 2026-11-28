@@ -59,7 +59,7 @@ export function StandaloneTimerPage() {
         lastTickSecRef.current !== remainFloor
       ) {
         lastTickSecRef.current = remainFloor
-        playFinalTick()
+        playFinalTick(remainFloor, tone)
       }
 
       if (elapsed >= targetSec * 1000 && !cuedRef.current) {
@@ -144,7 +144,10 @@ export function StandaloneTimerPage() {
           phase === 'done' ? (
             <p>Toca para callar la alarma y seguir.</p>
           ) : (
-            <p>Últimos {FINAL_TICK_SECONDS}s con tick · tono {tone === 'bell' ? 'campana' : 'beep'}</p>
+            <p>
+              Últimos {FINAL_TICK_SECONDS}s · pack{' '}
+              {TIMER_TONES.find((t) => t.id === tone)?.label ?? tone}
+            </p>
           )
         }
       />
@@ -212,29 +215,32 @@ export function StandaloneTimerPage() {
             </button>
           ))}
         </div>
-        <p className="timer-setup__label">Tono de alarma</p>
-        <div className="timer-setup__tones">
+        <p className="timer-setup__label">Sonido (tick + alarma)</p>
+        <div className="timer-setup__designs">
           {TIMER_TONES.map((row) => (
             <button
               key={row.id}
               type="button"
               className={[
-                'timer-setup__tone',
-                tone === row.id ? 'timer-setup__tone--active' : '',
+                'timer-setup__design',
+                tone === row.id ? 'timer-setup__design--active' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
               onClick={() => pickTone(row.id)}
             >
-              {row.label}
+              <strong>{row.label}</strong>
+              <span>{row.tagline}</span>
             </button>
           ))}
+        </div>
+        <div className="timer-setup__tones">
           <button
             type="button"
             className="timer-setup__tone timer-setup__tone--preview"
             onClick={() => previewTimerTone(tone)}
           >
-            Probar
+            Probar pack
           </button>
         </div>
 

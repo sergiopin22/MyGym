@@ -59,7 +59,7 @@ export function WorkoutRestTimer({ offerToken }: WorkoutRestTimerProps) {
         lastTickSecRef.current !== remainFloor
       ) {
         lastTickSecRef.current = remainFloor
-        playFinalTick()
+        playFinalTick(remainFloor)
       }
 
       if (elapsed >= targetSec * 1000 && !cuedRef.current) {

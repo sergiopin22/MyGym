@@ -59,7 +59,7 @@ export function TimerPreviewPage() {
         lastTickSecRef.current !== remainFloor
       ) {
         lastTickSecRef.current = remainFloor
-        playFinalTick()
+        playFinalTick(remainFloor, tone)
       }
 
       if (elapsed >= targetSec * 1000 && !cuedRef.current) {
@@ -213,29 +213,32 @@ export function TimerPreviewPage() {
             </button>
           ))}
         </div>
-        <p className="timer-setup__label">Tono de alarma</p>
-        <div className="timer-setup__tones">
+        <p className="timer-setup__label">Sonido (tick + alarma)</p>
+        <div className="timer-setup__designs">
           {TIMER_TONES.map((row) => (
             <button
               key={row.id}
               type="button"
               className={[
-                'timer-setup__tone',
-                tone === row.id ? 'timer-setup__tone--active' : '',
+                'timer-setup__design',
+                tone === row.id ? 'timer-setup__design--active' : '',
               ]
                 .filter(Boolean)
                 .join(' ')}
               onClick={() => pickTone(row.id)}
             >
-              {row.label}
+              <strong>{row.label}</strong>
+              <span>{row.tagline}</span>
             </button>
           ))}
+        </div>
+        <div className="timer-setup__tones">
           <button
             type="button"
             className="timer-setup__tone timer-setup__tone--preview"
             onClick={() => previewTimerTone(tone)}
           >
-            Probar tono
+            Probar pack
           </button>
         </div>
 
